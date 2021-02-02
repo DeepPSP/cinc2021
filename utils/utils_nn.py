@@ -121,24 +121,24 @@ def compute_output_shape(layer_type:str,
     [1] https://discuss.pytorch.org/t/utility-function-for-calculating-the-shape-of-a-conv-output/11173/5
     """
     __TYPES__ = [
-        'conv', 'convolution',
-        'deconv', 'deconvolution', 'transposeconv', 'transposeconvolution',
-        'maxpool', 'maxpooling',
-        'avgpool', 'avgpooling', 'averagepool', 'averagepooling',
+        "conv", "convolution",
+        "deconv", "deconvolution", "transposeconv", "transposeconvolution",
+        "maxpool", "maxpooling",
+        "avgpool", "avgpooling", "averagepool", "averagepooling",
     ]
     lt = "".join(layer_type.lower().split("_"))
     assert lt in __TYPES__
-    if lt in ['conv', 'convolution',]:
+    if lt in ["conv", "convolution",]:
         # as function of dilation, kernel_size
         minus_term = lambda d, k: d * (k - 1) + 1
         out_channels = num_filters
-    elif lt in ['maxpool', 'maxpooling',]:
+    elif lt in ["maxpool", "maxpooling",]:
         minus_term = lambda d, k: d * (k - 1) + 1
         out_channels = input_shape[-1] if channel_last else input_shape[1]
-    elif lt in ['avgpool', 'avgpooling', 'averagepool', 'averagepooling',]:
+    elif lt in ["avgpool", "avgpooling", "averagepool", "averagepooling",]:
         minus_term = lambda d, k: k
         out_channels = input_shape[-1] if channel_last else input_shape[1]
-    elif lt in ['deconv', 'deconvolution', 'transposeconv', 'transposeconvolution',]:
+    elif lt in ["deconv", "deconvolution", "transposeconv", "transposeconvolution",]:
         out_channels = num_filters
     dim = len(input_shape) - 2
     assert dim > 0, "input_shape should be a sequence of length at least 3, to be a valid (with batch and channel) shape of a non-degenerate Tensor"
@@ -206,7 +206,7 @@ def compute_output_shape(layer_type:str,
     else:
         _input_shape = list(input_shape[2:])
     
-    if lt in ['deconv', 'deconvolution', 'transposeconv', 'transposeconvolution',]:
+    if lt in ["deconv", "deconvolution", "transposeconv", "transposeconvolution",]:
         output_shape = [
             (i-1) * s - 2 * p + d * (k-1) + o + 1 \
                 for i, p, o, d, k, s in \
@@ -260,7 +260,7 @@ def compute_conv_output_shape(input_shape:Sequence[Union[int, type(None)]],
         shape of the output Tensor
     """
     output_shape = compute_output_shape(
-        'conv',
+        "conv",
         input_shape, num_filters, kernel_size, stride, padding, 0, dilation,
         channel_last,
     )
@@ -298,7 +298,7 @@ def compute_maxpool_output_shape(input_shape:Sequence[Union[int, type(None)]],
         shape of the output Tensor
     """
     output_shape = compute_output_shape(
-        'maxpool',
+        "maxpool",
         input_shape, 1, kernel_size, stride, padding, 0, dilation,
         channel_last,
     )
@@ -333,7 +333,7 @@ def compute_avgpool_output_shape(input_shape:Sequence[Union[int, type(None)]],
         shape of the output Tensor
     """
     output_shape = compute_output_shape(
-        'avgpool',
+        "avgpool",
         input_shape, 1, kernel_size, stride, padding, 0, 1,
         channel_last,
     )
@@ -380,7 +380,7 @@ def compute_deconv_output_shape(input_shape:Sequence[Union[int, type(None)]],
         shape of the output Tensor
     """
     output_shape = compute_output_shape(
-        'deconv',
+        "deconv",
         input_shape, num_filters, kernel_size, stride, padding, output_padding, dilation,
         channel_last,
     )

@@ -23,7 +23,7 @@ __all__ = [
 ]
 
 
-def smooth(x:np.ndarray, window_len:int=11, window:str='hanning', mode:str='valid', keep_dtype:bool=True) -> np.ndarray:
+def smooth(x:np.ndarray, window_len:int=11, window:str="hanning", mode:str="valid", keep_dtype:bool=True) -> np.ndarray:
     """ finished, checked
     
     smooth the 1d data using a window with requested size.
@@ -40,10 +40,10 @@ def smooth(x:np.ndarray, window_len:int=11, window:str='hanning', mode:str='vali
     window_len: int, default 11,
         the length of the smoothing window,
         (previously should be an odd integer, currently can be any (positive) integer)
-    window: str, default 'hanning',
-        the type of window from 'flat', 'hanning', 'hamming', 'bartlett', 'blackman',
+    window: str, default "hanning",
+        the type of window from "flat", "hanning", "hamming", "bartlett", "blackman",
         flat window will produce a moving average smoothing
-    mode: str, default 'valid',
+    mode: str, default "valid",
         ref. np.convolve
     keep_dtype: bool, default True,
         dtype of the returned value keeps the same with that of `x` or not
@@ -84,15 +84,15 @@ def smooth(x:np.ndarray, window_len:int=11, window:str='hanning', mode:str='vali
     if radius < 3:
         return x
     
-    if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
-        raise ValueError("Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'")
+    if not window in ["flat", "hanning", "hamming", "bartlett", "blackman"]:
+        raise ValueError("""Window is on of "flat", "hanning", "hamming", "bartlett", "blackman"""")
 
     s = np.r_[x[radius-1:0:-1], x, x[-2:-radius-1:-1]]
     #print(len(s))
-    if window == 'flat': #moving average
-        w = np.ones(radius,'d')
+    if window == "flat": #moving average
+        w = np.ones(radius,"d")
     else:
-        w = eval('np.'+window+'(radius)')
+        w = eval("np."+window+"(radius)")
 
     y = np.convolve(w/w.sum(), s, mode=mode)
     y = y[(radius//2-1):-(radius//2)-1]
@@ -129,19 +129,19 @@ class MovingAverage(object):
         -----------
         method: str,
             method for computing moving average, can be one of
-            - 'sma', 'simple', 'simple moving average'
-            - 'ema', 'ewma', 'exponential', 'exponential weighted', 'exponential moving average', 'exponential weighted moving average'
-            - 'cma', 'cumulative', 'cumulative moving average'
-            - 'wma', 'weighted', 'weighted moving average'
+            - "sma", "simple", "simple moving average"
+            - "ema", "ewma", "exponential", "exponential weighted", "exponential moving average", "exponential weighted moving average"
+            - "cma", "cumulative", "cumulative moving average"
+            - "wma", "weighted", "weighted moving average"
         """
-        m = method.lower().replace('_', ' ')
-        if m in ['sma', 'simple', 'simple moving average']:
+        m = method.lower().replace("_", " ")
+        if m in ["sma", "simple", "simple moving average"]:
             func = self._sma
-        elif m in ['ema', 'ewma', 'exponential', 'exponential weighted', 'exponential moving average', 'exponential weighted moving average']:
+        elif m in ["ema", "ewma", "exponential", "exponential weighted", "exponential moving average", "exponential weighted moving average"]:
             func = self._ema
-        elif m in ['cma', 'cumulative', 'cumulative moving average']:
+        elif m in ["cma", "cumulative", "cumulative moving average"]:
             func = self._cma
-        elif m in ['wma', 'weighted', 'weighted moving average']:
+        elif m in ["wma", "weighted", "weighted moving average"]:
             func = self._wma
         else:
             raise NotImplementedError
@@ -225,7 +225,7 @@ class MovingAverage(object):
         # numerator = []
         conv = np.arange(1, window+1)[::-1]
         deno = np.sum(conv)
-        smoothed = np.convolve(conv, self.data, mode='same') / deno
+        smoothed = np.convolve(conv, self.data, mode="same") / deno
         return smoothed
 
 
@@ -242,7 +242,7 @@ def resample_irregular_timeseries(s:np.ndarray, output_fs:Real=2, method:str="sp
     output_fs: Real, default 2,
         the frequency of the output 1d regular timeseries
     method: str, default "spline"
-        interpolation method, can be 'spline' or 'interp1d'
+        interpolation method, can be "spline" or "interp1d"
     return_with_time: bool, default False,
         return a 2d array, with the 0-th coordinate being time
     tnew: array_like, optional,
@@ -275,9 +275,9 @@ def resample_irregular_timeseries(s:np.ndarray, output_fs:Real=2, method:str="sp
         xnew = np.array(tnew)
 
     if verbose >= 1:
-        print(f'time_series start ts = {time_series[0][0]}, end ts = {time_series[-1][0]}')
-        print(f'tot_len = {tot_len}')
-        print(f'xnew start = {xnew[0]}, end = {xnew[-1]}')
+        print(f"time_series start ts = {time_series[0][0]}, end ts = {time_series[-1][0]}")
+        print(f"tot_len = {tot_len}")
+        print(f"xnew start = {xnew[0]}, end = {xnew[-1]}")
 
     if method.lower() == "spline":
         m = len(time_series)
@@ -304,7 +304,7 @@ def detect_peaks(x:Sequence,
                  mph:Optional[Real]=None, mpd:int=1,
                  threshold:Real=0, left_threshold:Real=0, right_threshold:Real=0,
                  prominence:Optional[Real]=None, prominence_wlen:Optional[int]=None,
-                 edge:Union[str,type(None)]='rising', kpsh:bool=False, valley:bool=False,
+                 edge:Union[str,type(None)]="rising", kpsh:bool=False, valley:bool=False,
                  show:bool=False, ax=None,
                  verbose:int=0) -> np.ndarray:
     """
@@ -332,10 +332,10 @@ def detect_peaks(x:Sequence,
         threshold of prominence of the detected peaks (valleys)
     prominence_wlen: positive int, optional,
         the `wlen` parameter of the function `scipy.signal.peak_prominences`
-    edge: str or None, default 'rising',
-        can also be 'falling', 'both',
-        for a flat peak, keep only the rising edge ('rising'), only the falling edge ('falling'),
-        both edges ('both'), or don't detect a flat peak (None)
+    edge: str or None, default "rising",
+        can also be "falling", "both",
+        for a flat peak, keep only the rising edge ("rising"), only the falling edge ("falling"),
+        both edges ("both"), or don't detect a flat peak (None)
     kpsh: bool, default False,
         keep peaks with same height even if they are closer than `mpd`
     valley: bool, default False,
@@ -385,7 +385,7 @@ def detect_peaks(x:Sequence,
 
     >>> x = [0, 1, 1, 0, 1, 1, 0]
     >>> # detect both edges
-    >>> detect_peaks(x, edge='both', show=True)
+    >>> detect_peaks(x, edge="both", show=True)
 
     >>> x = [-2, 1, -2, 2, 1, 1, 3, 0]
     >>> # set threshold = 2
@@ -393,11 +393,11 @@ def detect_peaks(x:Sequence,
 
     Version history
     ---------------
-    '1.0.5':
+    "1.0.5":
         The sign of `mph` is inverted if parameter `valley` is True
     """
     data = deepcopy(x)
-    data = np.atleast_1d(data).astype('float64')
+    data = np.atleast_1d(data).astype("float64")
     if data.size < 3:
         return np.array([], dtype=int)
     
@@ -409,7 +409,7 @@ def detect_peaks(x:Sequence,
     # find indices of all peaks
     dx = data[1:] - data[:-1]  # equiv to np.diff()
 
-    # handle NaN's
+    # handle NaN"s
     indnan = np.where(np.isnan(data))[0]
     if indnan.size:
         data[indnan] = np.inf
@@ -419,15 +419,15 @@ def detect_peaks(x:Sequence,
     if not edge:
         ine = np.where((np.hstack((dx, 0)) < 0) & (np.hstack((0, dx)) > 0))[0]
     else:
-        if edge.lower() in ['rising', 'both']:
+        if edge.lower() in ["rising", "both"]:
             ire = np.where((np.hstack((dx, 0)) <= 0) & (np.hstack((0, dx)) > 0))[0]
-        if edge.lower() in ['falling', 'both']:
+        if edge.lower() in ["falling", "both"]:
             ife = np.where((np.hstack((dx, 0)) < 0) & (np.hstack((0, dx)) >= 0))[0]
     ind = np.unique(np.hstack((ine, ire, ife)))
 
     if verbose >= 1:
-        print(f'before filtering by mpd = {mpd}, and threshold = {threshold}, ind = {ind.tolist()}')
-        print(f'additionally, left_threshold = {left_threshold}, right_threshold = {right_threshold}, length of data = {len(data)}')
+        print(f"before filtering by mpd = {mpd}, and threshold = {threshold}, ind = {ind.tolist()}")
+        print(f"additionally, left_threshold = {left_threshold}, right_threshold = {right_threshold}, length of data = {len(data)}")
     
     # handle NaN's
     if ind.size and indnan.size:
@@ -435,13 +435,13 @@ def detect_peaks(x:Sequence,
         ind = ind[np.in1d(ind, np.unique(np.hstack((indnan, indnan-1, indnan+1))), invert=True)]
 
     if verbose >= 1:
-        print(f'after handling nan values, ind = {ind.tolist()}')
+        print(f"after handling nan values, ind = {ind.tolist()}")
     
     # peaks are only valid within [mpb, len(data)-mpb[
     ind = np.array([pos for pos in ind if mpd<=pos<len(data)-mpd])
     
     if verbose >= 1:
-        print(f'after fitering out elements too close to border by mpd = {mpd}, ind = {ind.tolist()}')
+        print(f"after fitering out elements too close to border by mpd = {mpd}, ind = {ind.tolist()}")
 
     # first and last values of data cannot be peaks
     # if ind.size and ind[0] == 0:
@@ -453,7 +453,7 @@ def detect_peaks(x:Sequence,
         ind = ind[data[ind] >= mph]
     
     if verbose >= 1:
-        print(f'after filtering by mph = {mph}, ind = {ind.tolist()}')
+        print(f"after filtering by mph = {mph}, ind = {ind.tolist()}")
     
     # remove peaks - neighbors < threshold
     _left_threshold = left_threshold if left_threshold > 0 else threshold
@@ -463,15 +463,15 @@ def detect_peaks(x:Sequence,
         dx = np.max(np.vstack([data[ind]-data[ind+idx] for idx in range(-mpd, 0)]), axis=0)
         ind = np.delete(ind, np.where(dx < _left_threshold)[0])
         if verbose >= 2:
-            print(f'from left, dx = {dx.tolist()}')
-            print(f'after deleting those dx < _left_threshold = {_left_threshold}, ind = {ind.tolist()}')
+            print(f"from left, dx = {dx.tolist()}")
+            print(f"after deleting those dx < _left_threshold = {_left_threshold}, ind = {ind.tolist()}")
         dx = np.max(np.vstack([data[ind]-data[ind+idx] for idx in range(1, mpd+1)]), axis=0)
         ind = np.delete(ind, np.where(dx < _right_threshold)[0])
         if verbose >= 2:
-            print(f'from right, dx = {dx.tolist()}')
-            print(f'after deleting those dx < _right_threshold = {_right_threshold}, ind = {ind.tolist()}')
+            print(f"from right, dx = {dx.tolist()}")
+            print(f"after deleting those dx < _right_threshold = {_right_threshold}, ind = {ind.tolist()}")
     if verbose >= 1:
-        print(f'after filtering by threshold, ind = {ind.tolist()}')
+        print(f"after filtering by threshold, ind = {ind.tolist()}")
     # detect small peaks closer than minimum peak distance
     if ind.size and mpd > 1:
         ind = ind[np.argsort(data[ind])][::-1]  # sort ind by peak height
@@ -488,15 +488,15 @@ def detect_peaks(x:Sequence,
     ind = np.array([item for item in ind if data[item]==np.max(data[item-mpd:item+mpd+1])])
 
     if verbose >= 1:
-        print(f'after filtering by mpd, ind = {ind.tolist()}')
+        print(f"after filtering by mpd, ind = {ind.tolist()}")
 
     if prominence:
         _p = peak_prominences(data, ind, prominence_wlen)[0]
         ind = ind[np.where(_p >= prominence)[0]]
         if verbose >= 1:
-            print(f'after filtering by prominence, ind = {ind.tolist()}')
+            print(f"after filtering by prominence, ind = {ind.tolist()}")
             if verbose >= 2:
-                print(f'with detailed prominence = {_p.tolist()}')
+                print(f"with detailed prominence = {_p.tolist()}")
 
     if show:
         if indnan.size:
@@ -516,26 +516,26 @@ def _plot(x, mph, mpd, threshold, edge, valley, ax, ind):
 
     Parameters: ref. the function `detect_peaks`
     """
-    if 'plt' not in dir():
+    if "plt" not in dir():
         import matplotlib.pyplot as plt
     
     if ax is None:
         _, ax = plt.subplots(1, 1, figsize=(8, 4))
 
-    ax.plot(x, 'b', lw=1)
+    ax.plot(x, "b", lw=1)
     if ind.size:
-        label = 'valley' if valley else 'peak'
-        label = label + 's' if ind.size > 1 else label
-        ax.plot(ind, x[ind], '+', mfc=None, mec='r', mew=2, ms=8,
-                label='%d %s' % (ind.size, label))
-        ax.legend(loc='best', framealpha=.5, numpoints=1)
+        label = "valley" if valley else "peak"
+        label = label + "s" if ind.size > 1 else label
+        ax.plot(ind, x[ind], "+", mfc=None, mec="r", mew=2, ms=8,
+                label="%d %s" % (ind.size, label))
+        ax.legend(loc="best", framealpha=.5, numpoints=1)
     ax.set_xlim(-.02*x.size, x.size*1.02-1)
     ymin, ymax = x[np.isfinite(x)].min(), x[np.isfinite(x)].max()
     yrange = ymax - ymin if ymax > ymin else 1
     ax.set_ylim(ymin - 0.1*yrange, ymax + 0.1*yrange)
-    ax.set_xlabel('Data #', fontsize=14)
-    ax.set_ylabel('Amplitude', fontsize=14)
-    mode = 'Valley detection' if valley else 'Peak detection'
+    ax.set_xlabel("Data #", fontsize=14)
+    ax.set_ylabel("Amplitude", fontsize=14)
+    mode = "Valley detection" if valley else "Peak detection"
     ax.set_title("%s (mph=%s, mpd=%d, threshold=%s, edge='%s')"
                     % (mode, str(mph), mpd, str(threshold), edge))
     # plt.grid()
@@ -584,19 +584,19 @@ def butter_bandpass(lowcut:Real, highcut:Real, fs:Real, order:int, verbose:int=0
     
     if low <= 0:
         Wn = high
-        btype = 'low'
+        btype = "low"
     elif high >= 1:
         Wn = low
-        btype = 'high'
+        btype = "high"
     elif lowcut==highcut:
         Wn = high
-        btype = 'low'
+        btype = "low"
     else:
         Wn = [low, high]
-        btype = 'band'
+        btype = "band"
     
     if verbose >= 1:
-        print(f'by the setup of lowcut and highcut, the filter type falls to {btype}, with Wn = {Wn}')
+        print(f"by the setup of lowcut and highcut, the filter type falls to {btype}, with Wn = {Wn}")
     
     b, a = butter(order, Wn, btype=btype)
     return b, a

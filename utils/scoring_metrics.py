@@ -43,31 +43,31 @@ def evaluate_12ECG_score(classes:List[str], truth:Sequence, binary_pred:Sequence
     g_beta_measure: float,
     challenge_metric: float,
     """
-    # normal_class = '426783006'
-    normal_class = 'NSR'
-    # equivalent_classes = [['713427006', '59118001'], ['284470004', '63593006'], ['427172004', '17338001']]
+    # normal_class = "426783006"
+    normal_class = "NSR"
+    # equivalent_classes = [["713427006", "59118001"], ["284470004", "63593006"], ["427172004", "17338001"]]
     weights = load_weights(classes=classes)
 
     _truth = np.array(truth)
     _binary_pred = np.array(binary_pred)
     _scalar_pred = np.array(scalar_pred)
 
-    print('- AUROC and AUPRC...')
+    print("- AUROC and AUPRC...")
     auroc, auprc = compute_auc(_truth, _scalar_pred)
 
-    print('- Accuracy...')
+    print("- Accuracy...")
     accuracy = compute_accuracy(_truth, _binary_pred)
 
-    print('- F-measure...')
+    print("- F-measure...")
     f_measure = compute_f_measure(_truth, _binary_pred)
 
-    print('- F-beta and G-beta measures...')
+    print("- F-beta and G-beta measures...")
     f_beta_measure, g_beta_measure = compute_beta_measures(_truth, _binary_pred, beta=2)
 
-    print('- Challenge metric...')
+    print("- Challenge metric...")
     challenge_metric = compute_challenge_metric(weights, _truth, _binary_pred, classes, normal_class)
 
-    print('Done.')
+    print("Done.")
 
     # Return the results.
     return auroc, auprc, accuracy, f_measure, f_beta_measure, g_beta_measure, challenge_metric
@@ -113,7 +113,7 @@ def compute_confusion_matrices(labels:np.ndarray, outputs:np.ndarray, normalize:
                 elif labels[i, j]==0 and outputs[i, j]==0: # TN
                     A[j, 0, 0] += 1
                 else: # This condition should not happen.
-                    raise ValueError('Error in computing the confusion matrix.')
+                    raise ValueError("Error in computing the confusion matrix.")
     else:
         A = np.zeros((num_classes, 2, 2))
         for i in range(num_recordings):
@@ -128,7 +128,7 @@ def compute_confusion_matrices(labels:np.ndarray, outputs:np.ndarray, normalize:
                 elif labels[i, j]==0 and outputs[i, j]==0: # TN
                     A[j, 0, 0] += 1.0/normalization
                 else: # This condition should not happen.
-                    raise ValueError('Error in computing the confusion matrix.')
+                    raise ValueError("Error in computing the confusion matrix.")
 
     return A
 
@@ -147,7 +147,7 @@ def compute_f_measure(labels:np.ndarray, outputs:np.ndarray) -> float:
         if 2 * tp + fp + fn:
             f_measure[k] = float(2 * tp) / float(2 * tp + fp + fn)
         else:
-            f_measure[k] = float('nan')
+            f_measure[k] = float("nan")
 
     macro_f_measure = np.nanmean(f_measure)
 
@@ -169,11 +169,11 @@ def compute_beta_measures(labels:np.ndarray, outputs:np.ndarray, beta:Real) -> T
         if (1+beta**2)*tp + fp + beta**2*fn:
             f_beta_measure[k] = float((1+beta**2)*tp) / float((1+beta**2)*tp + fp + beta**2*fn)
         else:
-            f_beta_measure[k] = float('nan')
+            f_beta_measure[k] = float("nan")
         if tp + fp + beta*fn:
             g_beta_measure[k] = float(tp) / float(tp + fp + beta*fn)
         else:
-            g_beta_measure[k] = float('nan')
+            g_beta_measure[k] = float("nan")
 
     macro_f_beta_measure = np.nanmean(f_beta_measure)
     macro_g_beta_measure = np.nanmean(g_beta_measure)
@@ -236,15 +236,15 @@ def compute_auc(labels:np.ndarray, outputs:np.ndarray) -> Tuple[float, float]:
             if tp[j] + fn[j]:
                 tpr[j] = float(tp[j]) / float(tp[j] + fn[j])
             else:
-                tpr[j] = float('nan')
+                tpr[j] = float("nan")
             if fp[j] + tn[j]:
                 tnr[j] = float(tn[j]) / float(fp[j] + tn[j])
             else:
-                tnr[j] = float('nan')
+                tnr[j] = float("nan")
             if tp[j] + fp[j]:
                 ppv[j] = float(tp[j]) / float(tp[j] + fp[j])
             else:
-                ppv[j] = float('nan')
+                ppv[j] = float("nan")
 
         # Compute AUROC as the area under a piecewise linear function with TPR/
         # sensitivity (x-axis) and TNR/specificity (y-axis) and AUPRC as the area

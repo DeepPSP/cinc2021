@@ -183,18 +183,18 @@ dx_mapping_unscored["SNOMED CT Code"] = dx_mapping_unscored["SNOMED CT Code"].ap
 
 
 dms = dx_mapping_scored.copy()
-dms['scored'] = True
+dms["scored"] = True
 dmn = dx_mapping_unscored.copy()
-dmn['Notes'] = ''
-dmn['scored'] = False
-dx_mapping_all = pd.concat([dms, dmn], ignore_index=True).fillna('')
+dmn["Notes"] = ""
+dmn["scored"] = False
+dx_mapping_all = pd.concat([dms, dmn], ignore_index=True).fillna("")
 
 
 df_weights_snomed = df_weights  # alias
 
 
 snomed_ct_code_to_abbr = \
-    ED({row['SNOMED CT Code']:row['Abbreviation'] for _,row in dx_mapping_all.iterrows()})
+    ED({row["SNOMED CT Code"]:row["Abbreviation"] for _,row in dx_mapping_all.iterrows()})
 abbr_to_snomed_ct_code = ED({v:k for k,v in snomed_ct_code_to_abbr.items()})
 
 df_weights_abbr = df_weights.copy()
@@ -207,7 +207,7 @@ df_weights_abbr.index = \
 
 
 snomed_ct_code_to_fullname = \
-    ED({row['SNOMED CT Code']:row['Dx'] for _,row in dx_mapping_all.iterrows()})
+    ED({row["SNOMED CT Code"]:row["Dx"] for _,row in dx_mapping_all.iterrows()})
 fullname_to_snomed_ct_code = ED({v:k for k,v in snomed_ct_code_to_fullname.items()})
 
 df_weights_fullname = df_weights.copy()
@@ -220,26 +220,28 @@ df_weights_fullname.index = \
 
 
 abbr_to_fullname = \
-    ED({row['Abbreviation']:row['Dx'] for _,row in dx_mapping_all.iterrows()})
+    ED({row["Abbreviation"]:row["Dx"] for _,row in dx_mapping_all.iterrows()})
 fullname_to_abbr = ED({v:k for k,v in abbr_to_fullname.items()})
 
 
 equiv_class_dict = ED({
-    'CRBBB': 'RBBB',
-    'SVPB': 'PAC',
-    'VPB': 'PVC',
-    '713427006': '59118001',
-    '63593006': '284470004',
-    '17338001': '427172004',
-    'complete right bundle branch block': 'right bundle branch block',
-    'supraventricular premature beats': 'premature atrial contraction',
-    'ventricular premature beats': 'premature ventricular contractions',
+    "CRBBB": "RBBB",
+    "SVPB": "PAC",
+    "VPB": "PVC",
+    "713427006": "59118001",
+    "63593006": "284470004",
+    "17338001": "427172004",
+    "complete right bundle branch block": "right bundle branch block",
+    "supraventricular premature beats": "premature atrial contraction",
+    "ventricular premature beats": "premature ventricular contractions",
 })
 
 
 
-def load_weights(classes:Sequence[Union[int,str]]=None, return_fmt:str='np') -> Union[np.ndarray, pd.DataFrame]:
-    """ finished, checked,
+def load_weights(classes:Sequence[Union[int,str]]=None,
+                 equivalent_classes:Optional[Union[Dict[str,str], List[List[str]]]]=None,
+                 return_fmt:str="np") -> Union[np.ndarray, pd.DataFrame]:
+    """ NOT finished, NOT checked,
 
     load the weight matrix of the `classes`
 
@@ -248,8 +250,11 @@ def load_weights(classes:Sequence[Union[int,str]]=None, return_fmt:str='np') -> 
     classes: sequence of str or int, optional,
         the classes (abbr. or SNOMED CT Code) to load their weights,
         if not given, weights of all classes in `dx_mapping_scored` will be loaded
-    return_fmt: str, default 'np',
-        'np' or 'pd', the values in the form of a 2d array or a DataFrame
+    equivalent_classes: dict or list, optional,
+        list or dict of equivalent classes,
+        if not specified, defaults to `equiv_class_dict`
+    return_fmt: str, default "np",
+        "np" or "pd", the values in the form of a 2d array or a DataFrame
 
     Returns:
     --------
@@ -263,9 +268,9 @@ def load_weights(classes:Sequence[Union[int,str]]=None, return_fmt:str='np') -> 
     else:
         mat = df_weights_abbr.copy()
     
-    if return_fmt.lower() == 'np':
+    if return_fmt.lower() == "np":
         mat = mat.values
-    elif return_fmt.lower() == 'pd':
+    elif return_fmt.lower() == "pd":
         # columns and indices back to the original input format
         mat.columns = list(map(str, classes))
         mat.index = list(map(str, classes))
@@ -323,7 +328,7 @@ def get_class(snomed_ct_code:Union[str,int]) -> Dict[str,str]:
     return arrhythmia_class
 
 
-def get_class_count(tranches:Union[str, Sequence[str]], exclude_classes:Optional[Sequence[str]]=None, scored_only:bool=False, normalize:bool=True, threshold:Optional[Real]=0, fmt:str='a') ->Dict[str, int]:
+def get_class_count(tranches:Union[str, Sequence[str]], exclude_classes:Optional[Sequence[str]]=None, scored_only:bool=False, normalize:bool=True, threshold:Optional[Real]=0, fmt:str="a") ->Dict[str, int]:
     """ finished, checked,
 
     Parameters:
@@ -339,12 +344,12 @@ def get_class_count(tranches:Union[str, Sequence[str]], exclude_classes:Optional
         used only when `scored_only` = True
     threshold: real number,
         minimum ratio (0-1) or absolute number (>1) of a class to be counted
-    fmt: str, default 'a',
+    fmt: str, default "a",
         the format of the names of the classes in the returned dict,
         can be one of the following (case insensitive):
-        - 'a', abbreviations
-        - 'f', full names
-        - 's', SNOMED CT Code
+        - "a", abbreviations
+        - "f", full names
+        - "s", SNOMED CT Code
 
     Returns:
     --------
@@ -383,13 +388,13 @@ def get_class_count(tranches:Union[str, Sequence[str]], exclude_classes:Optional
     tmp = ED()
     tot_count = sum(class_count.values())
     _threshold = threshold if threshold >= 1 else threshold * tot_count
-    if fmt.lower() == 's':
+    if fmt.lower() == "s":
         for key, val in class_count.items():
             if val < _threshold:
                 continue
             tmp[abbr_to_snomed_ct_code[key]] = val
         class_count = tmp.copy()
-    elif fmt.lower() == 'f':
+    elif fmt.lower() == "f":
         for key, val in class_count.items():
             if val < _threshold:
                 continue
@@ -401,7 +406,7 @@ def get_class_count(tranches:Union[str, Sequence[str]], exclude_classes:Optional
     return class_count
 
 
-def get_class_weight(tranches:Union[str, Sequence[str]], exclude_classes:Optional[Sequence[str]]=None, scored_only:bool=False, normalize:bool=True, threshold:Optional[Real]=0, fmt:str='a', min_weight:Real=0.5) ->Dict[str, int]:
+def get_class_weight(tranches:Union[str, Sequence[str]], exclude_classes:Optional[Sequence[str]]=None, scored_only:bool=False, normalize:bool=True, threshold:Optional[Real]=0, fmt:str="a", min_weight:Real=0.5) ->Dict[str, int]:
     """ finished, checked,
 
     Parameters:
@@ -417,12 +422,12 @@ def get_class_weight(tranches:Union[str, Sequence[str]], exclude_classes:Optiona
         used only when `scored_only` = True
     threshold: real number,
         minimum ratio (0-1) or absolute number (>1) of a class to be counted
-    fmt: str, default 'a',
+    fmt: str, default "a",
         the format of the names of the classes in the returned dict,
         can be one of the following (case insensitive):
-        - 'a', abbreviations
-        - 'f', full names
-        - 's', SNOMED CT Code
+        - "a", abbreviations
+        - "f", full names
+        - "s", SNOMED CT Code
     min_weight: real number, default 0.5,
         minimum value of the weight of all classes,
         or equivalently the weight of the largest class
@@ -600,7 +605,7 @@ dx_cooccurrence_all is obtained via the following code
 >>> for tranche, l_rec in dr.all_records.items():
 ...     for rec in l_rec:
 ...         ann = dr.load_ann(rec)
-...         d = ann['diagnosis']['diagnosis_abbr']
+...         d = ann["diagnosis"]["diagnosis_abbr"]
 ...         for item in d:
 ...             mat_cooccurance.loc[item,item] += 1
 ...         for i in range(len(d)-1):
