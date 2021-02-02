@@ -597,9 +597,9 @@ def get_cooccurrence(c1:Union[str,int], c2:Union[str,int], ensure_scored:bool=Fa
 """
 dx_cooccurrence_all is obtained via the following code
 
->>> db_dir = "/media/cfs/wenhao71/data/cinc2020_data/"
+>>> db_dir = "/media/cfs/wenhao71/data/cinc2021_data/"
 >>> working_dir = "./working_dir"
->>> dr = CINC2020Reader(db_dir=db_dir,working_dir=working_dir)
+>>> dr = CINC2021Reader(db_dir=db_dir,working_dir=working_dir)
 >>> dx_cooccurrence_all = pd.DataFrame(np.zeros((len(dx_mapping_all.Abbreviation), len(dx_mapping_all.Abbreviation)),dtype=int), columns=dx_mapping_all.Abbreviation.values)
 >>> dx_cooccurrence_all.index = dx_mapping_all.Abbreviation.values
 >>> for tranche, l_rec in dr.all_records.items():

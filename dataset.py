@@ -19,21 +19,21 @@ from sklearn.preprocessing import StandardScaler
 from cfg import (
     TrainCfg, ModelCfg,
 )
-from data_reader import CINC2020Reader as CR
+from data_reader import CINC2021Reader as CR
 from utils.utils_signal import butter_bandpass_filter
 from utils.misc import ensure_siglen, dict_to_str
 
 
-if ModelCfg.torch_dtype.lower() == 'double':
+if ModelCfg.torch_dtype.lower() == "double":
     torch.set_default_tensor_type(torch.DoubleTensor)
 
 
 __all__ = [
-    "CINC2020",
+    "CINC2021",
 ]
 
 
-class CINC2020(Dataset):
+class CINC2021(Dataset):
     """
     """
     def __init__(self, config:ED, training:bool=True) -> NoReturn:
@@ -44,7 +44,7 @@ class CINC2020(Dataset):
         config: dict,
             configurations for the Dataset,
             ref. `cfg.TrainCfg`
-            can be one of "A", "B", "AB", "E", "F", or None (or '', defaults to "ABEF")
+            can be one of "A", "B", "AB", "E", "F", or None (or "", defaults to "ABEF")
         training: bool, default True,
             if True, the training set will be loaded, otherwise the test set
         """
@@ -54,7 +54,7 @@ class CINC2020(Dataset):
         self.reader = CR(db_dir=config.db_dir)
         self.tranches = config.tranches_for_training
         self.training = training
-        if ModelCfg.torch_dtype.lower() == 'double':
+        if ModelCfg.torch_dtype.lower() == "double":
             self.dtype = np.float64
         else:
             self.dtype = np.float32
@@ -90,7 +90,7 @@ class CINC2020(Dataset):
         rec = self.records[index]
         # values = self.reader.load_data(
         #     rec,
-        #     data_format='channel_first', units='mV', backend='wfdb'
+        #     data_format="channel_first", units="mV", backend="wfdb"
         # )
         # values = self.reader.load_resampled_data(rec, data_format="channel_first", siglen=self.siglen)
         values = self.reader.load_resampled_data(rec, data_format="channel_first", siglen=None)
@@ -106,7 +106,7 @@ class CINC2020(Dataset):
         if self.config.normalize_data:
             values = (values - np.mean(values)) / np.std(values)
         labels = self.reader.get_labels(
-            rec, scored_only=True, fmt='a', normalize=True
+            rec, scored_only=True, fmt="a", normalize=True
         )
         labels = np.isin(self.all_classes, labels).astype(int)
 
@@ -122,7 +122,7 @@ class CINC2020(Dataset):
             labels = (1 - self.config.label_smoothing) * labels \
                 + self.config.label_smoothing / self.n_classes
 
-        if self.config.data_format.lower() in ['channel_last', 'lead_last']:
+        if self.config.data_format.lower() in ["channel_last", "lead_last"]:
             values = values.T
 
         return values, labels
@@ -178,7 +178,7 @@ class CINC2020(Dataset):
                         if rec in self.reader.exceptional_records:
                             # skip exceptional records
                             continue
-                        rec_labels = self.reader.get_labels(rec, scored_only=True, fmt='a', normalize=True)
+                        rec_labels = self.reader.get_labels(rec, scored_only=True, fmt="a", normalize=True)
                         rec_labels = [c for c in rec_labels if c in TrainCfg.tranche_classes[t]]
                         if len(rec_labels) == 0:
                             # skip records with no scored class
@@ -236,9 +236,9 @@ class CINC2020(Dataset):
             the split is valid or not
         """
         add = lambda a,b:a+b
-        train_classes = set(reduce(add, [self.reader.get_labels(rec, fmt='a') for rec in train_set]))
+        train_classes = set(reduce(add, [self.reader.get_labels(rec, fmt="a") for rec in train_set]))
         train_classes.intersection_update(all_classes)
-        test_classes = set(reduce(add, [self.reader.get_labels(rec, fmt='a') for rec in test_set]))
+        test_classes = set(reduce(add, [self.reader.get_labels(rec, fmt="a") for rec in test_set]))
         test_classes.intersection_update(all_classes)
         is_valid = (len(all_classes) == len(train_classes) == len(test_classes))
         print(f"all_classes = {all_classes}\ntrain_classes = {train_classes}\ntest_classes = {test_classes}\nis_valid = {is_valid}")
