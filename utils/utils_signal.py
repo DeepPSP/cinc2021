@@ -85,7 +85,7 @@ def smooth(x:np.ndarray, window_len:int=11, window:str="hanning", mode:str="vali
         return x
     
     if not window in ["flat", "hanning", "hamming", "bartlett", "blackman"]:
-        raise ValueError("""Window is on of "flat", "hanning", "hamming", "bartlett", "blackman"""")
+        raise ValueError("Window is on of \042flat\042, \042hanning\042, \042hamming\042, \042bartlett\042, \042blackman\042")
 
     s = np.r_[x[radius-1:0:-1], x, x[-2:-radius-1:-1]]
     #print(len(s))

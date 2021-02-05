@@ -179,7 +179,7 @@ class CINC2021Reader(object):
         s2d = {self.rec_prefix[k]:v for k,v in s2d.items()}
         prefix = "".join(re.findall(r"[A-Z]", rec))
         n = rec.replace(prefix,"")
-        sid = int(f"{s2d[prefix]}{"0"*(8-len(n))}{n}")
+        sid = int(f"{s2d[prefix]}{'0'*(8-len(n))}{n}")
         return sid
 
     
