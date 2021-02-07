@@ -83,11 +83,65 @@ class CINC2021Reader(object):
             all retained as test data,
             geographically distinct from the Georgia database.
             Perhaps is the main part of the hidden test set of CINC2020
-    3. to add more, or ref. docstring of `CINC2020`
+    2. only a part of diagnosis_abbr (diseases that appear in the labels of the 6 tranches of training data) are used in the scoring function, while others are ignored. The scored diagnoses were chosen based on prevalence of the diagnoses in the training data, the severity of the diagnoses, and the ability to determine the diagnoses from ECG recordings. The ignored diagnosis_abbr can be put in a a "non-class" group.
+    3. the (updated) scoring function has a scoring matrix with nonzero off-diagonal elements. This scoring function reflects the clinical reality that some misdiagnoses are more harmful than others and should be scored accordingly. Moreover, it reflects the fact that confusing some classes is much less harmful than confusing other classes.
+
+    4. all data are recorded in the leads ordering of
+        ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
+    using for example the following code:
+    >>> db_dir = "/media/cfs/wenhao71/data/cinc2020_data/"
+    >>> working_dir = "./working_dir"
+    >>> dr = CINC2020Reader(db_dir=db_dir,working_dir=working_dir)
+    >>> set_leads = []
+    >>> for tranche, l_rec in dr.all_records.items():
+    ...     for rec in l_rec:
+    ...         ann = dr.load_ann(rec)
+    ...         leads = ann["df_leads"]["lead_name"].values.tolist()
+    ...     if leads not in set_leads:
+    ...         set_leads.append(leads)
+
+    NOTE:
+    -----
+    1. The datasets have been roughly processed to have a uniform format, hence differ from their original resource (e.g. differe in sampling frequency, sample duration, etc.)
+    2. The original datasets might have richer metadata (especially those from PhysioNet), which can be fetched from corresponding reader's docstring or website of the original source
+    3. Each sub-dataset might have its own organizing scheme of data, which should be carefully dealt with
+    4. There are few "absolute" diagnoses in 12 lead ECGs, where large discrepancies in the interpretation of the ECG can be found even inspected by experts. There is inevitably something lost in translation, especially when you do not have the context. This doesn"t mean making an algorithm isn't important
+    5. The labels are noisy, which one has to deal with in all real world data
+    6. each line of the following classes are considered the same (in the scoring matrix):
+        - RBBB, CRBBB (NOT including IRBBB)
+        - PAC, SVPB
+        - PVC, VPB
+    7. unfortunately, the newly added tranches (C - F) have baseline drift and are much noisier. In contrast, CPSC data have had baseline removed and have higher SNR
+    8. on Aug. 1, 2020, adc gain (including "resolution", "ADC"? in .hea files) of datasets INCART, PTB, and PTB-xl (tranches C, D, E) are corrected. After correction, (the .tar files of) the 3 datasets are all put in a "WFDB" subfolder. In order to keep the structures consistant, they are moved into "Training_StPetersburg", "Training_PTB", "WFDB" as previously. Using the following code, one can check the adc_gain and baselines of each tranche:
+    >>> db_dir = "/media/cfs/wenhao71/data/CinC2021/"
+    >>> working_dir = "./working_dir"
+    >>> dr = CINC2021(db_dir=db_dir,working_dir=working_dir)
+    >>> resolution = {tranche: set() for tranche in "ABCDEF"}
+    >>> baseline = {tranche: set() for tranche in "ABCDEF"}
+    >>> for tranche, l_rec in dr.all_records.items():
+    ...     for rec in l_rec:
+    ...         ann = dr.load_ann(rec)
+    ...         resolution[tranche] = resolution[tranche].union(set(ann["df_leads"]["adc_gain"]))
+    ...         baseline[tranche] = baseline[tranche].union(set(ann["df_leads"]["baseline"]))
+    >>> print(resolution, baseline)
+    {"A": {1000}, "B": {1000}, "C": {1000}, "D": {1000}, "E": {1000}, "F": {4880}} {"A": {0}, "B": {0}, "C": {0}, "D": {0}, "E": {0}, "F": {0}}
+    9. the .mat files all contain digital signals, which has to be converted to physical values using adc gain, basesline, etc. in corresponding .hea files. `wfdb.rdrecord` has already done this conversion, hence greatly simplifies the data loading process.
+    NOTE that there"s a difference when using `wfdb.rdrecord`: data from `loadmat` are in "channel_first" format, while `wfdb.rdrecord.p_signal` produces data in the "channel_last" format
+    10. there"re 3 equivalent (2 classes are equivalent if the corr. value in the scoring matrix is 1):
+        (RBBB, CRBBB), (PAC, SVPB), (PVC, VPB)
 
     Usage:
     ------
     1. ECG arrhythmia detection
+
+    ISSUES: (all in CinC2020, left unfixed)
+    -------
+    1. reading the .hea files, baselines of all records are 0, however it is not the case if one plot the signal
+    2. about half of the LAD records satisfy the "2-lead" criteria, but fail for the "3-lead" criteria, which means that their axis is (-30°, 0°) which is not truely LAD
+    3. (Aug. 15th) tranche F, the Georgia subset, has ADC gain 4880 which might be too high. Thus obtained voltages are too low. 1000 might be a suitable (correct) value of ADC gain for this tranche just as the other tranches.
+    4. "E04603" (all leads), "E06072" (chest leads, epecially V1-V3), "E06909" (lead V2), "E07675" (lead V3), "E07941" (lead V6), "E08321" (lead V6) has exceptionally large values at rpeaks, reading (`load_data`) these two records using `wfdb` would bring in `nan` values. One can check using the following code
+    >>> rec = "E04603"
+    >>> dr.plot(rec, dr.load_data(rec, backend="scipy", units="uv"))  # currently raising error
 
     References:
     -----------
@@ -259,9 +313,9 @@ class CINC2021Reader(object):
                         self._diagnoses_records_list[d].append(rec)
             print(f"Done in {time.time() - start:.5f} seconds!")
             with open(os.path.join(self.db_dir_base, filename), "w") as f:
-                json.dump(to_save, f)
+                json.dump(self._diagnoses_records_list, f)
             with open(os.path.join(utils._BASE_DIR, "utils", filename), "w") as f:
-                json.dump(to_save, f)
+                json.dump(self._diagnoses_records_list, f)
 
 
     @property
