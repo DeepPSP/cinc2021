@@ -38,6 +38,7 @@ from .ecg_rpeaks import (
     hamilton_detect, ssf_detect, christov_detect, engzee_detect, gamboa_detect,
 )
 from .ecg_rpeaks_dl import seq_lab_net_detect
+from .ecg_denoise import remove_spikes_naive
 from utils.misc import ms2samples, get_mask
 
 
