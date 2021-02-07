@@ -216,7 +216,7 @@ def preprocess_single_lead_signal(
             frequency=band_fs,
         )["signal"]
 
-    if rpeak_fn and rpeak_fn not in DL_QRS_DETECTORS::
+    if rpeak_fn and rpeak_fn not in DL_QRS_DETECTORS:
         rpeaks = QRS_DETECTORS[rpeak_fn.lower()](filtered_ecg, fs).astype(int)
     else:
         rpeaks = np.array([], dtype=int)

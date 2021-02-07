@@ -15,7 +15,11 @@ from typing import Union, Optional, Tuple
 try:
     from keras.models import model_from_json, Model
 except:
-    from tensorflow.keras.models import model_from_json, Model
+    try:
+        # in case tensorflow, keras are not installed
+        from tensorflow.keras.models import model_from_json, Model
+    except:
+        model_from_json, Model = None, None
 import torch
 from torch import nn
 
@@ -65,6 +69,11 @@ def _load_keras_ecg_seq_lab_net(which:str="both", **kwargs) -> Union[Tuple[Model
     cnn_model, crnn_model (both or one): Model
     """
     _which = which.lower()
+    if model_from_json is None or Model is None:
+        if _which == "both":
+            return None, None
+        else:
+            return None
     if _which in ["both", "cnn"]:
         cnn_config_path = os.path.join(_BASE_DIR, "CPSC2019_0416", "CNN.json")
         cnn_h5_path = os.path.join(_BASE_DIR, "CPSC2019_0416", "CNN.h5")

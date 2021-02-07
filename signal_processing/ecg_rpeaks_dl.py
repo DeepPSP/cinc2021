@@ -67,6 +67,9 @@ def seq_lab_net_detect(sig:np.ndarray, fs:Real, correction:bool=False, **kwargs)
     -----------
     [1] Cai, Wenjie, and Danqin Hu. "QRS complex detection using novel deep learning neural networks." IEEE Access (2020).
     """
+    if CNN_MODEL is None or CRNN_MODEL is None:
+        print("failed to load models")
+        return np.array([], dtype=int)
     verbose = kwargs.get("verbose", 0)
     batch_size = kwargs.get("batch_size", None)
 
