@@ -218,7 +218,7 @@ class CINC2021Reader(object):
                         raise ValueError(f"no record found for tranche {tranche}!")
                 self.db_dirs[tranche] = os.path.join(self.db_dir_base, tmp_dirname[0])
                 self._all_records[tranche] = [os.path.basename(f) for f in self._all_records[tranche]]
-            print(f"Done in {time.time() - start} seconds!")
+            print(f"Done in {time.time() - start:.5f} seconds!")
             with open(os.path.join(self.db_dir_base, filename), "w") as f:
                 json.dump(to_save, f)
             with open(os.path.join(utils._BASE_DIR, "utils", filename), "w") as f:
@@ -257,9 +257,11 @@ class CINC2021Reader(object):
                     ld = ann["diagnosis_scored"]["diagnosis_abbr"]
                     for d in ld:
                         self._diagnoses_records_list[d].append(rec)
-            print(f"Done in {time.time() - start} seconds!")
-            with open(dr_fp, "w") as f:
-                json.dump(self._diagnoses_records_list, f)
+            print(f"Done in {time.time() - start:.5f} seconds!")
+            with open(os.path.join(self.db_dir_base, filename), "w") as f:
+                json.dump(to_save, f)
+            with open(os.path.join(utils._BASE_DIR, "utils", filename), "w") as f:
+                json.dump(to_save, f)
 
 
     @property

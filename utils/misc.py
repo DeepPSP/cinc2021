@@ -37,6 +37,7 @@ __all__ = [
     "ensure_lead_fmt", "ensure_siglen",
     "ECGWaveForm", "masks_to_waveforms",
     "mask_to_intervals",
+    "nildent",
 ]
 
 
@@ -818,3 +819,14 @@ def mask_to_intervals(mask:np.ndarray, vals:Optional[Union[int,Sequence[int]]]=N
         intervals = intervals[vals]
 
     return intervals
+
+
+def nildent(text:str) -> str:
+    """ finished, checked,
+
+    kill all leading white spaces in each line of `text`,
+    while keeping all lines (including empty)
+    """
+    new_text = "\n".join([l.lstrip() for l in text.splitlines()]) \
+        + ("\n" if text.endswith("\n") else "")
+    return new_text
