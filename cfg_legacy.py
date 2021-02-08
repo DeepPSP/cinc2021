@@ -1,4 +1,6 @@
 """
+legacy (CinC2020) config file
+
 configurations for signal preprocess, feature extraction, training, etc.
 along with some constants
 """
