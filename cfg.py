@@ -182,6 +182,7 @@ TrainCfg.decay = 0.0005
 # configs of loss function
 # TrainCfg.loss = "BCEWithLogitsLoss"
 TrainCfg.loss = "BCEWithLogitsWithClassWeightLoss"
+TrainCfg.log_step = 20
 TrainCfg.eval_every = 20
 
 # configs of model selection
