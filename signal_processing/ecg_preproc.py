@@ -324,7 +324,7 @@ def merge_rpeaks(
     for lead in range(sig.shape[0]):
         for r in rpeaks_candidates[lead]:
             rpeak_masks[lead,max(0,r-radius):min(sig_len-1,r+radius)] = 1
-    rpeak_masks = (rpeak_masks.sum(axis=0) >= PreprocCfg.rpeak_num_threshold).astype(int)
+    rpeak_masks = (rpeak_masks.sum(axis=0) >= PreprocCfg.rpeak_lead_num_thr).astype(int)
     rpeak_masks[0], rpeak_masks[-1] = 0, 0
     split_indices = np.where(np.diff(rpeak_masks) != 0)[0]
     if verbose >= 1:

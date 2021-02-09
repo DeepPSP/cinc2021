@@ -62,7 +62,8 @@ PreprocCfg = ED()
 # PreprocCfg.fs = 500
 PreprocCfg.leads_ordering = deepcopy(Standard12Leads)
 PreprocCfg.rpeak_mask_radius = 50  # ms
-PreprocCfg.rpeak_num_threshold = 8  # used for merging rpeaks detected from 12 leads
+# PreprocCfg.rpeak_num_threshold = 8  # number of leads, used for merging rpeaks detected from 12 leads
+PreprocCfg.rpeak_lead_num_thr = 8  # number of leads, used for merging rpeaks detected from 12 leads
 PreprocCfg.beat_winL = 250
 PreprocCfg.beat_winR = 250
 

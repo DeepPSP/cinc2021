@@ -14,6 +14,16 @@ from utils.scoring_aux_data import (
 )
 
 
+__all__ = [
+    "BaseCfg",
+    "PlotCfg",
+    "PreprocCfg",
+    "SpecialDetectorCfg",
+    "ModelCfg",
+    "TrainCfg",
+]
+
+
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _ONE_MINUTE_IN_MS = 60 * 1000
 
@@ -44,6 +54,13 @@ BaseCfg.torch_dtype = "float"  # "double"
 
 # ecg signal preprocessing configurations
 PreprocCfg = ED()
+# PreprocCfg.fs = 500
+PreprocCfg.leads_ordering = deepcopy(Standard12Leads)
+PreprocCfg.rpeak_mask_radius = 50  # ms
+# PreprocCfg.rpeak_num_threshold = 8  # number of leads, used for merging rpeaks detected from 12 leads
+PreprocCfg.rpeak_lead_num_thr = 8  # number of leads, used for merging rpeaks detected from 12 leads
+PreprocCfg.beat_winL = 250
+PreprocCfg.beat_winR = 250
 
 
 
@@ -73,6 +90,12 @@ ModelCfg = ED()
 ModelCfg.fs = 500
 ModelCfg.spacing = 1000 / ModelCfg.fs
 ModelCfg.bin_pred_thr = 0.5
+# `bin_pred_look_again_tol` is used when no prob is greater than `bin_pred_thr`,
+# then the prediction would be the one with the highest prob.,
+# along with those with prob. no less than the highest prob. minus `bin_pred_look_again_tol`
+ModelCfg.bin_pred_look_again_tol = 0.03
+ModelCfg.bin_pred_nsr_thr = 0.1
+ModelCfg.torch_dtype = BaseCfg.torch_dtype
 
 
 
