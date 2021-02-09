@@ -800,7 +800,7 @@ class CINC2021Reader(object):
         return labels
 
 
-    def get_freq(self, rec:str) -> Real:
+    def get_fs(self, rec:str) -> Real:
         """ finished, checked,
 
         get the sampling frequency of a record
