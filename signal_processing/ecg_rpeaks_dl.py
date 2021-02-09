@@ -170,7 +170,7 @@ def _seq_lab_net_pre_process(sig:np.ndarray, verbose:int=0) -> np.ndarray:
     """
     # Single towering spike whose voltage is more than 20 mV is examined 
     # and replaced by the normal sample immediately before it
-    sig_processed = _remove_spikes_naive(sig)
+    sig_processed = remove_spikes_naive(sig)
     # TODO:
     # To achieve better model generalization,
     # the (local?) mean of signal values is subtracted for each recording
