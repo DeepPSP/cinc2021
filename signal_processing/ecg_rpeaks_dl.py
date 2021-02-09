@@ -18,6 +18,7 @@ import biosppy.signals.ecg as BSE
 from .ecg_rpeaks_dl_models import load_model
 from .ecg_denoise import remove_spikes_naive
 from utils.misc import mask_to_intervals
+from utils.utils_signal import signal_normalize
 
 
 __all__ = [
@@ -78,6 +79,7 @@ def seq_lab_net_detect(sig:np.ndarray, fs:Real, correction:bool=False, **kwargs)
 
     # pre-process
     sig_rsmp = _seq_lab_net_pre_process(sig, verbose=verbose)
+    sig_rsmp = signal_normalize(sig_rsmp)
 
     if fs != model_fs:
         sig_rsmp = resample_poly(sig_rsmp, up=model_fs, down=int(fs))

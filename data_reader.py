@@ -26,8 +26,8 @@ from utils.misc import (
     get_record_list_recursive3,
     dict_to_str,
     ms2samples,
-    ensure_siglen,
 )
+from utils.utils_signal import ensure_siglen
 from utils.scoring_aux_data import (
     dx_mapping_all, dx_mapping_scored, dx_mapping_unscored,
     normalize_class, abbr_to_snomed_ct_code,

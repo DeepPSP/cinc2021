@@ -20,8 +20,8 @@ from cfg import (
     TrainCfg, ModelCfg,
 )
 from data_reader import CINC2021Reader as CR
-from utils.utils_signal import butter_bandpass_filter
-from utils.misc import ensure_siglen, dict_to_str
+from utils.utils_signal import ensure_siglen, butter_bandpass_filter
+from utils.misc import dict_to_str
 
 
 if ModelCfg.torch_dtype.lower() == "double":
