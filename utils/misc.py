@@ -4,6 +4,7 @@ import os, sys
 import re
 import logging
 import datetime
+from functools import reduce
 from collections import namedtuple
 from glob import glob
 from copy import deepcopy
@@ -37,6 +38,7 @@ __all__ = [
     "ECGWaveForm", "masks_to_waveforms",
     "mask_to_intervals",
     "nildent",
+    "list_sum",
 ]
 
 
@@ -751,3 +753,21 @@ def nildent(text:str) -> str:
     new_text = "\n".join([l.lstrip() for l in text.splitlines()]) \
         + ("\n" if text.endswith("\n") else "")
     return new_text
+
+
+def list_sum(l:Sequence[list]) -> list:
+    """ finished, checked,
+
+    Parameters:
+    -----------
+    l: sequence of list,
+        the sequence of lists to obtain the summation
+
+    Returns:
+    --------
+    l_sum: list,
+        sum of `l`,
+        i.e. if l = [list1, list2, ...], then l_sum = list1 + list2 + ...
+    """
+    l_sum = reduce(lambda a,b: a+b, l, [])
+    return l_sum
