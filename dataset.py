@@ -3,6 +3,7 @@ data generator for feeding data into pytorch models
 """
 import os, sys
 import json
+import textwrap
 from random import shuffle, randint
 from copy import deepcopy
 from functools import reduce
@@ -36,7 +37,7 @@ __all__ = [
 class CINC2021(Dataset):
     """
     """
-    def __init__(self, config:ED, training:bool=True) -> NoReturn:
+    def __init__(self, config:ED, leads:Sequence[str], training:bool=True) -> NoReturn:
         """ finished, checked,
 
         Parameters:
@@ -45,11 +46,14 @@ class CINC2021(Dataset):
             configurations for the Dataset,
             ref. `cfg.TrainCfg`
             can be one of "A", "B", "AB", "E", "F", or None (or "", defaults to "ABEF")
+        leads: sequence of str,
+            names of the leads to use
         training: bool, default True,
             if True, the training set will be loaded, otherwise the test set
         """
         super().__init__()
         self.config = deepcopy(config)
+        self.leads = list(deepcopy(leads))
         self._TRANCHES = self.config.tranche_classes.keys()  # ["A", "B", "AB", "E", "F"]
         self.reader = CR(db_dir=config.db_dir)
         self.tranches = config.tranches_for_training
@@ -84,16 +88,17 @@ class CINC2021(Dataset):
 
         self.__data_aug = self.training
 
+
     def __getitem__(self, index:int) -> Tuple[np.ndarray, np.ndarray]:
         """ finished, checked,
         """
         rec = self.records[index]
-        # values = self.reader.load_data(
-        #     rec,
-        #     data_format="channel_first", units="mV", backend="wfdb"
-        # )
-        # values = self.reader.load_resampled_data(rec, data_format="channel_first", siglen=self.siglen)
-        values = self.reader.load_resampled_data(rec, data_format="channel_first", siglen=None)
+        values = self.reader.load_resampled_data(
+            rec,
+            leads=self.leads,
+            data_format="channel_first",
+            siglen=None
+        )
         if self.config.bandpass is not None:
             values = butter_bandpass_filter(
                 values,
@@ -140,7 +145,9 @@ class CINC2021(Dataset):
         self.__data_aug = False
 
     
-    def _train_test_split(self, train_ratio:float=0.8, force_recompute:bool=False) -> List[str]:
+    def _train_test_split(self,
+                          train_ratio:float=0.8,
+                          force_recompute:bool=False) -> List[str]:
         """ finished, checked,
 
         do train test split,
@@ -178,7 +185,12 @@ class CINC2021(Dataset):
                         if rec in self.reader.exceptional_records:
                             # skip exceptional records
                             continue
-                        rec_labels = self.reader.get_labels(rec, scored_only=True, fmt="a", normalize=True)
+                        rec_labels = self.reader.get_labels(
+                            rec,
+                            scored_only=True,
+                            fmt="a",
+                            normalize=True
+                        )
                         rec_labels = [c for c in rec_labels if c in TrainCfg.tranche_classes[t]]
                         if len(rec_labels) == 0:
                             # skip records with no scored class
@@ -195,7 +207,9 @@ class CINC2021(Dataset):
                     split_idx = int(len(tranche_records[t])*train_ratio)
                     train_set[t] = tranche_records[t][:split_idx]
                     test_set[t] = tranche_records[t][split_idx:]
-                    is_valid = _check_train_test_split_validity(train_set[t], test_set[t], set(TrainCfg.tranche_classes[t]))
+                    is_valid = self._check_train_test_split_validity(
+                        train_set[t], test_set[t], set(TrainCfg.tranche_classes[t])
+                    )
             with open(train_file, "w") as f:
                 json.dump(train_set, f, ensure_ascii=False)
             with open(test_file, "w") as f:
@@ -215,7 +229,10 @@ class CINC2021(Dataset):
         return records
 
 
-    def _check_train_test_split_validity(self, train_set:List[str], test_set:List[str], all_classes:Set[str]) -> bool:
+    def _check_train_test_split_validity(self,
+                                         train_set:List[str],
+                                         test_set:List[str],
+                                         all_classes:Set[str]) -> bool:
         """ finished, checked,
 
         the train-test split is valid iff
@@ -241,7 +258,13 @@ class CINC2021(Dataset):
         test_classes = set(reduce(add, [self.reader.get_labels(rec, fmt="a") for rec in test_set]))
         test_classes.intersection_update(all_classes)
         is_valid = (len(all_classes) == len(train_classes) == len(test_classes))
-        print(f"all_classes = {all_classes}\ntrain_classes = {train_classes}\ntest_classes = {test_classes}\nis_valid = {is_valid}")
+        print(textwrap.dedent(f"""
+            all_classes:     {all_classes}
+            train_classes:   {train_classes}
+            test_classes:    {test_classes}
+            is_valid:        {is_valid}
+            """
+        ))
         return is_valid
 
 
@@ -280,6 +303,7 @@ class CINC2021(Dataset):
         print(f"y saved to {filename}")
 
         self.__data_aug = prev_state
+
 
     def _check_nan(self) -> NoReturn:
         """ finished, checked,
