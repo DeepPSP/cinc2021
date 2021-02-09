@@ -226,8 +226,8 @@ class CINC2021(Dataset):
             with open(test_file, "w") as f:
                 json.dump(test_set, f, ensure_ascii=False)
             print(textwrap.dedent(f"""
-                train set saved to \042{train_set}\042
-                test set saved to \042{test_set}\042
+                train set saved to \042{train_file}\042
+                test set saved to \042{test_file}\042
                 """
             ))
         else:
