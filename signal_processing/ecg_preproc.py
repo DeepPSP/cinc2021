@@ -15,7 +15,6 @@ References:
 import os
 import multiprocessing as mp
 from collections import Counter
-from functools import reduce
 from copy import deepcopy
 from numbers import Real
 from typing import Union, Optional, Any, List, Dict, Callable
@@ -39,7 +38,7 @@ from .ecg_rpeaks import (
 )
 from .ecg_rpeaks_dl import seq_lab_net_detect
 from .ecg_denoise import remove_spikes_naive
-from utils.misc import ms2samples, get_mask
+from utils.misc import ms2samples, get_mask, list_sum
 
 
 __all__ = [
@@ -337,13 +336,12 @@ def merge_rpeaks(
     for idx in range(len(split_indices)//2):
         start_idx = split_indices[2*idx]
         end_idx = split_indices[2*idx + 1]
-        rc = reduce(
-            lambda a,b:a+b,
+        rc = list_sum( # `lr`: list of rpeaks
             [lr[np.where((lr>=start_idx)&(lr<=end_idx))].tolist() for lr in rpeaks_candidates]
         )
         if verbose >= 2:
             print(f"at the {idx}-th interval, start_idx = {start_idx}, end_idx = {end_idx}")
-            print(f"rc = {rc}")
+            print(f"rpeak candidates = {rc}")
         counter = Counter(rc).most_common()
         if len(counter) > 0 and counter[0][1] >= len(rc)//2+1:
             # might have the case where

@@ -3,10 +3,10 @@ data generator for feeding data into pytorch models
 """
 import os, sys
 import json
+import time
 import textwrap
 from random import shuffle, randint
 from copy import deepcopy
-from functools import reduce
 from typing import Union, Optional, List, Tuple, Dict, Sequence, Set, NoReturn
 
 import numpy as np
@@ -18,11 +18,11 @@ from torch.utils.data.dataset import Dataset
 from sklearn.preprocessing import StandardScaler
 
 from cfg import (
-    TrainCfg, ModelCfg, Standard12Leads
+    TrainCfg, ModelCfg, Standard12Leads,
 )
 from data_reader import CINC2021Reader as CR
 from utils.utils_signal import ensure_siglen, butter_bandpass_filter
-from utils.misc import dict_to_str
+from utils.misc import dict_to_str, list_sum
 
 
 if ModelCfg.torch_dtype.lower() == "double":
@@ -166,6 +166,9 @@ class CINC2021(Dataset):
         records: list of str,
             list of the records split for training or validation
         """
+        time.sleep(1)
+        print("\nperforming train test split...\n")
+        time.sleep(1)
         _TRANCHES = list("ABEF")
         _train_ratio = int(train_ratio*100)
         _test_ratio = 100 - _train_ratio
@@ -199,7 +202,8 @@ class CINC2021(Dataset):
                         if rec_samples < self.siglen:
                             continue
                         tranche_records[t].append(rec)
-                    print(f"tranche {t} has {len(tranche_records[t])} valid records for training")
+                time.sleep(1)
+                print(f"tranche {t} has {len(tranche_records[t])} valid records for training")
             for t in _TRANCHES:
                 is_valid = False
                 while not is_valid:
@@ -220,12 +224,11 @@ class CINC2021(Dataset):
             with open(test_file, "r") as f:
                 test_set = json.load(f)
 
-        add = lambda a,b:a+b
         _tranches = list(self.tranches or "ABEF")
         if self.training:
-            records = reduce(add, [train_set[k] for k in _tranches])
+            records = list_sum([train_set[k] for k in _tranches])
         else:
-            records = reduce(add, [test_set[k] for k in _tranches])
+            records = list_sum([test_set[k] for k in _tranches])
         return records
 
 
@@ -252,10 +255,9 @@ class CINC2021(Dataset):
         is_valid: bool,
             the split is valid or not
         """
-        add = lambda a,b:a+b
-        train_classes = set(reduce(add, [self.reader.get_labels(rec, fmt="a") for rec in train_set]))
+        train_classes = set(list_sum([self.reader.get_labels(rec, fmt="a") for rec in train_set]))
         train_classes.intersection_update(all_classes)
-        test_classes = set(reduce(add, [self.reader.get_labels(rec, fmt="a") for rec in test_set]))
+        test_classes = set(list_sum([self.reader.get_labels(rec, fmt="a") for rec in test_set]))
         test_classes.intersection_update(all_classes)
         is_valid = (len(all_classes) == len(train_classes) == len(test_classes))
         print(textwrap.dedent(f"""
