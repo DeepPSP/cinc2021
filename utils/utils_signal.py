@@ -20,6 +20,7 @@ __all__ = [
     "resample_irregular_timeseries",
     "detect_peaks",
     "butter_bandpass_filter",
+    "ensure_lead_fmt", "ensure_siglen",
 ]
 
 
@@ -633,3 +634,120 @@ def butter_bandpass_filter(data:np.ndarray, lowcut:Real, highcut:Real, fs:Real, 
     b, a = butter_bandpass(lowcut, highcut, fs, order=order)
     y = filtfilt(b, a, data)
     return y
+
+
+def ensure_lead_fmt(values:Sequence[Real], n_leads:int=12, fmt:str="lead_first") -> np.ndarray:
+    """ finished, checked,
+
+    ensure the `n_leads`-lead (ECG) signal to be of the format of `fmt`
+
+    Parameters:
+    -----------
+    values: sequence,
+        values of the `n_leads`-lead (ECG) signal
+    n_leads: int, default 12,
+        number of leads
+    fmt: str, default "lead_first", case insensitive,
+        format of the output values, can be one of
+        "lead_first" (alias "channel_first"), "lead_last" (alias "channel_last")
+
+    Returns:
+    --------
+    out_values: ndarray,
+        ECG signal in the format of `fmt`
+    """
+    out_values = np.array(values)
+    lead_dim = np.where(np.array(out_values.shape) == n_leads)[0]
+    if not any([[0] == lead_dim or [1] == lead_dim]):
+        raise ValueError(f"not valid {n_leads}-lead signal")
+    lead_dim = lead_dim[0]
+    if (lead_dim == 1 and fmt.lower() in ["lead_first", "channel_first"]) \
+        or (lead_dim == 0 and fmt.lower() in ["lead_last", "channel_last"]):
+        out_values = out_values.T
+        return out_values
+    return out_values
+
+
+def ensure_siglen(values:Sequence[Real], siglen:int, fmt:str="lead_first") -> np.ndarray:
+    """ finished, checked,
+
+    ensure the (ECG) signal to be of length `siglen`,
+    strategy:
+        if `values` has length greater than `siglen`,
+        the central `siglen` samples will be adopted;
+        otherwise, zero padding will be added to both sides
+
+    Parameters:
+    -----------
+    values: sequence,
+        values of the `n_leads`-lead (ECG) signal
+    siglen: int,
+        length of the signal supposed to have
+    fmt: str, default "lead_first", case insensitive,
+        format of the input and output values, can be one of
+        "lead_first" (alias "channel_first"), "lead_last" (alias "channel_last")
+
+    Returns:
+    --------
+    out_values: ndarray,
+        ECG signal in the format of `fmt` and of fixed length `siglen`
+    """
+    if fmt.lower() in ["channel_last", "lead_last"]:
+        _values = np.array(values).T
+    else:
+        _values = np.array(values).copy()
+    original_siglen = _values.shape[1]
+    n_leads = _values.shape[0]
+
+    if original_siglen >= siglen:
+        start = (original_siglen - siglen) // 2
+        end = start + siglen
+        out_values = _values[..., start:end]
+    else:
+        pad_left = (siglen - original_siglen)//2
+        pad_right = siglen - pad_left
+        out_values = np.concatenate([np.zeros((n_leads, pad_left)), _values, np.zeros((n_leads, pad_right))], axis=1)
+
+    if fmt.lower() in ["channel_last", "lead_last"]:
+        out_values = out_values.T
+    
+    return out_values
+
+
+def signal_normalize(sig:np.ndarray, sig_fmt:str="channel_first", mean:float=0.06, std:float=0.2) -> np.ndarray:
+    """ finished, checked,
+
+    Parameters:
+    -----------
+    sig: array,
+        1d (single-lead) or 2d (multi-lead) ECG signal, with units in mV,
+    sig_fmt: str, default "channel_first",
+        format of the input signal, used only for 2d (multi-lead) signal,
+        case in-sensitive, can be one of
+        "channel_last" (alias "lead_last"), or
+        "channel_first" (alias "lead_first")
+    mean: float, default 0.06,
+        mean value of the normalized signal
+    std: float, default 0.2,
+        standard deviation of the normalized signal
+
+    Returns:
+    --------
+    normalized_sig: array,
+        the normalized signal, of the same shape as the input `sig`
+
+    Usage:
+    ------
+    1. data augmentation for training models
+    2. enhancement (preprocessing) for rpeak detection
+
+    CAUTION!!! CAUTION!!! CAUTION!!!
+    be careful when the objective is related to signal amplitude (e.g. detection of LQRSV)
+    """
+    _sig = np.array(sig)
+    if _sig.ndim == 1 or sig_fmt.lower() in ["channel_last", "lead_last"]:
+        axis = 0
+    elif _sig.ndim == 2:
+        axis = 1
+    normalized_sig = (_sig - np.mean(_sig,axis=axis,keepdims=True) + mean) / np.std(_sig,axis=axis,keepdims=True) * std
+    return normalized_sig

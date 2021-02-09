@@ -34,7 +34,6 @@ __all__ = [
     "init_logger",
     "get_date_str",
     "rdheader",
-    "ensure_lead_fmt", "ensure_siglen",
     "ECGWaveForm", "masks_to_waveforms",
     "mask_to_intervals",
     "nildent",
@@ -614,84 +613,6 @@ def rdheader(header_data:List[str]) -> Union[Record, MultiRecord]:
     record.comments = [line.strip(" \t#") for line in comment_lines]
 
     return record
-
-
-def ensure_lead_fmt(values:Sequence[Real], n_leads:int=12, fmt:str="lead_first") -> np.ndarray:
-    """ finished, checked,
-
-    ensure the `n_leads`-lead (ECG) signal to be of the format of `fmt`
-
-    Parameters:
-    -----------
-    values: sequence,
-        values of the `n_leads`-lead (ECG) signal
-    n_leads: int, default 12,
-        number of leads
-    fmt: str, default "lead_first", case insensitive,
-        format of the output values, can be one of
-        "lead_first" (alias "channel_first"), "lead_last" (alias "channel_last")
-
-    Returns:
-    --------
-    out_values: ndarray,
-        ECG signal in the format of `fmt`
-    """
-    out_values = np.array(values)
-    lead_dim = np.where(np.array(out_values.shape) == n_leads)[0]
-    if not any([[0] == lead_dim or [1] == lead_dim]):
-        raise ValueError(f"not valid {n_leads}-lead signal")
-    lead_dim = lead_dim[0]
-    if (lead_dim == 1 and fmt.lower() in ["lead_first", "channel_first"]) \
-        or (lead_dim == 0 and fmt.lower() in ["lead_last", "channel_last"]):
-        out_values = out_values.T
-        return out_values
-    return out_values
-
-
-def ensure_siglen(values:Sequence[Real], siglen:int, fmt:str="lead_first") -> np.ndarray:
-    """ finished, checked,
-
-    ensure the (ECG) signal to be of length `siglen`,
-    strategy:
-        if `values` has length greater than `siglen`,
-        the central `siglen` samples will be adopted;
-        otherwise, zero padding will be added to both sides
-
-    Parameters:
-    -----------
-    values: sequence,
-        values of the `n_leads`-lead (ECG) signal
-    siglen: int,
-        length of the signal supposed to have
-    fmt: str, default "lead_first", case insensitive,
-        format of the input and output values, can be one of
-        "lead_first" (alias "channel_first"), "lead_last" (alias "channel_last")
-
-    Returns:
-    --------
-    out_values: ndarray,
-        ECG signal in the format of `fmt` and of fixed length `siglen`
-    """
-    if fmt.lower() in ["channel_last", "lead_last"]:
-        _values = np.array(values).T
-    else:
-        _values = np.array(values).copy()
-    original_siglen = _values.shape[1]
-    n_leads = _values.shape[0]
-
-    if original_siglen >= siglen:
-        start = (original_siglen - siglen) // 2
-        end = start + siglen
-        out_values = _values[..., start:end]
-    else:
-        pad_left = (siglen - original_siglen)//2
-        pad_right = siglen - pad_left
-        out_values = np.concatenate([np.zeros((n_leads, pad_left)), _values, np.zeros((n_leads, pad_right))], axis=1)
-
-    if fmt.lower() in ["channel_last", "lead_last"]:
-        out_values = out_values.T
-    
-    return out_values
 
 
 ECGWaveForm = namedtuple(

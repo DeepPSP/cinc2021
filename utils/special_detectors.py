@@ -73,7 +73,8 @@ def special_detectors(raw_sig:np.ndarray,
         keyword arguments, including:
         "rpeak_fn": rpeak detection method, can be one of
            "seq_lab", "xqrs", "gqrs", "pantompkins", "hamilton", "ssf", "christov", "engzee", gamboa"
-        the default method is "seq_lab"
+        the default method is "xqrs",
+        which has less environment issues compared to the deep learning method "seq_lab"
         "axis_method": electrical axis detection method, can be one of
             "2-lead", "3-lead"
         the default method is "2-lead"
@@ -85,8 +86,8 @@ def special_detectors(raw_sig:np.ndarray,
     """
     preprocess = preprocess_multi_lead_signal(
         raw_sig, fs, sig_fmt,
-        # rpeak_fn=kwargs.get("rpeak_fn", "xqrs"),
-        rpeak_fn=kwargs.get("rpeak_fn", "seq_lab"),
+        rpeak_fn=kwargs.get("rpeak_fn", "xqrs"),
+        # rpeak_fn=kwargs.get("rpeak_fn", "seq_lab"),
         verbose=verbose
     )
     filtered_sig = preprocess["filtered_ecg"]
