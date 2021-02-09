@@ -59,6 +59,7 @@ QRS_DETECTORS = {
     "christov": christov_detect,
     "engzee": engzee_detect,
     "gamboa": gamboa_detect,
+    "seq_lab": seq_lab_net_detect,
 }
 DL_QRS_DETECTORS = [
     "seq_lab",
