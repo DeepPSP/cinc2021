@@ -202,6 +202,8 @@ TrainCfg.rnn_name = "none"  # "none", "lstm", "attention"
 # almost all records have duration >= 8s, most have duration >= 10s
 # use `utils.utils_signal.ensure_siglen` to ensure signal length
 TrainCfg.input_len = int(500 * 10.0)
+# tolerance for records with length shorter than `TrainCfg.input_len`
+TrainCfg.input_len_tol = int(0.2 * TrainCfg.input_len)
 TrainCfg.siglen = TrainCfg.input_len
 TrainCfg.bin_pred_thr = ModelCfg.bin_pred_thr
 TrainCfg.bin_pred_look_again_tol = ModelCfg.bin_pred_look_again_tol

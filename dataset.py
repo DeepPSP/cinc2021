@@ -37,6 +37,9 @@ __all__ = [
 class CINC2021(Dataset):
     """
     """
+    __DEBUG__ = False
+    __name__ = "CPSC2021"
+
     def __init__(self, config:ED, leads:Optional[Sequence[str]]=None, training:bool=True) -> NoReturn:
         """ finished, checked,
 
@@ -167,7 +170,8 @@ class CINC2021(Dataset):
             list of the records split for training or validation
         """
         time.sleep(1)
-        print("\nperforming train test split...\n")
+        start = time.time()
+        print("\nstart performing train test split...\n")
         time.sleep(1)
         _TRANCHES = list("ABEF")
         _train_ratio = int(train_ratio*100)
@@ -199,7 +203,10 @@ class CINC2021(Dataset):
                             # skip records with no scored class
                             continue
                         rec_samples = self.reader.load_resampled_data(rec).shape[1]
-                        if rec_samples < self.siglen:
+                        # NEW in CinC2021 compared to CinC2020
+                        # training input siglen raised from 4000 to 5000,
+                        # hence allow tolerance in siglen now
+                        if rec_samples < self.siglen - self.config.input_len_tol:
                             continue
                         tranche_records[t].append(rec)
                 time.sleep(1)
@@ -218,11 +225,18 @@ class CINC2021(Dataset):
                 json.dump(train_set, f, ensure_ascii=False)
             with open(test_file, "w") as f:
                 json.dump(test_set, f, ensure_ascii=False)
+            print(textwrap.dedent(f"""
+                train set saved to \042{train_set}\042
+                test set saved to \042{test_set}\042
+                """
+            ))
         else:
             with open(train_file, "r") as f:
                 train_set = json.load(f)
             with open(test_file, "r") as f:
                 test_set = json.load(f)
+
+        print(f"train test split finished in {(time.time()-start)/60:.2f} minutes")
 
         _tranches = list(self.tranches or "ABEF")
         if self.training:
