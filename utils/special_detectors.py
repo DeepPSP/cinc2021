@@ -50,7 +50,11 @@ __all__ = [
 ]
 
 
-def special_detectors(raw_sig:np.ndarray, fs:Real, sig_fmt:str="channel_first", verbose:int=0) -> dict:
+def special_detectors(raw_sig:np.ndarray,
+                      fs:Real,
+                      sig_fmt:str="channel_first",
+                      verbose:int=0,
+                      **kwargs:Any) -> dict:
     """ finished, checked,
 
     Parameters:
@@ -65,6 +69,14 @@ def special_detectors(raw_sig:np.ndarray, fs:Real, sig_fmt:str="channel_first", 
         "channel_first" (alias "lead_first", original)
     verbose: int, default 0,
         print verbosity
+    kwargs: dict,
+        keyword arguments, including:
+        "rpeak_fn": rpeak detection method, can be one of
+           "seq_lab", "xqrs", "gqrs", "pantompkins", "hamilton", "ssf", "christov", "engzee", gamboa"
+        the default method is "seq_lab"
+        "axis_method": electrical axis detection method, can be one of
+            "2-lead", "3-lead"
+        the default method is "2-lead"
 
     Returns:
     --------
@@ -72,22 +84,38 @@ def special_detectors(raw_sig:np.ndarray, fs:Real, sig_fmt:str="channel_first", 
         probability or binary conclusion for each arrhythm
     """
     preprocess = preprocess_multi_lead_signal(
-        raw_sig, fs, sig_fmt, rpeak_fn="xqrs", verbose=verbose
+        raw_sig, fs, sig_fmt,
+        # rpeak_fn=kwargs.get("rpeak_fn", "xqrs"),
+        rpeak_fn=kwargs.get("rpeak_fn", "seq_lab"),
+        verbose=verbose
     )
     filtered_sig = preprocess["filtered_ecg"]
     rpeaks = preprocess["rpeaks"]
-    is_PR = pacing_rhythm_detector(raw_sig, fs, sig_fmt, ret_prob=False, verbose=verbose)
-    axis = electrical_axis_detector(filtered_sig, rpeaks, fs, sig_fmt, method="2-lead", verbose=verbose)
-    brady_tachy = brady_tachy_detector(rpeaks, fs, verbose=verbose)
-    is_LQRSV = LQRSV_detector(filtered_sig, rpeaks, fs, sig_fmt, verbose=verbose)
+    is_PR = pacing_rhythm_detector(
+        raw_sig, fs, sig_fmt, ret_prob=False, verbose=verbose
+    )
+    axis = electrical_axis_detector(
+        filtered_sig, rpeaks, fs, sig_fmt,
+        method=kwargs.get("axis_method", "2-lead"),
+        verbose=verbose
+    )
+    brady_tachy = brady_tachy_detector(
+        rpeaks, fs, verbose=verbose
+    )
+    is_LQRSV = LQRSV_detector(
+        filtered_sig, rpeaks, fs, sig_fmt, verbose=verbose
+    )
     is_LAD = (axis=="LAD")
     is_RAD = (axis=="RAD")
     is_brady = (brady_tachy=="B")
     is_tachy = (brady_tachy=="T")
     conclusion = ED(
-        is_brady=is_brady, is_tachy=is_tachy,
-        is_LAD=is_LAD, is_RAD=is_RAD,
-        is_PR=is_PR, is_LQRSV=is_LQRSV,
+        is_brady=is_brady,
+        is_tachy=is_tachy,
+        is_LAD=is_LAD,
+        is_RAD=is_RAD,
+        is_PR=is_PR,
+        is_LQRSV=is_LQRSV,
     )
     return conclusion
 
