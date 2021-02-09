@@ -12,6 +12,7 @@ from utils.scoring_aux_data import (
     equiv_class_dict,
     get_class_weight,
 )
+from torch_ecg.torch_ecg.model_configs import ECG_CRNN_CONFIG
 
 
 __all__ = [
@@ -82,6 +83,9 @@ SpecialDetectorCfg.lqrsv_qrs_mask_radius = 60  # ms
 SpecialDetectorCfg.lqrsv_ampl_bias = 0.02  # mV, TODO: should be further determined by resolution, etc.
 SpecialDetectorCfg.lqrsv_ratio_threshold = 0.8
 
+# special classes using special detectors
+_SPECIAL_CLASSES = ["Brady", "LAD", "RAD", "PR", "LQRSV"]
+
 
 
 # configurations for visualization
@@ -99,22 +103,6 @@ PlotCfg.t_offset = 60
 
 
 
-# configurations for building deep learning models
-# terminologies of stanford ecg repo. will be adopted
-ModelCfg = ED()
-ModelCfg.torch_dtype = BaseCfg.torch_dtype
-ModelCfg.fs = 500
-ModelCfg.spacing = 1000 / ModelCfg.fs
-ModelCfg.bin_pred_thr = 0.5
-# `bin_pred_look_again_tol` is used when no prob is greater than `bin_pred_thr`,
-# then the prediction would be the one with the highest prob.,
-# along with those with prob. no less than the highest prob. minus `bin_pred_look_again_tol`
-ModelCfg.bin_pred_look_again_tol = 0.03
-ModelCfg.bin_pred_nsr_thr = 0.1
-ModelCfg.special_classes = ["Brady", "LAD", "RAD", "PR", "LQRSV"]
-
-
-
 # training configurations for machine learning and deep learning
 TrainCfg = ED()
 
@@ -124,10 +112,12 @@ TrainCfg.log_dir = BaseCfg.log_dir
 TrainCfg.checkpoints = os.path.join(_BASE_DIR, "checkpoints")
 TrainCfg.keep_checkpoint_max = 20
 
+TrainCfg.leads = deepcopy(twelve_leads)
+
 # configs of training data
-TrainCfg.fs = ModelCfg.fs
+TrainCfg.fs = BaseCfg.fs
 TrainCfg.data_format = "channel_first"
-TrainCfg.special_classes = ModelCfg.special_classes.copy()
+TrainCfg.special_classes = deepcopy(_SPECIAL_CLASSES)
 TrainCfg.normalize_data = True
 TrainCfg.train_ratio = 0.8
 TrainCfg.min_class_weight = 0.5
@@ -210,9 +200,34 @@ TrainCfg.bin_pred_look_again_tol = ModelCfg.bin_pred_look_again_tol
 TrainCfg.bin_pred_nsr_thr = ModelCfg.bin_pred_nsr_thr
 
 
+
+# configurations for building deep learning models
+# terminologies of stanford ecg repo. will be adopted
+ModelCfg = ED()
+ModelCfg.torch_dtype = BaseCfg.torch_dtype
+ModelCfg.fs = 500
+ModelCfg.spacing = 1000 / ModelCfg.fs
+ModelCfg.bin_pred_thr = 0.5
+# `bin_pred_look_again_tol` is used when no prob is greater than `bin_pred_thr`,
+# then the prediction would be the one with the highest prob.,
+# along with those with prob. no less than the highest prob. minus `bin_pred_look_again_tol`
+ModelCfg.bin_pred_look_again_tol = 0.03
+ModelCfg.bin_pred_nsr_thr = 0.1
+ModelCfg.special_classes = deepcopy(_SPECIAL_CLASSES)
+
 ModelCfg.dl_classes = deepcopy(TrainCfg.classes)
 ModelCfg.dl_siglen = TrainCfg.siglen
 ModelCfg.tranche_classes = deepcopy(TrainCfg.tranche_classes)
 ModelCfg.full_classes = ModelCfg.dl_classes + ModelCfg.special_classes
 ModelCfg.cnn_name = TrainCfg.cnn_name
 ModelCfg.rnn_name = TrainCfg.rnn_name
+
+
+_BASE_MODEL_CONFIG = deepcopy(ECG_CRNN_CONFIG)
+
+# detailed configs for 12-lead, 6-lead, 3-lead, 2-lead models
+# mostly follow from torch_ecg.torch_ecg.model_configs.ecg_crnn
+ModelCfg.twelve_leads = ED()
+ModelCfg.six_leads = ED()
+ModelCfg.three_leads = ED()
+ModelCfg.two_leads = ED()
