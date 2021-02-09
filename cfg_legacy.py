@@ -54,6 +54,7 @@ two_leads = ("II", "V5")
 
 BaseCfg = ED()
 BaseCfg.db_dir = "/media/cfs/wenhao71/data/CPSC2021/"
+BaseCfg.log_dir = os.path.join(_BASE_DIR, "log")
 BaseCfg.torch_dtype = "float"  # "double"
 
 
@@ -132,8 +133,8 @@ ModelCfg.special_classes = ["Brady", "LAD", "RAD", "PR", "LQRSV"]
 TrainCfg = ED()
 
 # configs of files
-TrainCfg.db_dir = "/media/cfs/wenhao71/data/cinc2021_data/"
-TrainCfg.log_dir = os.path.join(_BASE_DIR, "log")
+TrainCfg.db_dir = BaseCfg.db_dir
+TrainCfg.log_dir = BaseCfg.log_dir
 TrainCfg.checkpoints = os.path.join(_BASE_DIR, "checkpoints")
 TrainCfg.keep_checkpoint_max = 20
 

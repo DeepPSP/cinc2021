@@ -49,6 +49,7 @@ two_leads = ("II", "V5")
 
 BaseCfg = ED()
 BaseCfg.db_dir = "/media/cfs/wenhao71/data/CPSC2021/"
+BaseCfg.log_dir = os.path.join(_BASE_DIR, "log")
 BaseCfg.torch_dtype = "float"  # "double"
 
 
@@ -100,8 +101,8 @@ PlotCfg.t_offset = 60
 
 # configurations for building deep learning models
 # terminologies of stanford ecg repo. will be adopted
-# NOTE: configs of deep learning models have been moved to the folder `model_configs`
 ModelCfg = ED()
+ModelCfg.torch_dtype = BaseCfg.torch_dtype
 ModelCfg.fs = 500
 ModelCfg.spacing = 1000 / ModelCfg.fs
 ModelCfg.bin_pred_thr = 0.5
@@ -110,9 +111,106 @@ ModelCfg.bin_pred_thr = 0.5
 # along with those with prob. no less than the highest prob. minus `bin_pred_look_again_tol`
 ModelCfg.bin_pred_look_again_tol = 0.03
 ModelCfg.bin_pred_nsr_thr = 0.1
-ModelCfg.torch_dtype = BaseCfg.torch_dtype
+ModelCfg.special_classes = ["Brady", "LAD", "RAD", "PR", "LQRSV"]
 
 
 
 # training configurations for machine learning and deep learning
 TrainCfg = ED()
+
+# configs of files
+TrainCfg.db_dir = BaseCfg.db_dir
+TrainCfg.log_dir = BaseCfg.log_dir
+TrainCfg.checkpoints = os.path.join(_BASE_DIR, "checkpoints")
+TrainCfg.keep_checkpoint_max = 20
+
+# configs of training data
+TrainCfg.fs = ModelCfg.fs
+TrainCfg.data_format = "channel_first"
+TrainCfg.special_classes = ModelCfg.special_classes.copy()
+TrainCfg.normalize_data = True
+TrainCfg.train_ratio = 0.8
+TrainCfg.min_class_weight = 0.5
+TrainCfg.tranches_for_training = ""  # one of "", "AB", "E", "F"
+
+TrainCfg.tranche_class_weights = ED({
+    t: get_class_weight(
+        t,
+        exclude_classes=TrainCfg.special_classes,
+        scored_only=True,
+        threshold=20,
+        min_weight=TrainCfg.min_class_weight,
+    ) for t in ["A", "B", "AB", "E", "F"]
+})
+TrainCfg.tranche_classes = ED({
+    t: sorted(list(t_cw.keys())) \
+        for t, t_cw in TrainCfg.tranche_class_weights.items()
+})
+
+TrainCfg.class_weights = get_class_weight(
+    tranches="ABEF",
+    exclude_classes=TrainCfg.special_classes,
+    scored_only=True,
+    threshold=20,
+    min_weight=TrainCfg.min_class_weight,
+)
+TrainCfg.classes = sorted(list(TrainCfg.class_weights.keys()))
+
+# configs of signal preprocessing
+# frequency band of the filter to apply, should be chosen very carefully
+# TrainCfg.bandpass = None  # [-np.inf, 45]
+# TrainCfg.bandpass = [-np.inf, 45]
+TrainCfg.bandpass = [0.5, 60]
+TrainCfg.bandpass_order = 5
+
+# configs of data aumentation
+TrainCfg.label_smoothing = 0.1
+TrainCfg.random_mask = int(TrainCfg.fs * 0.0)  # 1.0s, 0 for no masking
+TrainCfg.stretch_compress = 1.0  # stretch or compress in time axis
+
+# configs of training epochs, batch, etc.
+TrainCfg.n_epochs = 300
+TrainCfg.batch_size = 128
+# TrainCfg.max_batches = 500500
+
+# configs of optimizers and lr_schedulers
+TrainCfg.train_optimizer = "adam"  # "sgd"
+
+TrainCfg.learning_rate = 0.0001
+TrainCfg.lr = TrainCfg.learning_rate
+TrainCfg.lr_step_size = 50
+TrainCfg.lr_gamma = 0.1
+
+TrainCfg.lr_scheduler = None  # "plateau", "burn_in", "step", None
+
+TrainCfg.burn_in = 400
+TrainCfg.steps = [5000, 10000]
+
+TrainCfg.momentum = 0.949
+TrainCfg.decay = 0.0005
+
+# configs of loss function
+# TrainCfg.loss = "BCEWithLogitsLoss"
+TrainCfg.loss = "BCEWithLogitsWithClassWeightLoss"
+TrainCfg.eval_every = 20
+
+# configs of model selection
+TrainCfg.cnn_name = "resnet_leadwise"  # "vgg16", "resnet", "vgg16_leadwise", "cpsc", "cpsc_leadwise"
+TrainCfg.rnn_name = "none"  # "none", "lstm", "attention"
+
+# configs of inputs and outputs
+# almost all records have duration >= 8s, most have duration >= 10s
+# use `utils.utils_signal.ensure_siglen` to ensure signal length
+TrainCfg.input_len = int(500 * 10.0)
+TrainCfg.siglen = TrainCfg.input_len
+TrainCfg.bin_pred_thr = ModelCfg.bin_pred_thr
+TrainCfg.bin_pred_look_again_tol = ModelCfg.bin_pred_look_again_tol
+TrainCfg.bin_pred_nsr_thr = ModelCfg.bin_pred_nsr_thr
+
+
+ModelCfg.dl_classes = deepcopy(TrainCfg.classes)
+ModelCfg.dl_siglen = TrainCfg.siglen
+ModelCfg.tranche_classes = deepcopy(TrainCfg.tranche_classes)
+ModelCfg.full_classes = ModelCfg.dl_classes + ModelCfg.special_classes
+ModelCfg.cnn_name = TrainCfg.cnn_name
+ModelCfg.rnn_name = TrainCfg.rnn_name
