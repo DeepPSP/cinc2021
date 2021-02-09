@@ -494,7 +494,7 @@ class CINC2021Reader(object):
         """
         assert data_format.lower() in ["channel_first", "lead_first", "channel_last", "lead_last"]
         tranche = self._get_tranche(rec)
-        if not leads:
+        if leads is None or leads == "all":
             _leads = self.all_leads
         elif isinstance(leads, str):
             _leads = [leads]

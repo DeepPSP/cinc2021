@@ -18,7 +18,7 @@ from torch.utils.data.dataset import Dataset
 from sklearn.preprocessing import StandardScaler
 
 from cfg import (
-    TrainCfg, ModelCfg,
+    TrainCfg, ModelCfg, Standard12Leads
 )
 from data_reader import CINC2021Reader as CR
 from utils.utils_signal import ensure_siglen, butter_bandpass_filter
@@ -37,7 +37,7 @@ __all__ = [
 class CINC2021(Dataset):
     """
     """
-    def __init__(self, config:ED, leads:Sequence[str], training:bool=True) -> NoReturn:
+    def __init__(self, config:ED, leads:Optional[Sequence[str]]=None, training:bool=True) -> NoReturn:
         """ finished, checked,
 
         Parameters:
@@ -46,14 +46,14 @@ class CINC2021(Dataset):
             configurations for the Dataset,
             ref. `cfg.TrainCfg`
             can be one of "A", "B", "AB", "E", "F", or None (or "", defaults to "ABEF")
-        leads: sequence of str,
-            names of the leads to use
+        leads: sequence of str, optional,
+            names of the leads to use, defaults to `Standard12Leads`
         training: bool, default True,
             if True, the training set will be loaded, otherwise the test set
         """
         super().__init__()
         self.config = deepcopy(config)
-        self.leads = list(deepcopy(leads))
+        self.leads = list(deepcopy(leads or Standard12Leads))
         self._TRANCHES = self.config.tranche_classes.keys()  # ["A", "B", "AB", "E", "F"]
         self.reader = CR(db_dir=config.db_dir)
         self.tranches = config.tranches_for_training
