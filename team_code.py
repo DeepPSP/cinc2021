@@ -27,6 +27,9 @@ def training_code(data_directory, model_directory):
     header_files, recording_files = find_challenge_files(data_directory)
     num_recordings = len(recording_files)
 
+    if not num_recordings:
+        raise Exception('No data was provided.')
+
     # Create a folder for the model if it does not already exist.
     if not os.path.isdir(model_directory):
         os.mkdir(model_directory)
@@ -242,11 +245,11 @@ def get_features(header, recording, leads):
     recording = recording[indices, :]
 
     # Pre-process recordings.
-    gains = get_gains(header, leads)
+    adc_gains = get_adcgains(header, leads)
     baselines = get_baselines(header, leads)
     num_leads = len(leads)
     for i in range(num_leads):
-        recording[i, :] = gains[i] * recording[i, :] - baselines[i]
+        recording[i, :] = (recording[i, :] - baselines[i]) / adc_gains[i] 
 
     # Compute the root mean square of each ECG lead signal.
     rms = np.zeros(num_leads, dtype=np.float32)
