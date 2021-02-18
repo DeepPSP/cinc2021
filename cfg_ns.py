@@ -2,7 +2,9 @@
 configurations for signal preprocess, feature extraction, training, etc.
 along with some constants
 
-all classes are treated using the same (deep learning) method, i.e. no special classes
+all classes are treated using the same (deep learning) method uniformly, i.e. no special classes
+
+NEW in CinC2021 compared to CinC2020
 """
 import os
 from copy import deepcopy
@@ -231,7 +233,8 @@ _BASE_MODEL_CONFIG = deepcopy(ECG_CRNN_CONFIG)
 
 # detailed configs for 12-lead, 6-lead, 3-lead, 2-lead models
 # mostly follow from torch_ecg.torch_ecg.model_configs.ecg_crnn
-ModelCfg.twelve_leads = ED()
+ModelCfg.twelve_leads = deepcopy(_BASE_MODEL_CONFIG)
+# TODO: add adjustifications for "leadwise" configs for 6,3,2 leads models
 ModelCfg.six_leads = ED()
 ModelCfg.three_leads = ED()
 ModelCfg.two_leads = ED()
