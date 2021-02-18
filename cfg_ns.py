@@ -2,7 +2,7 @@
 configurations for signal preprocess, feature extraction, training, etc.
 along with some constants
 
-"Brady", "LAD", "RAD", "PR", "LQRSV" are treated exceptionally, as special classes
+all classes are treated using the same (deep learning) method, i.e. no special classes
 """
 import os
 from copy import deepcopy
@@ -86,7 +86,8 @@ SpecialDetectorCfg.lqrsv_ampl_bias = 0.02  # mV, TODO: should be further determi
 SpecialDetectorCfg.lqrsv_ratio_threshold = 0.8
 
 # special classes using special detectors
-_SPECIAL_CLASSES = ["Brady", "LAD", "RAD", "PR", "LQRSV"]
+# _SPECIAL_CLASSES = ["Brady", "LAD", "RAD", "PR", "LQRSV"]
+_SPECIAL_CLASSES = []
 
 
 
