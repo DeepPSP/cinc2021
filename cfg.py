@@ -15,6 +15,27 @@ from utils.scoring_aux_data import (
     get_class_weight,
 )
 from torch_ecg.torch_ecg.model_configs import ECG_CRNN_CONFIG
+from torch_ecg.torch_ecg.model_configs.cnn import (
+    vgg_block_basic, vgg_block_mish, vgg_block_swish,
+    vgg16, vgg16_leadwise,
+    resnet_block_stanford, resnet_stanford,
+    resnet_block_basic, resnet_bottle_neck,
+    resnet, resnet_leadwise,
+    multi_scopic_block,
+    multi_scopic, multi_scopic_leadwise,
+    dense_net_leadwise,
+    xception_leadwise,
+)
+from torch_ecg.torch_ecg.model_configs.rnn import (
+    lstm,
+    attention,
+    linear,
+)
+from torch_ecg.torch_ecg.model_configs.attn import (
+    non_local,
+    squeeze_excitation,
+    global_context,
+)
 
 
 __all__ = [
@@ -230,8 +251,177 @@ _BASE_MODEL_CONFIG = deepcopy(ECG_CRNN_CONFIG)
 
 # detailed configs for 12-lead, 6-lead, 3-lead, 2-lead models
 # mostly follow from torch_ecg.torch_ecg.model_configs.ecg_crnn
+
 ModelCfg.twelve_leads = deepcopy(_BASE_MODEL_CONFIG)
+
 # TODO: add adjustifications for "leadwise" configs for 6,3,2 leads models
-ModelCfg.six_leads = ED()
+ModelCfg.six_leads = deepcopy(_BASE_MODEL_CONFIG)
+ModelCfg.six_leads.cnn.vgg16_leadwise.groups = 6
+_base_num_filters = 6 * 4  # 12 * 4
+ModelCfg.six_leads.cnn.vgg16_leadwise.num_filters = [
+    _base_num_filters*4,
+    _base_num_filters*8,
+    _base_num_filters*16,
+    _base_num_filters*32,
+    _base_num_filters*32,
+]
+ModelCfg.six_leads.cnn.resnet_leadwise.groups = 6
+ModelCfg.six_leads.cnn.resnet_leadwise.init_num_filters = 6 * 8  # 12 * 8
+ModelCfg.six_leads.cnn.multi_scopic_leadwise.groups = 6
+_base_num_filters = 6 * 4  # 12 * 4
+ModelCfg.six_leads.cnn.multi_scopic_leadwise.num_filters = [
+    [
+        _base_num_filters*4,
+        _base_num_filters*8,
+        _base_num_filters*16,
+    ],
+    [
+        _base_num_filters*4,
+        _base_num_filters*8,
+        _base_num_filters*16,
+    ],
+    [
+        _base_num_filters*4,
+        _base_num_filters*8,
+        _base_num_filters*16,
+    ],
+]
+ModelCfg.six_leads.cnn.dense_net_leadwise.groups = 6
+ModelCfg.six_leads.cnn.dense_net_leadwise.init_num_filters = 6 * 8  # 12 * 8
+ModelCfg.six_leads.cnn.xception_leadwise.groups = 6
+_base_num_filters = 6 * 2  # 12 * 2
+ModelCfg.six_leads.cnn.xception_vanilla.entry_flow = ED(
+    init_num_filters=[_base_num_filters*4, _base_num_filters*8],
+    init_filter_lengths=3,
+    init_subsample_lengths=[2,1],
+    num_filters=[_base_num_filters*16, _base_num_filters*32, _base_num_filters*91],
+    filter_lengths=3,
+    subsample_lengths=2,
+    subsample_kernels=3,
+)
+ModelCfg.six_leads.cnn.xception_vanilla.middle_flow = ED(
+    num_filters=list(repeat(_base_num_filters*91, 8)),
+    filter_lengths=3,
+)
+ModelCfg.six_leads.cnn.xception_vanilla.exit_flow = ED(
+    final_num_filters=[_base_num_filters*182, _base_num_filters*256],
+    final_filter_lengths=3,
+    num_filters=[[_base_num_filters*91, _base_num_filters*128]],
+    filter_lengths=3,
+    subsample_lengths=2,
+    subsample_kernels=3,
+)
+
 ModelCfg.three_leads = ED()
+ModelCfg.three_leads.cnn.vgg16_leadwise.groups = 3
+_base_num_filters = 3 * 8  # 12 * 4
+ModelCfg.three_leads.cnn.vgg16_leadwise.num_filters = [
+    _base_num_filters*4,
+    _base_num_filters*8,
+    _base_num_filters*16,
+    _base_num_filters*32,
+    _base_num_filters*32,
+]
+ModelCfg.three_leads.cnn.resnet_leadwise.groups = 3
+ModelCfg.three_leads.cnn.resnet_leadwise.init_num_filters = 3 * 12  # 12 * 8
+ModelCfg.three_leads.cnn.multi_scopic_leadwise.groups = 3
+_base_num_filters = 3 * 6  # 12 * 4
+ModelCfg.three_leads.cnn.multi_scopic_leadwise.num_filters = [
+    [
+        _base_num_filters*4,
+        _base_num_filters*8,
+        _base_num_filters*16,
+    ],
+    [
+        _base_num_filters*4,
+        _base_num_filters*8,
+        _base_num_filters*16,
+    ],
+    [
+        _base_num_filters*4,
+        _base_num_filters*8,
+        _base_num_filters*16,
+    ],
+]
+ModelCfg.three_leads.cnn.dense_net_leadwise.groups = 3
+ModelCfg.three_leads.cnn.dense_net_leadwise.init_num_filters = 3 * 12  # 12 * 8
+ModelCfg.three_leads.cnn.xception_leadwise.groups = 3
+_base_num_filters = 3 * 4  # 12 * 2
+ModelCfg.three_leads.cnn.xception_vanilla.entry_flow = ED(
+    init_num_filters=[_base_num_filters*4, _base_num_filters*8],
+    init_filter_lengths=3,
+    init_subsample_lengths=[2,1],
+    num_filters=[_base_num_filters*16, _base_num_filters*32, _base_num_filters*91],
+    filter_lengths=3,
+    subsample_lengths=2,
+    subsample_kernels=3,
+)
+ModelCfg.three_leads.cnn.xception_vanilla.middle_flow = ED(
+    num_filters=list(repeat(_base_num_filters*91, 8)),
+    filter_lengths=3,
+)
+ModelCfg.three_leads.cnn.xception_vanilla.exit_flow = ED(
+    final_num_filters=[_base_num_filters*182, _base_num_filters*256],
+    final_filter_lengths=3,
+    num_filters=[[_base_num_filters*91, _base_num_filters*128]],
+    filter_lengths=3,
+    subsample_lengths=2,
+    subsample_kernels=3,
+)
+
 ModelCfg.two_leads = ED()
+ModelCfg.two_leads.cnn.vgg16_leadwise.groups = 3
+_base_num_filters = 2 * 12  # 12 * 4
+ModelCfg.two_leads.cnn.vgg16_leadwise.num_filters = [
+    _base_num_filters*4,
+    _base_num_filters*8,
+    _base_num_filters*16,
+    _base_num_filters*32,
+    _base_num_filters*32,
+]
+ModelCfg.two_leads.cnn.resnet_leadwise.groups = 2
+ModelCfg.two_leads.cnn.resnet_leadwise.init_num_filters = 2 * 16  # 12 * 8
+ModelCfg.two_leads.cnn.multi_scopic_leadwise.groups = 2
+_base_num_filters = 2 * 8  # 12 * 4
+ModelCfg.two_leads.cnn.multi_scopic_leadwise.num_filters = [
+    [
+        _base_num_filters*4,
+        _base_num_filters*8,
+        _base_num_filters*16,
+    ],
+    [
+        _base_num_filters*4,
+        _base_num_filters*8,
+        _base_num_filters*16,
+    ],
+    [
+        _base_num_filters*4,
+        _base_num_filters*8,
+        _base_num_filters*16,
+    ],
+]
+ModelCfg.two_leads.cnn.dense_net_leadwise.groups = 2
+ModelCfg.two_leads.cnn.dense_net_leadwise.init_num_filters = 2 * 12  # 12 * 8
+ModelCfg.two_leads.cnn.xception_leadwise.groups = 3
+_base_num_filters = 2 * 6  # 12 * 2
+ModelCfg.two_leads.cnn.xception_vanilla.entry_flow = ED(
+    init_num_filters=[_base_num_filters*4, _base_num_filters*8],
+    init_filter_lengths=3,
+    init_subsample_lengths=[2,1],
+    num_filters=[_base_num_filters*16, _base_num_filters*32, _base_num_filters*91],
+    filter_lengths=3,
+    subsample_lengths=2,
+    subsample_kernels=3,
+)
+ModelCfg.two_leads.cnn.xception_vanilla.middle_flow = ED(
+    num_filters=list(repeat(_base_num_filters*91, 8)),
+    filter_lengths=3,
+)
+ModelCfg.two_leads.cnn.xception_vanilla.exit_flow = ED(
+    final_num_filters=[_base_num_filters*182, _base_num_filters*256],
+    final_filter_lengths=3,
+    num_filters=[[_base_num_filters*91, _base_num_filters*128]],
+    filter_lengths=3,
+    subsample_lengths=2,
+    subsample_kernels=3,
+)
