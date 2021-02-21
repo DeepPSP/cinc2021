@@ -1033,8 +1033,8 @@ class CINC2021Reader(object):
             elif waves.get("p_peaks", None):
                 p_waves = [
                     [
-                        max(0, p + ms2samples(PlotCfg.p_onset)),
-                        min(_data.shape[1], p + ms2samples(PlotCfg.p_offset))
+                        max(0, p + ms2samples(PlotCfg.p_onset, fs=self.get_fs(rec))),
+                        min(_data.shape[1], p + ms2samples(PlotCfg.p_offset, fs=self.get_fs(rec)))
                     ] for p in waves["p_peaks"]
                 ]
             else:
@@ -1046,15 +1046,15 @@ class CINC2021Reader(object):
             elif waves.get("q_peaks", None) and waves.get("s_peaks", None):
                 qrs = [
                     [
-                        max(0, q + ms2samples(PlotCfg.q_onset)),
-                        min(_data.shape[1], s + ms2samples(PlotCfg.s_offset))
+                        max(0, q + ms2samples(PlotCfg.q_onset, fs=self.get_fs(rec))),
+                        min(_data.shape[1], s + ms2samples(PlotCfg.s_offset, fs=self.get_fs(rec)))
                     ] for q,s in zip(waves["q_peaks"], waves["s_peaks"])
                 ]
             elif waves.get("r_peaks", None):
                 qrs = [
                     [
-                        max(0, r + ms2samples(PlotCfg.qrs_radius)),
-                        min(_data.shape[1], r + ms2samples(PlotCfg.qrs_radius))
+                        max(0, r + ms2samples(PlotCfg.qrs_radius, fs=self.get_fs(rec))),
+                        min(_data.shape[1], r + ms2samples(PlotCfg.qrs_radius, fs=self.get_fs(rec)))
                     ] for r in waves["r_peaks"]
                 ]
             else:
@@ -1066,8 +1066,8 @@ class CINC2021Reader(object):
             elif waves.get("t_peaks", None):
                 t_waves = [
                     [
-                        max(0, t + ms2samples(PlotCfg.t_onset)),
-                        min(_data.shape[1], t + ms2samples(PlotCfg.t_offset))
+                        max(0, t + ms2samples(PlotCfg.t_onset, fs=self.get_fs(rec))),
+                        min(_data.shape[1], t + ms2samples(PlotCfg.t_offset, fs=self.get_fs(rec)))
                     ] for t in waves["t_peaks"]
                 ]
             else:

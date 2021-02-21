@@ -6,6 +6,7 @@ along with some constants
 """
 import os
 from copy import deepcopy
+from itertools import repeat
 
 import numpy as np
 from easydict import EasyDict as ED
@@ -219,9 +220,20 @@ TrainCfg.input_len = int(500 * 10.0)
 # tolerance for records with length shorter than `TrainCfg.input_len`
 TrainCfg.input_len_tol = int(0.2 * TrainCfg.input_len)
 TrainCfg.siglen = TrainCfg.input_len
-TrainCfg.bin_pred_thr = ModelCfg.bin_pred_thr
-TrainCfg.bin_pred_look_again_tol = ModelCfg.bin_pred_look_again_tol
-TrainCfg.bin_pred_nsr_thr = ModelCfg.bin_pred_nsr_thr
+
+
+# constants for model inference
+_bin_pred_thr = 0.5
+# `bin_pred_look_again_tol` is used when no prob is greater than `bin_pred_thr`,
+# then the prediction would be the one with the highest prob.,
+# along with those with prob. no less than the highest prob. minus `bin_pred_look_again_tol`
+_bin_pred_look_again_tol = 0.03
+_bin_pred_nsr_thr = 0.1
+
+
+TrainCfg.bin_pred_thr = _bin_pred_thr
+TrainCfg.bin_pred_look_again_tol = _bin_pred_look_again_tol
+TrainCfg.bin_pred_nsr_thr = _bin_pred_nsr_thr
 
 
 
@@ -231,12 +243,9 @@ ModelCfg = ED()
 ModelCfg.torch_dtype = BaseCfg.torch_dtype
 ModelCfg.fs = 500
 ModelCfg.spacing = 1000 / ModelCfg.fs
-ModelCfg.bin_pred_thr = 0.5
-# `bin_pred_look_again_tol` is used when no prob is greater than `bin_pred_thr`,
-# then the prediction would be the one with the highest prob.,
-# along with those with prob. no less than the highest prob. minus `bin_pred_look_again_tol`
-ModelCfg.bin_pred_look_again_tol = 0.03
-ModelCfg.bin_pred_nsr_thr = 0.1
+ModelCfg.bin_pred_thr = _bin_pred_thr
+ModelCfg.bin_pred_look_again_tol = _bin_pred_look_again_tol
+ModelCfg.bin_pred_nsr_thr =_bin_pred_nsr_thr
 ModelCfg.special_classes = deepcopy(_SPECIAL_CLASSES)
 
 ModelCfg.dl_classes = deepcopy(TrainCfg.classes)
