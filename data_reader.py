@@ -85,7 +85,6 @@ class CINC2021Reader(object):
             Perhaps is the main part of the hidden test set of CINC2020
     2. only a part of diagnosis_abbr (diseases that appear in the labels of the 6 tranches of training data) are used in the scoring function, while others are ignored. The scored diagnoses were chosen based on prevalence of the diagnoses in the training data, the severity of the diagnoses, and the ability to determine the diagnoses from ECG recordings. The ignored diagnosis_abbr can be put in a a "non-class" group.
     3. the (updated) scoring function has a scoring matrix with nonzero off-diagonal elements. This scoring function reflects the clinical reality that some misdiagnoses are more harmful than others and should be scored accordingly. Moreover, it reflects the fact that confusing some classes is much less harmful than confusing other classes.
-
     4. all data are recorded in the leads ordering of
         ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
     using for example the following code:
@@ -151,7 +150,8 @@ class CINC2021Reader(object):
     [3] https://physionet.org/content/incartdb/1.0.0/
     [4] https://physionet.org/content/ptbdb/1.0.0/
     [5] https://physionet.org/content/ptb-xl/1.0.1/
-    [6] https://storage.cloud.google.com/physionet-challenge-2020-12-lead-ecg-public/
+    [6] (deprecated) https://storage.cloud.google.com/physionet-challenge-2020-12-lead-ecg-public/
+    [7] https://storage.cloud.google.com/physionetchallenge2021-public-datasets/
     """
     def __init__(self,
                  db_dir:str,
