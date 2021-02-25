@@ -75,6 +75,7 @@ two_leads = ("II", "V5")
 BaseCfg = ED()
 BaseCfg.db_dir = "/media/cfs/wenhao71/data/CPSC2021/"
 BaseCfg.log_dir = os.path.join(_BASE_DIR, "log")
+BaseCfg.fs = 500
 BaseCfg.torch_dtype = "float"  # "double"
 
 
@@ -241,7 +242,7 @@ TrainCfg.bin_pred_nsr_thr = _bin_pred_nsr_thr
 # terminologies of stanford ecg repo. will be adopted
 ModelCfg = ED()
 ModelCfg.torch_dtype = BaseCfg.torch_dtype
-ModelCfg.fs = 500
+ModelCfg.fs = BaseCfg.fs
 ModelCfg.spacing = 1000 / ModelCfg.fs
 ModelCfg.bin_pred_thr = _bin_pred_thr
 ModelCfg.bin_pred_look_again_tol = _bin_pred_look_again_tol
@@ -321,7 +322,7 @@ ModelCfg.six_leads.cnn.xception_vanilla.exit_flow = ED(
     subsample_kernels=3,
 )
 
-ModelCfg.three_leads = ED()
+ModelCfg.three_leads = deepcopy(_BASE_MODEL_CONFIG)
 ModelCfg.three_leads.cnn.vgg16_leadwise.groups = 3
 _base_num_filters = 3 * 8  # 12 * 4
 ModelCfg.three_leads.cnn.vgg16_leadwise.num_filters = [
@@ -378,7 +379,7 @@ ModelCfg.three_leads.cnn.xception_vanilla.exit_flow = ED(
     subsample_kernels=3,
 )
 
-ModelCfg.two_leads = ED()
+ModelCfg.two_leads = deepcopy(_BASE_MODEL_CONFIG)
 ModelCfg.two_leads.cnn.vgg16_leadwise.groups = 3
 _base_num_filters = 2 * 12  # 12 * 4
 ModelCfg.two_leads.cnn.vgg16_leadwise.num_filters = [
