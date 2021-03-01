@@ -73,7 +73,8 @@ two_leads = ("II", "V5")
 
 
 BaseCfg = ED()
-BaseCfg.db_dir = "/media/cfs/wenhao71/data/CPSC2021/"
+# BaseCfg.db_dir = "/media/cfs/wenhao71/data/CPSC2021/"
+BaseCfg.db_dir = "/home/taozi/Data/CinC2021/All_training_WFDB/"
 BaseCfg.log_dir = os.path.join(_BASE_DIR, "log")
 BaseCfg.fs = 500
 BaseCfg.torch_dtype = "float"  # "double"
