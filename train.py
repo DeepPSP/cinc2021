@@ -468,16 +468,11 @@ def get_args(**kwargs:Any):
     parser = argparse.ArgumentParser(
         description="Train the Model on CINC2021",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    # parser.add_argument(
-    #     "-l", "--learning-rate",
-    #     metavar="LR", type=float, nargs="?", default=0.001,
-    #     help="Learning rate",
-    #     dest="learning_rate")
-    # parser.add_argument(
-    #     "-g", "--gpu",
-    #     metavar="G", type=str, default="0",
-    #     help="GPU",
-    #     dest="gpu")
+    parser.add_argument(
+        "-l", "--leads",
+        type=int, default=12,
+        help="number of leads",
+        dest="n_leads")
     parser.add_argument(
         "-t", "--tranches",
         type=str, default="",
@@ -544,7 +539,14 @@ if __name__ == "__main__":
     else:
         classes = config.classes
 
-    model_config = deepcopy(ModelCfg.twelve_leads)  # TODO: adjust for CinC2021
+    if config.n_leads == 12:
+        model_config = deepcopy(ModelCfg.twelve_leads)  # TODO: adjust for CinC2021
+    elif config.n_leads == 6:
+        model_config = deepcopy(ModelCfg.six_leads)
+    elif config.n_leads == 3:
+        model_config = deepcopy(ModelCfg.three_leads)
+    elif config.n_leads == 2:
+        model_config = deepcopy(ModelCfg.two_leads)
     model_config.cnn.name = config.cnn_name
     model_config.rnn.name = config.rnn_name
 
