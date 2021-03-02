@@ -9,7 +9,7 @@ import torch
 from torch import Tensor
 from easydict import EasyDict as ED
 
-from torch_ecg.models.ecg_crnn import ECG_CRNN
+from torch_ecg.torch_ecg.models.ecg_crnn import ECG_CRNN
 from cfg import ModelCfg
 
 
@@ -39,7 +39,7 @@ class ECG_CRNN_CINC2021(ECG_CRNN):
         """
         model_config = ED(deepcopy(ModelCfg))
         model_config.update(deepcopy(config) or {})
-        super().__init__(classes, n_leads, input_len, model_config)
+        super().__init__(classes, n_leads, model_config)
 
 
     @torch.no_grad()

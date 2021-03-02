@@ -40,7 +40,7 @@ import argparse
 import textwrap
 from copy import deepcopy
 from collections import deque
-from typing import Union, Optional, Tuple, Sequence, NoReturn
+from typing import Any, Union, Optional, Tuple, Sequence, NoReturn
 from numbers import Real, Number
 
 import numpy as np
@@ -65,8 +65,8 @@ from torch_ecg.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
 from torch_ecg.torch_ecg.utils.misc import (
     init_logger, get_date_str, dict_to_str, str2bool,
 )
-from scoring_metrics import evaluate_12ECG_score
-from cfg import BaseCfg, TrainCfg
+from utils.scoring_metrics import evaluate_12ECG_score
+from cfg import BaseCfg, TrainCfg, ModelCfg
 from dataset import CINC2021
 
 if BaseCfg.torch_dtype.lower() == "double":
@@ -544,14 +544,14 @@ if __name__ == "__main__":
     else:
         classes = config.classes
 
-    model_config = deepcopy(ECG_CRNN_CONFIG)  # TODO: adjust for CinC2021
+    model_config = deepcopy(ModelCfg.twelve_leads)  # TODO: adjust for CinC2021
     model_config.cnn.name = config.cnn_name
     model_config.rnn.name = config.rnn_name
 
     model = ECG_CRNN_CINC2021(
         classes=classes,
         n_leads=config.n_leads,
-        input_len=config.input_len,
+        # input_len=config.input_len,
         config=model_config,
     )
 

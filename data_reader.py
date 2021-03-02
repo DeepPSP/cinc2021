@@ -128,7 +128,7 @@ class CINC2021Reader(object):
     NOTE that there"s a difference when using `wfdb.rdrecord`: data from `loadmat` are in "channel_first" format, while `wfdb.rdrecord.p_signal` produces data in the "channel_last" format
     10. there"re 3 equivalent (2 classes are equivalent if the corr. value in the scoring matrix is 1):
         (RBBB, CRBBB), (PAC, SVPB), (PVC, VPB)
-    11. in the newly (Feb., 2021) created dataset (ref. [7]), header files of each subset were gathered into one separate compressed file. This is due to the fact that updates on the dataset are almost always done in the header files. The correct usage of ref. [7], after uncompressing, is replacing the header files in the folder `All_training_WFDB` by header files from the 6 folders containing all header files from the 6 subsets. This procedure has to be done, since `All_training_WFDB` contains the very original headers with baselines: {"A": {1000.0}, "B": {1000.0}, "C": {1000.0}, "D": {2000000.0}, "E": {200.0}, "F": {4880.0}} (the last 3 are not correct)
+    11. in the newly (Feb., 2021) created dataset (ref. [7]), header files of each subset were gathered into one separate compressed file. This is due to the fact that updates on the dataset are almost always done in the header files. The correct usage of ref. [7], after uncompressing, is replacing the header files in the folder `All_training_WFDB` by header files from the 6 folders containing all header files from the 6 subsets. This procedure has to be done, since `All_training_WFDB` contains the very original headers with baselines: {"A": {1000.0}, "B": {1000.0}, "C": {1000.0}, "D": {2000000.0}, "E": {200.0}, "F": {4880.0}} (the last 3 are NOT correct)
 
     Usage:
     ------
@@ -823,7 +823,8 @@ class CINC2021Reader(object):
             - "s", SNOMED CT Code
         normalize: bool, default True,
             if True, the labels will be transformed into their equavalents,
-            which are defined in `utils.scoring_aux_data.py`
+            which are defined in `utils.scoring_aux_data.py`,
+            and duplicates would be removed if exist after normalization
         
         Returns:
         --------
@@ -832,19 +833,27 @@ class CINC2021Reader(object):
         """
         ann_dict = self.load_ann(rec)
         if scored_only:
-            labels = ann_dict["diagnosis_scored"]
+            _labels = ann_dict["diagnosis_scored"]
         else:
-            labels = ann_dict["diagnosis"]
+            _labels = ann_dict["diagnosis"]
         if fmt.lower() == "a":
-            labels = labels["diagnosis_abbr"]
+            _labels = _labels["diagnosis_abbr"]
         elif fmt.lower() == "f":
-            labels = labels["diagnosis_fullname"]
+            _labels = _labels["diagnosis_fullname"]
         elif fmt.lower() == "s":
-            labels = labels["diagnosis_code"]
+            _labels = _labels["diagnosis_code"]
         else:
             raise ValueError(f"`fmt` should be one of `a`, `f`, `s`, but got `{fmt}`")
         if normalize:
-            labels = [self.label_trans_dict.get(item, item) for item in labels]
+            # labels = [self.label_trans_dict.get(item, item) for item in labels]
+            # remove possible duplicates after normalization
+            labels = []
+            for item in _labels:
+                new_item = self.label_trans_dict.get(item, item)
+                if new_item not in labels:
+                    labels.append(new_item)
+        else:
+            labels = _labels
         return labels
 
 
