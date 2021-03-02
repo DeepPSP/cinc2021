@@ -15,7 +15,7 @@ from utils.scoring_aux_data import (
     equiv_class_dict,
     get_class_weight,
 )
-from torch_ecg.torch_ecg.model_configs import ECG_CRNN_CONFIG
+from torch_ecg.torch_ecg.model_configs.ecg_crnn import ECG_CRNN_CONFIG
 from torch_ecg.torch_ecg.model_configs.cnn import (
     vgg_block_basic, vgg_block_mish, vgg_block_swish,
     vgg16, vgg16_leadwise,
