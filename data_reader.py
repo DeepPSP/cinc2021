@@ -142,7 +142,7 @@ class CINC2021Reader(object):
     4. "E04603" (all leads), "E06072" (chest leads, epecially V1-V3), "E06909" (lead V2), "E07675" (lead V3), "E07941" (lead V6), "E08321" (lead V6) has exceptionally large values at rpeaks, reading (`load_data`) these two records using `wfdb` would bring in `nan` values. One can check using the following code
     >>> rec = "E04603"
     >>> dr.plot(rec, dr.load_data(rec, backend="scipy", units="uv"))  # currently raising error
-    5. many records (headers) have duplicate labels. For example, many records in the Georgia subset has duplicate "PVC" ("284470004") label
+    5. many records (headers) have duplicate labels. For example, many records in the Georgia subset has duplicate "PAC" ("284470004") label
 
     References:
     -----------
