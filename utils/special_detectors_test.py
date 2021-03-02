@@ -21,7 +21,8 @@ def test_sd(rec:str) -> dict:
     try:
         fs = DR.get_fs(rec)
         data = DR.load_data(rec)
-        ann = DR.load_ann(rec)["diagnosis_scored"]["diagnosis_abbr"]
+        # ann = DR.load_ann(rec)["diagnosis_scored"]["diagnosis_abbr"]
+        ann = DR.get_labels(rec, scored_only=True, fmt="a", normalize=True)
         cc = special_detectors(data, fs, rpeak_fn="xqrs")
         cc = [k.replace("is_", "") for k,v in cc.items() if v]
         ret_val = {"rec": rec, "label": ann, "pred": cc, "err": "False"}
