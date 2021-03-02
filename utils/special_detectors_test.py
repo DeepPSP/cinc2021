@@ -44,6 +44,7 @@ if __name__ == "main":
         all_results.append(test_sd(rec))
         print(f"{idx+1}/{len(all_candidates)}", end="\r")
 
+    os.makedirs(BaseCfg.log_dir, exist_ok=True)
     save_fp = os.path.join(BaseCfg.log_dir, "special_detectors_test_results.json")
     with open(save_fp, "w") as f:
-        json.dump(all_results, save_fp, ensure_ascii=False)
+        json.dump(all_results, f, ensure_ascii=False)
