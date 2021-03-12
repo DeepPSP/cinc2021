@@ -139,3 +139,6 @@ tmp
 temp
 checkpoints
 log
+
+# training_notebooks
+train_*.ipynb
