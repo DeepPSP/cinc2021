@@ -78,7 +78,9 @@ BaseCfg = ED()
 # BaseCfg.db_dir = "/media/cfs/wenhao71/data/CPSC2021/"
 BaseCfg.db_dir = "/home/taozi/Data/CinC2021/All_training_WFDB/"
 BaseCfg.log_dir = os.path.join(_BASE_DIR, "log")
+BaseCfg.model_dir = os.path.join(_BASE_DIR, "saved_models")
 os.makedirs(BaseCfg.log_dir, exist_ok=True)
+os.makedirs(BaseCfg.model_dir, exist_ok=True)
 BaseCfg.fs = 500
 BaseCfg.torch_dtype = "float"  # "double"
 
@@ -139,6 +141,8 @@ TrainCfg = ED()
 # configs of files
 TrainCfg.db_dir = BaseCfg.db_dir
 TrainCfg.log_dir = BaseCfg.log_dir
+TrainCfg.model_dir = BaseCfg.model_dir
+TrainCfg.final_model_name = None
 TrainCfg.checkpoints = os.path.join(_BASE_DIR, "checkpoints")
 os.makedirs(TrainCfg.checkpoints, exist_ok=True)
 TrainCfg.keep_checkpoint_max = 20

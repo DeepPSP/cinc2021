@@ -5,10 +5,16 @@
 
 from helper_code import *
 import numpy as np, os, sys, joblib
-from sklearn.impute import SimpleImputer
-from sklearn.ensemble import RandomForestClassifier
+from copy import deepcopy
+
+import torch
 
 from train import train
+from cfg import TrainCfg, ModelCfg, SpecialDetectorCfg
+from utils.special_detectors import special_detectors
+from utils.utils_nn import extend_predictions
+from utils.misc import get_date_str, dict_to_str, init_logger
+from model import ECG_CRNN_CINC2021
 
 
 twelve_lead_model_filename = '12_lead_model.pth'
@@ -51,28 +57,148 @@ def training_code(data_directory, model_directory):
     num_classes = len(classes)
 
 
+    # configs and logger
+    train_config = deepcopy(TrainCfg)
+    train_config.db_dir = data_directory
+    train_config.model_dir = model_directory
+
+    tranches = train_config.tranches_for_training
+    if tranches:
+        train_classes = train_config.tranche_classes[tranches]
+    else:
+        train_classes = train_config.classes
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    logger = init_logger(log_dir=train_config.log_dir, verbose=2)
+    logger.info(f"\n{'*'*20}   Start Training   {'*'*20}\n")
+    logger.info(f"Using device {device}")
+    logger.info(f"Using torch of version {torch.__version__}")
+    logger.info(f"with configuration\n{dict_to_str(train_config)}")
+
+
     # Train 12-lead ECG model.
     print('Training 12-lead ECG model...')
 
-    leads = twelve_leads
-    filename = os.path.join(model_directory, twelve_lead_model_filename)
+    train_config.leads = twelve_leads
+    train_config.n_leads = len(train_config.leads)
+    # filename = os.path.join(model_directory, twelve_lead_model_filename)
+    train_config.final_model_name = twelve_lead_model_filename
+    model_config = deepcopy(ModelCfg.twelve_leads)
+    model_config.cnn.name = train_config.cnn_name
+    model_config.rnn.name = train_config.rnn_name
+    model_config.attn.name = train_config.attn_name
 
-    # TODO: add train(...)
+    model = ECG_CRNN_CINC2021(
+        classes=train_classes,
+        n_leads=train_config.n_leads,
+        # input_len=config.input_len,
+        config=model_config,
+    )
+
+    if torch.cuda.device_count() > 1:
+        model = torch.nn.DataParallel(model)
+    model.to(device=device)
+    model.__DEBUG__ = False
+
+    train(
+        model=model,
+        config=train_config,
+        device=device,
+        logger=logger,
+        debug=train_config.debug,
+    )
+
 
     # Train 6-lead ECG model.
     print('Training 6-lead ECG model...')
 
-    # TODO: add train(...)
+    train_config.leads = six_leads
+    train_config.n_leads = len(train_config.leads)
+    train_config.final_model_name = six_lead_model_filename
+    model_config = deepcopy(ModelCfg.six_leads)
+    model_config.cnn.name = train_config.cnn_name
+    model_config.rnn.name = train_config.rnn_name
+    model_config.attn.name = train_config.attn_name
+
+    model = ECG_CRNN_CINC2021(
+        classes=train_classes,
+        n_leads=train_config.n_leads,
+        config=model_config,
+    )
+
+    if torch.cuda.device_count() > 1:
+        model = torch.nn.DataParallel(model)
+    model.to(device=device)
+    model.__DEBUG__ = False
+
+    train(
+        model=model,
+        config=train_config,
+        device=device,
+        logger=logger,
+        debug=train_config.debug,
+    )
 
     # Train 3-lead ECG model.
     print('Training 3-lead ECG model...')
 
-    # TODO: add train(...)
+    train_config.leads = three_leads
+    train_config.n_leads = len(train_config.leads)
+    train_config.final_model_name = three_lead_model_filename
+    model_config = deepcopy(ModelCfg.three_leads)
+    model_config.cnn.name = train_config.cnn_name
+    model_config.rnn.name = train_config.rnn_name
+    model_config.attn.name = train_config.attn_name
+
+    model = ECG_CRNN_CINC2021(
+        classes=train_classes,
+        n_leads=train_config.n_leads,
+        config=model_config,
+    )
+
+    if torch.cuda.device_count() > 1:
+        model = torch.nn.DataParallel(model)
+    model.to(device=device)
+    model.__DEBUG__ = False
+
+    train(
+        model=model,
+        config=train_config,
+        device=device,
+        logger=logger,
+        debug=train_config.debug,
+    )
 
     # Train 2-lead ECG model.
     print('Training 2-lead ECG model...')
 
-    # TODO: add train(...)
+    train_config.leads = two_leads
+    train_config.n_leads = len(train_config.leads)
+    train_config.final_model_name = twelve_lead_model_filename
+    model_config = deepcopy(ModelCfg.two_leads)
+    model_config.cnn.name = train_config.cnn_name
+    model_config.rnn.name = train_config.rnn_name
+    model_config.attn.name = train_config.attn_name
+
+    model = ECG_CRNN_CINC2021(
+        classes=train_classes,
+        n_leads=train_config.n_leads,
+        config=model_config,
+    )
+
+    if torch.cuda.device_count() > 1:
+        model = torch.nn.DataParallel(model)
+    model.to(device=device)
+    model.__DEBUG__ = False
+
+    train(
+        model=model,
+        config=train_config,
+        device=device,
+        logger=logger,
+        debug=train_config.debug,
+    )
 
 ################################################################################
 #

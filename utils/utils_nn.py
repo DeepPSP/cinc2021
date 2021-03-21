@@ -7,6 +7,7 @@ from typing import Union, Sequence, List, Tuple, Optional, NoReturn
 
 import numpy as np
 np.set_printoptions(precision=5, suppress=True)
+import torch
 from torch import Tensor
 from torch import nn
 
@@ -463,7 +464,7 @@ def compute_receptive_field(kernel_sizes:Union[Sequence[int], int]=1,
     of the 3 branches of the multi-scopic net, using its original hyper-parameters,
     (note the 3 max pooling layers)
     """
-    _kernel_sizes = [kernel_size] if isinstance(kernel_sizes, int) else list(kernel_sizes)
+    _kernel_sizes = [kernel_sizes] if isinstance(kernel_sizes, int) else list(kernel_sizes)
     num_layers = len(_kernel_sizes)
     _strides = list(repeat(strides, num_layers)) if isinstance(strides, int) else list(strides)
     _dilations = list(repeat(dilations, num_layers)) if isinstance(dilations, int) else list(dilations)

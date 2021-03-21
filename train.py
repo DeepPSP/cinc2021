@@ -374,9 +374,12 @@ def train(model:nn.Module,
 
     # save the best model
     if best_challenge_metric > -np.inf:
-        save_suffix = f"BestModel_fb_{best_eval_res[4]:.2f}_gb_{best_eval_res[5]:.2f}_cm_{best_eval_res[6]:.2f}"
-        save_filename = f"{save_prefix}_{get_date_str()}_{save_suffix}.pth"
-        save_path = os.path.join(config.checkpoints, save_filename)
+        if config.final_model_name:
+            save_filename = config.final_model_name
+        else:
+            save_suffix = f"BestModel_fb_{best_eval_res[4]:.2f}_gb_{best_eval_res[5]:.2f}_cm_{best_eval_res[6]:.2f}"
+            save_filename = f"{save_prefix}_{get_date_str()}_{save_suffix}.pth"
+        save_path = os.path.join(config.model_dir, save_filename)
         torch.save(best_state_dict, save_path)
         if logger:
             logger.info(f"Best model saved to {save_path}!")
@@ -542,24 +545,15 @@ def get_args(**kwargs:Any):
 
 
 
-DAS = False  # JD DAS platform
-
 if __name__ == "__main__":
     config = get_args(**TrainCfg)
     # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
-    if not DAS:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    else:
-        device = torch.device("cuda")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger = init_logger(log_dir=config.log_dir, verbose=2)
     logger.info(f"\n{'*'*20}   Start Training   {'*'*20}\n")
     logger.info(f"Using device {device}")
     logger.info(f"Using torch of version {torch.__version__}")
     logger.info(f"with configuration\n{dict_to_str(config)}")
-    # print(f"\n{'*'*20}   Start Training   {'*'*20}\n")
-    # print(f"Using device {device}")
-    # print(f"Using torch of version {torch.__version__}")
-    # print(f"with configuration\n{dict_to_str(config)}")
 
     tranches = config.tranches_for_training
     if tranches:
@@ -582,16 +576,11 @@ if __name__ == "__main__":
     model = ECG_CRNN_CINC2021(
         classes=classes,
         n_leads=config.n_leads,
-        # input_len=config.input_len,
         config=model_config,
     )
 
-    if not DAS and torch.cuda.device_count() > 1:
+    if torch.cuda.device_count() > 1:
         model = torch.nn.DataParallel(model)
-    # if not DAS:
-    #     model.to(device=device)
-    # else:
-    #     model.cuda()
     model.to(device=device)
     model.__DEBUG__ = False
 
