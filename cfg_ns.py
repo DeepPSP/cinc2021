@@ -217,8 +217,10 @@ TrainCfg.log_step = 20
 TrainCfg.eval_every = 20
 
 # configs of model selection
-TrainCfg.cnn_name = "resnet_leadwise"  # "vgg16", "resnet", "vgg16_leadwise", "cpsc", "cpsc_leadwise"
-TrainCfg.rnn_name = "none"  # "none", "lstm", "attention"
+# "resnet_leadwise", "multi_scopic_leadwise", "vgg16", "resnet", "vgg16_leadwise", "cpsc", "cpsc_leadwise"
+TrainCfg.cnn_name = "multi_scopic_leadwise"
+TrainCfg.rnn_name = "none"  # "none", "lstm"
+TrainCfg.attn_name = "se"  # "none", "se", "gc", "nl"
 
 # configs of inputs and outputs
 # almost all records have duration >= 8s, most have duration >= 10s
@@ -259,8 +261,10 @@ ModelCfg.dl_classes = deepcopy(TrainCfg.classes)
 ModelCfg.dl_siglen = TrainCfg.siglen
 ModelCfg.tranche_classes = deepcopy(TrainCfg.tranche_classes)
 ModelCfg.full_classes = ModelCfg.dl_classes + ModelCfg.special_classes
+
 ModelCfg.cnn_name = TrainCfg.cnn_name
 ModelCfg.rnn_name = TrainCfg.rnn_name
+ModelCfg.attn_name = TrainCfg.attn_name
 
 
 _BASE_MODEL_CONFIG = deepcopy(ECG_CRNN_CONFIG)
@@ -269,9 +273,15 @@ _BASE_MODEL_CONFIG = deepcopy(ECG_CRNN_CONFIG)
 # mostly follow from torch_ecg.torch_ecg.model_configs.ecg_crnn
 
 ModelCfg.twelve_leads = deepcopy(_BASE_MODEL_CONFIG)
+ModelCfg.twelve_leads.cnn.name = ModelCfg.cnn_name
+ModelCfg.twelve_leads.rnn.name = ModelCfg.rnn_name
+ModelCfg.twelve_leads.attn.name = ModelCfg.attn_name
 
 # TODO: add adjustifications for "leadwise" configs for 6,3,2 leads models
 ModelCfg.six_leads = deepcopy(_BASE_MODEL_CONFIG)
+ModelCfg.six_leads.cnn.name = ModelCfg.cnn_name
+ModelCfg.six_leads.rnn.name = ModelCfg.rnn_name
+ModelCfg.six_leads.attn.name = ModelCfg.attn_name
 ModelCfg.six_leads.cnn.vgg16_leadwise.groups = 6
 _base_num_filters = 6 * 4  # 12 * 4
 ModelCfg.six_leads.cnn.vgg16_leadwise.num_filters = [
@@ -329,6 +339,9 @@ ModelCfg.six_leads.cnn.xception_vanilla.exit_flow = ED(
 )
 
 ModelCfg.three_leads = deepcopy(_BASE_MODEL_CONFIG)
+ModelCfg.three_leads.cnn.name = ModelCfg.cnn_name
+ModelCfg.three_leads.rnn.name = ModelCfg.rnn_name
+ModelCfg.three_leads.attn.name = ModelCfg.attn_name
 ModelCfg.three_leads.cnn.vgg16_leadwise.groups = 3
 _base_num_filters = 3 * 8  # 12 * 4
 ModelCfg.three_leads.cnn.vgg16_leadwise.num_filters = [
@@ -386,6 +399,9 @@ ModelCfg.three_leads.cnn.xception_vanilla.exit_flow = ED(
 )
 
 ModelCfg.two_leads = deepcopy(_BASE_MODEL_CONFIG)
+ModelCfg.two_leads.cnn.name = ModelCfg.cnn_name
+ModelCfg.two_leads.rnn.name = ModelCfg.rnn_name
+ModelCfg.two_leads.attn.name = ModelCfg.attn_name
 ModelCfg.two_leads.cnn.vgg16_leadwise.groups = 3
 _base_num_filters = 2 * 12  # 12 * 4
 ModelCfg.two_leads.cnn.vgg16_leadwise.num_filters = [
