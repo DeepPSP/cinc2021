@@ -39,7 +39,7 @@ import logging
 import argparse
 import textwrap
 from copy import deepcopy
-from collections import deque
+from collections import deque, OrderedDict
 from typing import Any, Union, Optional, Tuple, Sequence, NoReturn
 from numbers import Real, Number
 
@@ -65,7 +65,7 @@ from torch_ecg.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
 from torch_ecg.torch_ecg.utils.misc import (
     init_logger, get_date_str, dict_to_str, str2bool,
 )
-from utils.scoring_metrics import evaluate_12ECG_score
+from utils.scoring_metrics import evaluate_scores
 from cfg import BaseCfg, TrainCfg, ModelCfg
 from dataset import CINC2021
 
@@ -101,6 +101,10 @@ def train(model:nn.Module,
     debug: bool, default False,
         if True, the training set itself would be evaluated 
         to check if the model really learns from the training set
+
+    TODO:
+    -----
+    1. add early stopping
     """
     msg = f"training configurations are as follows:\n{dict_to_str(config)}"
     if logger:
@@ -234,6 +238,11 @@ def train(model:nn.Module,
 
     save_prefix = f"{model.__name__}_{config.cnn_name}_{config.rnn_name}_tranche_{config.tranches_for_training or 'all'}_epoch"
 
+    # monitor for training: challenge metric
+    best_state_dict = OrderedDict()
+    best_challenge_metric = -np.inf
+    best_eval_res = tuple()
+
     saved_models = deque()
     model.train()
     global_step = 0
@@ -299,6 +308,11 @@ def train(model:nn.Module,
             writer.add_scalar("test/g_beta_measure", eval_res[5], global_step)
             writer.add_scalar("test/challenge_metric", eval_res[6], global_step)
 
+            if eval_res[6] > best_challenge_metric:
+                best_challenge_metric = eval_res[6]
+                best_state_dict = model.state_dict()
+                best_eval_res = deepcopy(eval_res)
+
             if config.lr_scheduler is None:
                 pass
             elif config.lr_scheduler.lower() == "plateau":
@@ -357,6 +371,15 @@ def train(model:nn.Module,
                     os.remove(model_to_remove)
                 except:
                     logger.info(f"failed to remove {model_to_remove}")
+
+    # save the best model
+    if best_challenge_metric > -np.inf:
+        save_suffix = f"BestModel_fb_{best_eval_res[4]:.2f}_gb_{best_eval_res[5]:.2f}_cm_{best_eval_res[6]:.2f}"
+        save_filename = f"{save_prefix}_{get_date_str()}_{save_suffix}.pth"
+        save_path = os.path.join(config.checkpoints, save_filename)
+        torch.save(best_state_dict, save_path)
+        if logger:
+            logger.info(f"Best model saved to {save_path}!")
 
     writer.close()
 
@@ -448,7 +471,7 @@ def evaluate(model:nn.Module,
                 print(msg)
 
     auroc, auprc, accuracy, f_measure, f_beta_measure, g_beta_measure, challenge_metric = \
-        evaluate_12ECG_score(
+        evaluate_scores(
             classes=classes,
             truth=all_labels,
             scalar_pred=all_scalar_preds,
@@ -485,22 +508,27 @@ def get_args(**kwargs:Any):
         dest="batch_size")
     parser.add_argument(
         "-c", "--cnn-name",
-        type=str, default="resnet",
+        type=str, default="multi_scopic_leadwise",
         help="choice of cnn feature extractor",
         dest="cnn_name")
     parser.add_argument(
         "-r", "--rnn-name",
-        type=str, default="lstm",
+        type=str, default="none",
         help="choice of rnn structures",
         dest="rnn_name")
+    parser.add_argument(
+        "-a", "--attn-name",
+        type=str, default="se",
+        help="choice of attention structures",
+        dest="attn_name")
     parser.add_argument(
         "--keep-checkpoint-max", type=int, default=20,
         help="maximum number of checkpoints to keep. If set 0, all checkpoints will be kept",
         dest="keep_checkpoint_max")
-    parser.add_argument(
-        "--optimizer", type=str, default="adam",
-        help="training optimizer",
-        dest="train_optimizer")
+    # parser.add_argument(
+    #     "--optimizer", type=str, default="adam",
+    #     help="training optimizer",
+    #     dest="train_optimizer")
     parser.add_argument(
         "--debug", type=str2bool, default=False,
         help="train with more debugging information",
@@ -549,6 +577,7 @@ if __name__ == "__main__":
         model_config = deepcopy(ModelCfg.two_leads)
     model_config.cnn.name = config.cnn_name
     model_config.rnn.name = config.rnn_name
+    model_config.attn.name = config.attn_name
 
     model = ECG_CRNN_CINC2021(
         classes=classes,

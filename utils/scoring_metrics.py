@@ -10,7 +10,7 @@ from .scoring_aux_data import load_weights
 
 
 __all__ = [
-    "evaluate_12ECG_score",
+    "evaluate_scores",
     "compute_auc",
     "compute_accuracy",
     "compute_f_measure",
@@ -19,7 +19,7 @@ __all__ = [
 ]
 
 
-def evaluate_12ECG_score(classes:List[str], truth:Sequence, binary_pred:Sequence, scalar_pred:Sequence) -> Tuple[float]:
+def evaluate_scores(classes:List[str], truth:Sequence, binary_pred:Sequence, scalar_pred:Sequence) -> Tuple[float]:
     """ finished, checked,
 
     Parameters:
