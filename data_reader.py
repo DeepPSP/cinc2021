@@ -858,7 +858,7 @@ class CINC2021Reader(object):
         return labels
 
 
-    def get_fs(self, rec:str) -> Real:
+    def get_fs(self, rec:str, from_hea:bool=True) -> Real:
         """ finished, checked,
 
         get the sampling frequency of a record
@@ -867,14 +867,20 @@ class CINC2021Reader(object):
         -----------
         rec: str,
             name of the record
+        from_hea: bool, default True,
+            if True, get sampling frequency from corresponding header file of the record;
+            otherwise from `self.fs`
 
         Returns:
         --------
         fs: real number,
             sampling frequency of the record `rec`
         """
-        tranche = self._get_tranche(rec)
-        fs = self.fs[tranche]
+        if from_hea:
+            fs = self.load_ann(rec)["fs"]
+        else:
+            tranche = self._get_tranche(rec)
+            fs = self.fs[tranche]
         return fs
 
     
