@@ -530,8 +530,11 @@ class CINC2021Reader(object):
         if units.lower() in ["uv", "μv"]:
             data = data * 1000
 
-        if fs is not None and fs != self.fs[tranche]:
-            data = resample_poly(data, fs, self.fs[tranche], axis=1)
+        rec_fs = self.get_fs(rec, from_hea=True)
+        if fs is not None and fs != rec_fs:
+            data = resample_poly(data, fs, rec_fs, axis=1)
+        # if fs is not None and fs != self.fs[tranche]:
+        #     data = resample_poly(data, fs, self.fs[tranche], axis=1)
 
         if data_format.lower() in ["channel_last", "lead_last"]:
             data = data.T
@@ -1273,8 +1276,11 @@ class CINC2021Reader(object):
                 units="mV",
                 fs=None
             )
-            if self.fs[tranche] != 500:
-                data = resample_poly(data, 500, self.fs[tranche], axis=1)
+            rec_fs = self.get_fs(rec, from_hea=True)
+            if rec_fs != 500:
+                data = resample_poly(data, 500, rec_fs, axis=1)
+            # if self.fs[tranche] != 500:
+            #     data = resample_poly(data, 500, self.fs[tranche], axis=1)
             if siglen is not None and data.shape[1] >= siglen:
                 # slice_start = (data.shape[1] - siglen)//2
                 # slice_end = slice_start + siglen
