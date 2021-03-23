@@ -79,6 +79,7 @@ class ECG_CRNN_CINC2021(ECG_CRNN):
         else:
             device = torch.device("cpu")
         self.to(device)
+        self.eval()
         if isinstance(input, np.ndarray):
             _input = torch.from_numpy(input).to(device)
         else:
@@ -105,7 +106,7 @@ class ECG_CRNN_CINC2021(ECG_CRNN):
             pred["bin_pred"] = ""
             for row_idx in range(len(pred)):
                 pred.at[row_idx, "bin_pred"] = \
-                    np.array(self.classes)[np.where(bin_pred==1)[0]].tolist()
+                    np.array(self.classes)[np.where(bin_pred[row_idx]==1)[0]].tolist()
         return pred, bin_pred
 
 
