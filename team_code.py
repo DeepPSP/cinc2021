@@ -11,10 +11,11 @@ import torch
 
 from train import train
 from cfg import TrainCfg, ModelCfg, SpecialDetectorCfg
+from model import ECG_CRNN_CINC2021
 from utils.special_detectors import special_detectors
 from utils.utils_nn import extend_predictions
 from utils.misc import get_date_str, dict_to_str, init_logger
-from model import ECG_CRNN_CINC2021
+from utils.utils_signal import ensure_siglen, butter_bandpass_filter
 
 
 twelve_lead_model_filename = '12_lead_model.pth'
@@ -61,6 +62,7 @@ def training_code(data_directory, model_directory):
     train_config = deepcopy(TrainCfg)
     train_config.db_dir = data_directory
     train_config.model_dir = model_directory
+    train_config.debug = True
 
     tranches = train_config.tranches_for_training
     if tranches:
@@ -175,7 +177,7 @@ def training_code(data_directory, model_directory):
 
     train_config.leads = two_leads
     train_config.n_leads = len(train_config.leads)
-    train_config.final_model_name = twelve_lead_model_filename
+    train_config.final_model_name = two_lead_model_filename
     model_config = deepcopy(ModelCfg.two_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
@@ -200,6 +202,31 @@ def training_code(data_directory, model_directory):
         debug=train_config.debug,
     )
 
+
+# def training_12_leads(data_directory, model_directory):
+#     """
+#     """
+#     pass
+
+
+# def training_6_leads(data_directory, model_directory):
+#     """
+#     """
+#     pass
+
+
+# def training_3_leads(data_directory, model_directory):
+#     """
+#     """
+#     pass
+
+
+# def training_2_leads(data_directory, model_directory):
+#     """
+#     """
+#     pass
+
+
 ################################################################################
 #
 # File I/O functions
@@ -213,23 +240,63 @@ def save_model(filename, classes, leads, imputer, classifier):
 
 # Load your trained 12-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
 def load_twelve_lead_model(model_directory):
-    filename = os.path.join(model_directory, twelve_lead_model_filename)
-    raise NotImplementedError
+    model = ECG_CRNN_CINC2021(
+        classes=ModelCfg.dl_classes,
+        n_leads=12,
+        config=ModelCfg.twelve_leads,
+    )
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+    model.eval()
+    model.load_state_dict(torch.load(os.path.join(TrainCfg.model_dir, twelve_lead_model_filename), map_location=device))
+    return model
 
 # Load your trained 6-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
 def load_six_lead_model(model_directory):
-    filename = os.path.join(model_directory, six_lead_model_filename)
-    raise NotImplementedError
+    model = ECG_CRNN_CINC2021(
+        classes=ModelCfg.dl_classes,
+        n_leads=6,
+        config=ModelCfg.six_leads,
+    )
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+    model.eval()
+    model.load_state_dict(torch.load(os.path.join(TrainCfg.model_dir, six_lead_model_filename), map_location=device))
+    return model
 
 # Load your trained 3-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
 def load_three_lead_model(model_directory):
-    filename = os.path.join(model_directory, three_lead_model_filename)
-    raise NotImplementedError
+    model = ECG_CRNN_CINC2021(
+        classes=ModelCfg.dl_classes,
+        n_leads=3,
+        config=ModelCfg.three_leads,
+    )
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+    model.eval()
+    model.load_state_dict(torch.load(os.path.join(TrainCfg.model_dir, three_lead_model_filename), map_location=device))
+    return model
 
 # Load your trained 2-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
 def load_two_lead_model(model_directory):
-    filename = os.path.join(model_directory, two_lead_model_filename)
-    raise NotImplementedError
+    model = ECG_CRNN_CINC2021(
+        classes=ModelCfg.dl_classes,
+        n_leads=2,
+        config=ModelCfg.two_leads,
+    )
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+    model.eval()
+    model.load_state_dict(torch.load(os.path.join(TrainCfg.model_dir, two_lead_model_filename), map_location=device))
+    return model
 
 # Generic function for loading a model.
 def load_model(filename):

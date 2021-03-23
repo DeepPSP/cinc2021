@@ -67,6 +67,9 @@ class ECG_CRNN_CINC2021(ECG_CRNN):
             scalar predictions, (and binary predictions if `class_names` is True)
         bin_pred: ndarray,
             the array (with values 0, 1 for each class) of binary prediction
+
+        NOTE that when `input` is ndarray, one should make sure that it is transformed,
+        e.g. bandpass filtered, normalized, etc.
         """
         if "NSR" in self.classes:
             nsr_cid = self.classes.index("NSR")
