@@ -5,16 +5,24 @@
 
 from helper_code import *
 import numpy as np, os, sys, joblib
+import time
+from datetime import datetime
 from copy import deepcopy
+from logging import Logger
+from typing import NoReturn
 
+import numpy as np
+import pandas as pd
 import torch
+from easydict import EasyDict as ED
+from scipy.signal import resample, resample_poly
 
 from train import train
 from cfg import TrainCfg, ModelCfg, SpecialDetectorCfg
 from model import ECG_CRNN_CINC2021
 from utils.special_detectors import special_detectors
 from utils.utils_nn import extend_predictions
-from utils.misc import get_date_str, dict_to_str, init_logger
+from utils.misc import get_date_str, dict_to_str, init_logger, rdheader
 from utils.utils_signal import ensure_siglen, butter_bandpass_filter
 
 
@@ -23,11 +31,16 @@ six_lead_model_filename = '6_lead_model.pth'
 three_lead_model_filename = '3_lead_model.pth'
 two_lead_model_filename = '2_lead_model.pth'
 
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 ################################################################################
 #
 # Training function
 #
 ################################################################################
+
 
 # Train your model. This function is *required*. Do *not* change the arguments of this function.
 def training_code(data_directory, model_directory):
@@ -70,13 +83,13 @@ def training_code(data_directory, model_directory):
     else:
         train_classes = train_config.classes
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     logger = init_logger(log_dir=train_config.log_dir, verbose=2)
     logger.info(f"\n{'*'*20}   Start Training   {'*'*20}\n")
-    logger.info(f"Using device {device}")
+    logger.info(f"Using device {DEVICE}")
     logger.info(f"Using torch of version {torch.__version__}")
     logger.info(f"with configuration\n{dict_to_str(train_config)}")
+
+    start_time = time.time()
 
 
     # Train 12-lead ECG model.
@@ -91,25 +104,7 @@ def training_code(data_directory, model_directory):
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    model = ECG_CRNN_CINC2021(
-        classes=train_classes,
-        n_leads=train_config.n_leads,
-        # input_len=config.input_len,
-        config=model_config,
-    )
-
-    if torch.cuda.device_count() > 1:
-        model = torch.nn.DataParallel(model)
-    model.to(device=device)
-    model.__DEBUG__ = False
-
-    train(
-        model=model,
-        config=train_config,
-        device=device,
-        logger=logger,
-        debug=train_config.debug,
-    )
+    training_12_leads(train_config, model_config, logger)
 
 
     # Train 6-lead ECG model.
@@ -123,24 +118,8 @@ def training_code(data_directory, model_directory):
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    model = ECG_CRNN_CINC2021(
-        classes=train_classes,
-        n_leads=train_config.n_leads,
-        config=model_config,
-    )
-
-    if torch.cuda.device_count() > 1:
-        model = torch.nn.DataParallel(model)
-    model.to(device=device)
-    model.__DEBUG__ = False
-
-    train(
-        model=model,
-        config=train_config,
-        device=device,
-        logger=logger,
-        debug=train_config.debug,
-    )
+    training_6_leads(train_config, model_config, logger)
+    
 
     # Train 3-lead ECG model.
     print('Training 3-lead ECG model...')
@@ -153,24 +132,8 @@ def training_code(data_directory, model_directory):
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    model = ECG_CRNN_CINC2021(
-        classes=train_classes,
-        n_leads=train_config.n_leads,
-        config=model_config,
-    )
-
-    if torch.cuda.device_count() > 1:
-        model = torch.nn.DataParallel(model)
-    model.to(device=device)
-    model.__DEBUG__ = False
-
-    train(
-        model=model,
-        config=train_config,
-        device=device,
-        logger=logger,
-        debug=train_config.debug,
-    )
+    training_3_leads(train_config, model_config, logger)
+    
 
     # Train 2-lead ECG model.
     print('Training 2-lead ECG model...')
@@ -183,6 +146,50 @@ def training_code(data_directory, model_directory):
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
+    training_2_leads(train_config, model_config, logger)
+
+    print(f"Training finishes! Total time usage is {((time.time() - start_time) / 3600):.3f} hours.")
+
+
+
+def training_12_leads(train_config:ED, model_config:ED, logger:Logger) -> NoReturn:
+    """
+    """
+    tranches = train_config.tranches_for_training
+    if tranches:
+        train_classes = train_config.tranche_classes[tranches]
+    else:
+        train_classes = train_config.classes
+    model = ECG_CRNN_CINC2021(
+        classes=train_classes,
+        n_leads=train_config.n_leads,
+        # input_len=config.input_len,
+        config=model_config,
+    )
+
+    if torch.cuda.device_count() > 1:
+        model = torch.nn.DataParallel(model)
+    model.to(device=DEVICE)
+    model.__DEBUG__ = False
+
+    train(
+        model=model,
+        config=train_config,
+        device=DEVICE,
+        logger=logger,
+        debug=train_config.debug,
+    )
+
+
+def training_6_leads(train_config:ED, model_config:ED, logger:Logger) -> NoReturn:
+    """
+    """
+    tranches = train_config.tranches_for_training
+    if tranches:
+        train_classes = train_config.tranche_classes[tranches]
+    else:
+        train_classes = train_config.classes
+    
     model = ECG_CRNN_CINC2021(
         classes=train_classes,
         n_leads=train_config.n_leads,
@@ -191,40 +198,75 @@ def training_code(data_directory, model_directory):
 
     if torch.cuda.device_count() > 1:
         model = torch.nn.DataParallel(model)
-    model.to(device=device)
+    model.to(device=DEVICE)
     model.__DEBUG__ = False
 
     train(
         model=model,
         config=train_config,
-        device=device,
+        device=DEVICE,
         logger=logger,
         debug=train_config.debug,
     )
 
 
-# def training_12_leads(data_directory, model_directory):
-#     """
-#     """
-#     pass
+def training_3_leads(train_config:ED, model_config:ED, logger:Logger) -> NoReturn:
+    """
+    """
+    tranches = train_config.tranches_for_training
+    if tranches:
+        train_classes = train_config.tranche_classes[tranches]
+    else:
+        train_classes = train_config.classes
+
+    model = ECG_CRNN_CINC2021(
+        classes=train_classes,
+        n_leads=train_config.n_leads,
+        config=model_config,
+    )
+
+    if torch.cuda.device_count() > 1:
+        model = torch.nn.DataParallel(model)
+    model.to(device=DEVICE)
+    model.__DEBUG__ = False
+
+    train(
+        model=model,
+        config=train_config,
+        device=DEVICE,
+        logger=logger,
+        debug=train_config.debug,
+    )
 
 
-# def training_6_leads(data_directory, model_directory):
-#     """
-#     """
-#     pass
+def training_2_leads(train_config:ED, model_config:ED, logger:Logger) -> NoReturn:
+    """
+    """
+    tranches = train_config.tranches_for_training
+    if tranches:
+        train_classes = train_config.tranche_classes[tranches]
+    else:
+        train_classes = train_config.classes
 
+    model = ECG_CRNN_CINC2021(
+        classes=train_classes,
+        n_leads=train_config.n_leads,
+        config=model_config,
+    )
 
-# def training_3_leads(data_directory, model_directory):
-#     """
-#     """
-#     pass
+    if torch.cuda.device_count() > 1:
+        model = torch.nn.DataParallel(model)
+    model.to(device=DEVICE)
+    model.__DEBUG__ = False
 
+    train(
+        model=model,
+        config=train_config,
+        device=DEVICE,
+        logger=logger,
+        debug=train_config.debug,
+    )
 
-# def training_2_leads(data_directory, model_directory):
-#     """
-#     """
-#     pass
 
 
 ################################################################################
@@ -326,9 +368,105 @@ def run_two_lead_model(model, header, recording):
 
 # Generic function for running a trained model.
 def run_model(model, header, recording):
-    raise NotImplementedError
-    # return classes, labels, probabilities
+    data = preprocess_data(header, recording)
+    dl_scalar_pred, dl_bin_pred = model.inference(data, class_names=False, bin_pred_thr=0.5)
+    # TODO: merge results from special detectors
+    if len(TrainCfg.special_classes) > 0:
+        pass
+    else:
+        labels = dl_bin_pred
+        probabilities = dl_scalar_pred
 
+    classes = []
+    return classes, labels, probabilities
+
+
+def preprocess_data(header:str, recording:np.ndarray):
+    """
+    modified from data_reader.py and dataset.py
+    """
+    header_data = header.splitlines()
+    header_reader = rdheader(header_data)
+    ann_dict = {}
+    ann_dict["rec_name"], ann_dict["nb_leads"], ann_dict["fs"], ann_dict["nb_samples"], ann_dict["datetime"], daytime = header_data[0].split(" ")
+
+    ann_dict["nb_leads"] = int(ann_dict["nb_leads"])
+    ann_dict["fs"] = int(ann_dict["fs"])
+    ann_dict["nb_samples"] = int(ann_dict["nb_samples"])
+    ann_dict["datetime"] = datetime.strptime(
+        " ".join([ann_dict["datetime"], daytime]), "%d-%b-%Y %H:%M:%S"
+    )
+    # try:
+    #     ann_dict["age"] = \
+    #         int([l for l in header_reader.comments if "Age" in l][0].split(": ")[-1])
+    # except:
+    #     ann_dict["age"] = np.nan
+    # try:
+    #     ann_dict["sex"] = \
+    #         [l for l in header_reader.comments if "Sex" in l][0].split(": ")[-1]
+    # except:
+    #     ann_dict["sex"] = "Unknown"
+    # try:
+    #     ann_dict["medical_prescription"] = \
+    #         [l for l in header_reader.comments if "Rx" in l][0].split(": ")[-1]
+    # except:
+    #     ann_dict["medical_prescription"] = "Unknown"
+    # try:
+    #     ann_dict["history"] = \
+    #         [l for l in header_reader.comments if "Hx" in l][0].split(": ")[-1]
+    # except:
+    #     ann_dict["history"] = "Unknown"
+    # try:
+    #     ann_dict["symptom_or_surgery"] = \
+    #         [l for l in header_reader.comments if "Sx" in l][0].split(": ")[-1]
+    # except:
+    #     ann_dict["symptom_or_surgery"] = "Unknown"
+
+    # l_Dx = [l for l in header_reader.comments if "Dx" in l][0].split(": ")[-1].split(",")
+    # ann_dict["diagnosis"], ann_dict["diagnosis_scored"] = self._parse_diagnosis(l_Dx)
+
+    df_leads = pd.DataFrame()
+    cols = [
+        "file_name", "fmt", "byte_offset",
+        "adc_gain", "units", "adc_res", "adc_zero",
+        "baseline", "init_value", "checksum", "block_size", "sig_name",
+    ]
+    for k in cols:
+        df_leads[k] = header_reader.__dict__[k]
+    df_leads = df_leads.rename(columns={"sig_name": "lead_name", "units":"adc_units", "file_name":"filename",})
+    df_leads.index = df_leads["lead_name"]
+    df_leads.index.name = None
+    ann_dict["df_leads"] = df_leads
+
+    header_info = ann_dict["df_leads"]
+
+    data = recording.copy()
+    # ensure that data comes in format of "lead_first"
+    if data.shape[0] > 12:
+        data = data.T
+    baselines = header_info["baseline"].values.reshape(data.shape[0], -1)
+    adc_gain = header_info["adc_gain"].values.reshape(data.shape[0], -1)
+    data = np.asarray(data-baselines) / adc_gain
+
+    if ann_dict["fs"] != TrainCfg.fs:
+        data = resample_poly(data, TrainCfg.fs, ann_dict["fs"], axis=1)
+
+    # transforms performed while training
+    if TrainCfg.bandpass is not None:
+        data = butter_bandpass_filter(
+            data,
+            lowcut=TrainCfg.bandpass[0],
+            highcut=TrainCfg.bandpass[1],
+            order=TrainCfg.bandpass_order,
+            fs=TrainCfg.fs,
+        )
+    # TODO: splice too long record into batches
+    if TrainCfg.normalize_data:
+        data = (data - np.mean(data)) / np.std(data)
+    
+    # add batch dimension
+    data = data[np.newaxis,...].astype(np.float32)
+    return data
 
 
 

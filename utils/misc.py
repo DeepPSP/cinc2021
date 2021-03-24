@@ -553,6 +553,11 @@ def rdheader(header_data:Union[str, Sequence[str]]) -> Union[Record, MultiRecord
     ----------
     head_data: str, or sequence of str,
         path of the .hea header file, or lines of the .hea header file
+
+    Returns:
+    --------
+    record: wfdb.Record or wfdb.MultiRecord,
+        header in the format of wfdb Record
     """
     if isinstance(header_data, str):
         if not header_data.endswith(".hea"):

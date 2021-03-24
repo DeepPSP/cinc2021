@@ -194,7 +194,7 @@ TrainCfg.random_mask = int(TrainCfg.fs * 0.0)  # 1.0s, 0 for no masking
 TrainCfg.stretch_compress = 1.0  # stretch or compress in time axis
 
 # configs of training epochs, batch, etc.
-TrainCfg.n_epochs = 120
+TrainCfg.n_epochs = 80
 TrainCfg.batch_size = 64
 # TrainCfg.max_batches = 500500
 

@@ -242,6 +242,7 @@ def train(model:nn.Module,
     best_state_dict = OrderedDict()
     best_challenge_metric = -np.inf
     best_eval_res = tuple()
+    best_epoch = -1
 
     saved_models = deque()
     model.train()
@@ -308,11 +309,6 @@ def train(model:nn.Module,
             writer.add_scalar("test/g_beta_measure", eval_res[5], global_step)
             writer.add_scalar("test/challenge_metric", eval_res[6], global_step)
 
-            if eval_res[6] > best_challenge_metric:
-                best_challenge_metric = eval_res[6]
-                best_state_dict = model.state_dict()
-                best_eval_res = deepcopy(eval_res)
-
             if config.lr_scheduler is None:
                 pass
             elif config.lr_scheduler.lower() == "plateau":
@@ -346,6 +342,20 @@ def train(model:nn.Module,
                 ---------------------------------
                 """)
             # print(msg)  # in case no logger
+            if logger:
+                logger.info(msg)
+            else:
+                print(msg)
+
+            if eval_res[6] > best_challenge_metric:
+                best_challenge_metric = eval_res[6]
+                best_state_dict = model.state_dict()
+                best_eval_res = deepcopy(eval_res)
+                best_epoch = epoch + 1
+            msg = textwrap.dedent(f"""
+                best challenge metric = {best_challenge_metric},
+                obtained at epoch {best_epoch}
+            """)
             if logger:
                 logger.info(msg)
             else:
