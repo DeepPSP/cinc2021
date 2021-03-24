@@ -19,11 +19,13 @@ from scipy.signal import resample, resample_poly
 
 from train import train
 from cfg import TrainCfg, ModelCfg, SpecialDetectorCfg
+from cfg import TrainCfg as TrainCfg_ns, ModelCfg as ModelCfg_ns
 from model import ECG_CRNN_CINC2021
 from utils.special_detectors import special_detectors
 from utils.utils_nn import extend_predictions
 from utils.misc import get_date_str, dict_to_str, init_logger, rdheader
 from utils.utils_signal import ensure_siglen, butter_bandpass_filter
+from utils.scoring_aux_data import abbr_to_snomed_ct_code
 
 
 twelve_lead_model_filename = '12_lead_model.pth'
@@ -33,6 +35,11 @@ two_lead_model_filename = '2_lead_model.pth'
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if ModelCfg.torch_dtype.lower() == "double":
+    torch.set_default_tensor_type(torch.DoubleTensor)
+    DTYPE = np.float64
+else:
+    DTYPE = np.float32
 
 
 ################################################################################
@@ -56,6 +63,7 @@ def training_code(data_directory, model_directory):
     # Create a folder for the model if it does not already exist.
     if not os.path.isdir(model_directory):
         os.mkdir(model_directory)
+    # os.makedirs(model_directory, exist_ok=True)
 
     # Extract classes from dataset.
     print('Extracting classes...')
@@ -87,7 +95,7 @@ def training_code(data_directory, model_directory):
     logger.info(f"\n{'*'*20}   Start Training   {'*'*20}\n")
     logger.info(f"Using device {DEVICE}")
     logger.info(f"Using torch of version {torch.__version__}")
-    logger.info(f"with configuration\n{dict_to_str(train_config)}")
+    # logger.info(f"with configuration\n{dict_to_str(train_config)}")
 
     start_time = time.time()
 
@@ -97,7 +105,6 @@ def training_code(data_directory, model_directory):
 
     train_config.leads = twelve_leads
     train_config.n_leads = len(train_config.leads)
-    # filename = os.path.join(model_directory, twelve_lead_model_filename)
     train_config.final_model_name = twelve_lead_model_filename
     model_config = deepcopy(ModelCfg.twelve_leads)
     model_config.cnn.name = train_config.cnn_name
@@ -292,7 +299,7 @@ def load_twelve_lead_model(model_directory):
     else:
         device = torch.device("cpu")
     model.eval()
-    model.load_state_dict(torch.load(os.path.join(TrainCfg.model_dir, twelve_lead_model_filename), map_location=device))
+    model.load_state_dict(torch.load(os.path.join(model_directory, twelve_lead_model_filename), map_location=device))
     return model
 
 # Load your trained 6-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
@@ -307,7 +314,7 @@ def load_six_lead_model(model_directory):
     else:
         device = torch.device("cpu")
     model.eval()
-    model.load_state_dict(torch.load(os.path.join(TrainCfg.model_dir, six_lead_model_filename), map_location=device))
+    model.load_state_dict(torch.load(os.path.join(model_directory, six_lead_model_filename), map_location=device))
     return model
 
 # Load your trained 3-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
@@ -322,7 +329,7 @@ def load_three_lead_model(model_directory):
     else:
         device = torch.device("cpu")
     model.eval()
-    model.load_state_dict(torch.load(os.path.join(TrainCfg.model_dir, three_lead_model_filename), map_location=device))
+    model.load_state_dict(torch.load(os.path.join(model_directory, three_lead_model_filename), map_location=device))
     return model
 
 # Load your trained 2-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
@@ -337,7 +344,7 @@ def load_two_lead_model(model_directory):
     else:
         device = torch.device("cpu")
     model.eval()
-    model.load_state_dict(torch.load(os.path.join(TrainCfg.model_dir, two_lead_model_filename), map_location=device))
+    model.load_state_dict(torch.load(os.path.join(model_directory, two_lead_model_filename), map_location=device))
     return model
 
 # Generic function for loading a model.
@@ -367,23 +374,116 @@ def run_two_lead_model(model, header, recording):
     return run_model(model, header, recording)
 
 # Generic function for running a trained model.
-def run_model(model, header, recording):
-    data = preprocess_data(header, recording)
-    dl_scalar_pred, dl_bin_pred = model.inference(data, class_names=False, bin_pred_thr=0.5)
-    # TODO: merge results from special detectors
-    if len(TrainCfg.special_classes) > 0:
-        pass
-    else:
-        labels = dl_bin_pred
-        probabilities = dl_scalar_pred
+def run_model(model, header, recording, verbose=0):
+    raw_data, ann_dict = preprocess_data(header, recording)
 
-    classes = []
+    final_scores, final_conclusions = [], []
+
+    if len(TrainCfg.special_classes) > 0:
+        partial_conclusion = special_detectors(
+            raw_data.copy(),
+            TrainCfg.fs,
+            sig_fmt="lead_first",
+            leads=ann_dict["df_leads"]["lead_name"],
+            axis_method="3-lead",
+            verbose=verbose
+        )
+        is_brady = partial_conclusion.is_brady
+        is_tachy = partial_conclusion.is_tachy
+        is_LAD = partial_conclusion.is_LAD
+        is_RAD = partial_conclusion.is_RAD
+        is_PR = partial_conclusion.is_PR
+        is_LQRSV = partial_conclusion.is_LQRSV
+
+        if verbose >= 1:
+            print(f"results from special detectors: {dict_to_str(partial_conclusion)}")
+
+        tmp = np.zeros(shape=(len(ModelCfg.full_classes,)))
+        tmp[ModelCfg.full_classes.index("Brady")] = int(is_brady)
+        tmp[ModelCfg.full_classes.index("LAD")] = int(is_LAD)
+        tmp[ModelCfg.full_classes.index("RAD")] = int(is_RAD)
+        tmp[ModelCfg.full_classes.index("PR")] = int(is_PR)
+        tmp[ModelCfg.full_classes.index("LQRSV")] = int(is_LQRSV)
+        partial_conclusion = tmp
+
+        final_scores.append(partial_conclusion)
+        final_conclusions.append(partial_conclusion)
+    
+    # DL part
+    dl_data = raw_data.copy()
+    if TrainCfg.bandpass is not None:
+        # bandpass
+        dl_data = butter_bandpass_filter(
+            dl_data,
+            lowcut=TrainCfg.bandpass[0],
+            highcut=TrainCfg.bandpass[1],
+            order=TrainCfg.bandpass_order,
+            fs=TrainCfg.fs,
+        )
+    if dl_data.shape[1] >= ModelCfg.dl_siglen:
+        dl_data = ensure_siglen(dl_data, siglen=ModelCfg.dl_siglen, fmt="lead_first")
+        if TrainCfg.normalize_data:
+            # normalize
+            dl_data = ((dl_data - np.mean(dl_data)) / np.std(dl_data)).astype(DTYPE)
+    else:
+        if TrainCfg.normalize_data:
+            # normalize
+            dl_data = ((dl_data - np.mean(dl_data)) / np.std(dl_data)).astype(DTYPE)
+        dl_data = ensure_siglen(dl_data, siglen=ModelCfg.dl_siglen, fmt="lead_first")
+    # unsqueeze to add a batch dimention
+    dl_data = (torch.from_numpy(dl_data)).unsqueeze(0).to(device=DEVICE)
+
+    if "NSR" in ModelCfg.dl_classes:
+        dl_nsr_cid = ModelCfg.dl_classes.index("NSR")
+    elif "426783006" in ModelCfg.dl_classes:
+        dl_nsr_cid = ModelCfg.dl_classes.index("426783006")
+    else:
+        dl_nsr_cid = None
+
+    # dl_scores, dl_conclusions each of shape (1,n_classes)
+    dl_scores, dl_conclusions = model.inference(
+        dl_data,
+        class_names=False,
+        bin_pred_thr=0.5
+    )
+    dl_scores = dl_scores[0]
+    dl_conclusions = dl_conclusions[0]
+
+    if verbose >= 1:
+        print(f"results from dl model:\n{dl_scores}\n{dl_conclusions}")
+
+    dl_scores = extend_predictions(
+        dl_scores,
+        ModelCfg.dl_classes,
+        ModelCfg.full_classes,
+    )
+    dl_conclusions = extend_predictions(
+        dl_conclusions,
+        ModelCfg.dl_classes,
+        ModelCfg.full_classes,
+    )
+
+    final_scores.append(dl_scores)
+    final_conclusions.append(dl_conclusions)
+    final_scores = np.max(final_scores, axis=0)
+    final_conclusions = np.max(final_conclusions, axis=0)
+
+    # TODO:
+    # filter contradictory conclusions from dl model and from special detector
+
+
+    classes = ModelCfg.full_classes
+    # class abbr name to snomed ct code
+    classes = [abbr_to_snomed_ct_code[c] for c in classes]
+    labels = final_conclusions.astype(int).tolist()
+    probabilities = final_scores.tolist()
+
     return classes, labels, probabilities
 
 
 def preprocess_data(header:str, recording:np.ndarray):
     """
-    modified from data_reader.py and dataset.py
+    modified from data_reader.py
     """
     header_data = header.splitlines()
     header_reader = rdheader(header_data)
@@ -433,7 +533,7 @@ def preprocess_data(header:str, recording:np.ndarray):
     ]
     for k in cols:
         df_leads[k] = header_reader.__dict__[k]
-    df_leads = df_leads.rename(columns={"sig_name": "lead_name", "units":"adc_units", "file_name":"filename",})
+    df_leads = df_leads.rename(columns={"sig_name":"lead_name", "units":"adc_units", "file_name":"filename",})
     df_leads.index = df_leads["lead_name"]
     df_leads.index.name = None
     ann_dict["df_leads"] = df_leads
@@ -451,22 +551,7 @@ def preprocess_data(header:str, recording:np.ndarray):
     if ann_dict["fs"] != TrainCfg.fs:
         data = resample_poly(data, TrainCfg.fs, ann_dict["fs"], axis=1)
 
-    # transforms performed while training
-    if TrainCfg.bandpass is not None:
-        data = butter_bandpass_filter(
-            data,
-            lowcut=TrainCfg.bandpass[0],
-            highcut=TrainCfg.bandpass[1],
-            order=TrainCfg.bandpass_order,
-            fs=TrainCfg.fs,
-        )
-    # TODO: splice too long record into batches
-    if TrainCfg.normalize_data:
-        data = (data - np.mean(data)) / np.std(data)
-    
-    # add batch dimension
-    data = data[np.newaxis,...].astype(np.float32)
-    return data
+    return data, ann_dict
 
 
 

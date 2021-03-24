@@ -53,6 +53,7 @@ __all__ = [
 def special_detectors(raw_sig:np.ndarray,
                       fs:Real,
                       sig_fmt:str="channel_first",
+                      leads:Sequence[str]=Standard12Leads,
                       verbose:int=0,
                       **kwargs:Any) -> dict:
     """ finished, checked,
@@ -60,13 +61,15 @@ def special_detectors(raw_sig:np.ndarray,
     Parameters:
     -----------
     raw_sig: ndarray,
-        the raw 12-lead ecg signal, with units in mV
+        the raw multi-lead ecg signal, with units in mV
     fs: real number,
         sampling frequency of `sig`
     sig_fmt: str, default "channel_first",
         format of the 12 lead ecg signal,
         "channel_last" (alias "lead_last"), or
         "channel_first" (alias "lead_first", original)
+    leads: sequence of str,
+        names of the leads in the input signal
     verbose: int, default 0,
         print verbosity
     kwargs: dict,
@@ -93,10 +96,10 @@ def special_detectors(raw_sig:np.ndarray,
     filtered_sig = preprocess["filtered_ecg"]
     rpeaks = preprocess["rpeaks"]
     is_PR = pacing_rhythm_detector(
-        raw_sig, fs, sig_fmt, ret_prob=False, verbose=verbose
+        raw_sig, fs, sig_fmt, leads, ret_prob=False, verbose=verbose
     )
     axis = electrical_axis_detector(
-        filtered_sig, rpeaks, fs, sig_fmt,
+        filtered_sig, rpeaks, fs, sig_fmt, leads,
         method=kwargs.get("axis_method", "2-lead"),
         verbose=verbose
     )
@@ -104,7 +107,7 @@ def special_detectors(raw_sig:np.ndarray,
         rpeaks, fs, verbose=verbose
     )
     is_LQRSV = LQRSV_detector(
-        filtered_sig, rpeaks, fs, sig_fmt, verbose=verbose
+        filtered_sig, rpeaks, fs, sig_fmt, leads, verbose=verbose
     )
     is_LAD = (axis=="LAD")
     is_RAD = (axis=="RAD")
@@ -121,7 +124,12 @@ def special_detectors(raw_sig:np.ndarray,
     return conclusion
 
 
-def pacing_rhythm_detector(raw_sig:np.ndarray, fs:Real, sig_fmt:str="channel_first", ret_prob:bool=True, verbose:int=0) -> Real:
+def pacing_rhythm_detector(raw_sig:np.ndarray,
+                           fs:Real,
+                           sig_fmt:str="channel_first",
+                           leads:Sequence[str]=Standard12Leads,
+                           ret_prob:bool=True,
+                           verbose:int=0) -> Real:
     """ finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
 
     Parameters:
@@ -134,6 +142,8 @@ def pacing_rhythm_detector(raw_sig:np.ndarray, fs:Real, sig_fmt:str="channel_fir
         format of the 12 lead ecg signal,
         "channel_last" (alias "lead_last"), or
         "channel_first" (alias "lead_first", original)
+    leads: sequence of str,
+        names of the leads in the input signal
     ret_prob: bool, default True,
         if True, a probability will be returned,
         otherwise, a binary prediction will be returned
@@ -182,8 +192,11 @@ def pacing_rhythm_detector(raw_sig:np.ndarray, fs:Real, sig_fmt:str="channel_fir
     # )
 
     potential_spikes = []
-    sig_len = data_hp.shape[-1]
-    for l in range(data_hp.shape[0]):
+    # sig_len = data_hp.shape[-1]
+    n_leads, sig_len = data_hp.shape
+    assert n_leads == len(leads)
+
+    for l in range(n_leads):
         lead_hp = np.abs(data_hp[l,...])
         mph = SpecialDetectorCfg.pr_spike_mph_ratio * np.sum(lead_hp) / sig_len
         lead_spikes = detect_peaks(
@@ -195,16 +208,16 @@ def pacing_rhythm_detector(raw_sig:np.ndarray, fs:Real, sig_fmt:str="channel_fir
             verbose=0,
         )
         if verbose >= 2:
-            print(f"for the {l}-th lead, its spike detecting mph = {round(mph, 4)} mV")
+            print(f"for the {l}-th lead, its spike detecting mph = {mph:.4f} mV")
             print(f"lead_spikes = {lead_spikes.tolist()}")
             print(f"with prominences = {np.round(peak_prominences(lead_hp, lead_spikes, wlen=ms2samples(SpecialDetectorCfg.pr_spike_prominence_wlen, fs))[0], 5).tolist()}")
         potential_spikes.append(lead_spikes)
     
     # make decision using `potential_spikes`
     sig_duration_ms = samples2ms(sig_len, fs)
-    # lead_has_enough_spikes = [False if len(potential_spikes[l]) ==0 else sig_duration_ms / len(potential_spikes[l]) < SpecialDetectorCfg.pr_spike_inv_density_threshold for l in range(data_hp.shape[0])]
-    lead_has_enough_spikes = list(repeat(0, data_hp.shape[0]))
-    for l in range(data_hp.shape[0]):
+    # lead_has_enough_spikes = [False if len(potential_spikes[l]) ==0 else sig_duration_ms / len(potential_spikes[l]) < SpecialDetectorCfg.pr_spike_inv_density_threshold for l in range(n_leads)]
+    lead_has_enough_spikes = list(repeat(0, n_leads))
+    for l in range(n_leads):
         if len(potential_spikes[l]) > 0:
             relative_inv_density = SpecialDetectorCfg.pr_spike_inv_density_threshold - sig_duration_ms / len(potential_spikes[l])
             # sigmoid
@@ -213,17 +226,25 @@ def pacing_rhythm_detector(raw_sig:np.ndarray, fs:Real, sig_fmt:str="channel_fir
                 lead_has_enough_spikes[l] = int(lead_has_enough_spikes[l]>=0.5)
     if verbose >= 1:
         print(f"lead_has_enough_spikes = {lead_has_enough_spikes}")
-        print(f"leads spikes density (units in ms) = {[len(potential_spikes[l]) / sig_duration_ms for l in range(data_hp.shape[0])]}")
+        print(f"leads spikes density (units in ms) = {[len(potential_spikes[l]) / sig_duration_ms for l in range(n_leads)]}")
+
+    _threshold = int(round(SpecialDetectorCfg.pr_spike_leads_threshold * n_leads))
     if ret_prob:
         # pooling (max, or avg)
-        is_PR = sorted(lead_has_enough_spikes, reverse=True)[:SpecialDetectorCfg.pr_spike_leads_threshold]
+        is_PR = sorted(lead_has_enough_spikes, reverse=True)[:_threshold]
         is_PR = np.mean(is_PR)
     else:
-        is_PR = (sum(lead_has_enough_spikes) >= SpecialDetectorCfg.pr_spike_leads_threshold)
+        is_PR = (sum(lead_has_enough_spikes) >= _threshold)
     return is_PR
 
 
-def electrical_axis_detector(filtered_sig:np.ndarray, rpeaks:np.ndarray, fs:Real, sig_fmt:str="channel_first", method:Optional[str]=None, verbose:int=0) -> str:
+def electrical_axis_detector(filtered_sig:np.ndarray,
+                             rpeaks:np.ndarray,
+                             fs:Real,
+                             sig_fmt:str="channel_first",
+                             leads:Sequence[str]=Standard12Leads,
+                             method:Optional[str]=None,
+                             verbose:int=0) -> str:
     """ finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
 
     detector of the heart electrical axis by means of "2-lead" method or "3-lead" method,
@@ -241,6 +262,8 @@ def electrical_axis_detector(filtered_sig:np.ndarray, rpeaks:np.ndarray, fs:Real
         format of the 12 lead ecg signal,
         "channel_last" (alias "lead_last"), or
         "channel_first" (alias "lead_first", original)
+    leads: sequence of str,
+        names of the leads in the input signal
     method: str, optional,
         method for detecting electrical axis, can be "2-lead", "3-lead",
         if not specified, `SpecialDetectorCfg.axis_method` will be used
@@ -262,9 +285,23 @@ def electrical_axis_detector(filtered_sig:np.ndarray, rpeaks:np.ndarray, fs:Real
     else:
         s = filtered_sig.T
     
-    lead_I = s[Standard12Leads.index("I")]
-    lead_II = s[Standard12Leads.index("II")]
-    lead_aVF = s[Standard12Leads.index("aVF")]
+    if len(set(["I", "aVF"]).intersection(leads)) < 2:
+        # impossible to make decision
+        # return "normal" by default
+        axis = "normal"
+        return axis
+    
+    
+    # lead_I = s[Standard12Leads.index("I")]
+    # lead_II = s[Standard12Leads.index("II")]
+    # lead_aVF = s[Standard12Leads.index("aVF")]
+    lead_I = s[list(leads).index("I")]
+    lead_aVF = s[list(leads).index("aVF")]
+    try:
+        lead_II = s[list(leads).index("II")]
+    except:
+        # no lead II, degenerates to the "2-lead" method
+        method = "2-lead"
 
     if len(rpeaks==0):
         # degenerate case
@@ -336,7 +373,10 @@ def electrical_axis_detector(filtered_sig:np.ndarray, rpeaks:np.ndarray, fs:Real
     return axis
 
 
-def brady_tachy_detector(rpeaks:np.ndarray, fs:Real, normal_rr_range:Optional[Sequence[Real]]=None, verbose:int=0) -> str:
+def brady_tachy_detector(rpeaks:np.ndarray,
+                         fs:Real,
+                         normal_rr_range:Optional[Sequence[Real]]=None,
+                         verbose:int=0) -> str:
     """ finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
 
     detemine if the ecg is bradycadia or tachycardia or normal,
@@ -388,7 +428,12 @@ def brady_tachy_detector(rpeaks:np.ndarray, fs:Real, normal_rr_range:Optional[Se
     return conclusion
 
 
-def LQRSV_detector(filtered_sig:np.ndarray, rpeaks:np.ndarray, fs:Real, sig_fmt:str="channel_first", verbose:int=0) -> bool:
+def LQRSV_detector(filtered_sig:np.ndarray,
+                   rpeaks:np.ndarray,
+                   fs:Real,
+                   sig_fmt:str="channel_first",
+                   leads:Sequence[str]=Standard12Leads,
+                   verbose:int=0) -> bool:
     """ finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
 
     Parameters:
@@ -403,6 +448,8 @@ def LQRSV_detector(filtered_sig:np.ndarray, rpeaks:np.ndarray, fs:Real, sig_fmt:
         format of the 12 lead ecg signal,
         "channel_last" (alias "lead_last"), or
         "channel_first" (alias "lead_first", original)
+    leads: sequence of str,
+        names of the leads in the input signal
     verbose: int, default 0,
         print verbosity
 
