@@ -14,5 +14,6 @@ WORKDIR /physionet
 ## Install your dependencies here using apt install, etc.
 RUN ln -s /usr/bin/python3 /usr/bin/python && ln -s /usr/bin/pip3 /usr/bin/pip
 
+RUN pip install torch==1.8.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
 ## Include the following line if you have a requirements.txt file.
 RUN pip install -r requirements.txt
