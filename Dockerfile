@@ -1,7 +1,8 @@
 # FROM python:3.8.6-slim
 # https://hub.docker.com/r/nvidia/cuda/
 # FROM nvidia/cuda:11.1.1-devel
-FROM nvidia/cuda:11.1.1-devel-ubuntu20.04
+# FROM nvidia/cuda:11.1.1-devel-ubuntu20.04
+FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel
 
 ## The MAINTAINER instruction sets the author field of the generated images.
 LABEL maintainer="wenh06@gmail.com"
@@ -12,8 +13,21 @@ COPY ./ /physionet
 WORKDIR /physionet
 
 ## Install your dependencies here using apt install, etc.
-RUN ln -s /usr/bin/python3 /usr/bin/python && ln -s /usr/bin/pip3 /usr/bin/pip
+# RUN apt update && apt upgrade -y && apt clean
+# RUN apt install -y python3.8 python3.8-dev python3.8-distutils python3-pip
 
-RUN pip install torch==1.8.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
+# RUN apt update && apt install -y --no-install-recommends \
+#         build-essential \
+#         curl \
+#         software-properties-common \
+#         unzip
+
+# RUN apt install python3-pip
+RUN ln -s /usr/bin/python3 /usr/bin/python && ln -s /usr/bin/pip3 /usr/bin/pip
+# RUN pip install --upgrade pip
+
+# RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+# RUN pip install torch==1.8.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
+# RUN pip install torch
 ## Include the following line if you have a requirements.txt file.
 RUN pip install -r requirements.txt
