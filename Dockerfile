@@ -26,6 +26,8 @@ WORKDIR /physionet
 RUN ln -s /usr/bin/python3 /usr/bin/python && ln -s /usr/bin/pip3 /usr/bin/pip
 # RUN pip install --upgrade pip
 
+# http://mirrors.aliyun.com/pypi/simple/
+# http://pypi.douban.com/simple/
 # RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 # RUN pip install torch==1.8.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
 # RUN pip install torch
