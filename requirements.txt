@@ -14,3 +14,4 @@ biosppy
 torchsummary
 tensorboardX
 tqdm
+deprecated

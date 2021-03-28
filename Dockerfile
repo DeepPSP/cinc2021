@@ -29,7 +29,19 @@ RUN ln -s /usr/bin/python3 /usr/bin/python && ln -s /usr/bin/pip3 /usr/bin/pip
 # http://mirrors.aliyun.com/pypi/simple/
 # http://pypi.douban.com/simple/
 # RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-# RUN pip install torch==1.8.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
+RUN pip install torch==1.8.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
 # RUN pip install torch
 ## Include the following line if you have a requirements.txt file.
 RUN pip install -r requirements.txt
+
+
+
+# commands to run test with docker container:
+
+# cd ~/Jupyter/temp/cinc2021_docker_test/data/
+# cp E075* ../test_data
+# sudo docker build -t image .
+# sudo docker run -it -v ~/Jupyter/temp/cinc2021_docker_test/model:/physionet/model -v ~/Jupyter/temp/cinc2021_docker_test/test_data:/physionet/test_data -v ~/Jupyter/temp/cinc2021_docker_test/test_outputs:/physionet/test_outputs -v ~/Jupyter/temp/cinc2021_docker_test/data:/physionet/training_data image bash
+
+# python train_model.py training_data model
+# python test_model.py model test_data test_outputs
