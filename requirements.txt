@@ -1,7 +1,7 @@
 numpy==1.19.5
 scipy==1.6.1
 joblib==1.0.1
-Cython==0.29.10
+# Cython==0.29.10
 pandas==1.2.2
 scikit-learn==0.24.1
 # tensorflow==1.15.2
@@ -10,7 +10,7 @@ packaging
 easydict
 wfdb==3.2.0
 biosppy
-# torch==1.8.0
+# torch==1.8.0  # see Dockerfile
 torchsummary
 tensorboardX
 tqdm
