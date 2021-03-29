@@ -259,10 +259,15 @@ def train(model:nn.Module,
 
                 preds = model(signals)
                 loss = criterion(preds, labels)
-                epoch_loss += loss.item()
-                
-                optimizer.zero_grad()
-                loss.backward()
+                if config.flooding_level > 0:
+                    flood = (loss - config.flooding_level).abs() + config.flooding_level
+                    epoch_loss += loss.item()
+                    optimizer.zero_grad()
+                    flood.backward()
+                else:
+                    epoch_loss += loss.item()
+                    optimizer.zero_grad()
+                    loss.backward()
                 optimizer.step()
 
                 if global_step % config.log_step == 0:
@@ -280,6 +285,9 @@ def train(model:nn.Module,
                         })
                         msg = f"Train step_{global_step}: loss : {loss.item()}"
                     # print(msg)  # in case no logger
+                    if config.flooding_level > 0:
+                        writer.add_scalar("train/flood", flood.item(), global_step)
+                        msg = f"{msg}\nflood : {flood.item()}"
                     if logger:
                         logger.info(msg)
                     else:
