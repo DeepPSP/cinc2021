@@ -185,9 +185,10 @@ LQRSV = ED({  # voltage
     "fullname": "low qrs voltages",
     "url": [
         "https://litfl.com/low-qrs-voltage-ecg-library/",
+        "https://www.healio.com/cardiology/learn-the-heart/ecg-review/ecg-topic-reviews-and-criteria/low-voltage-review",
     ],
     "knowledge": [
-        "amplitudes of all the QRS complexes in the limb leads are < 5mm (0.5mV); or  amplitudes of all the QRS complexes in the precordial leads are < 10mm (1mV)",
+        "peak-to-peak (VERY IMPORTANT) amplitudes of all the QRS complexes in the limb leads are < 5mm (0.5mV); or  amplitudes of all the QRS complexes in the precordial leads are < 10mm (1mV)",
     ],
 })
 
