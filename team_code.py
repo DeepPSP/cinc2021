@@ -420,16 +420,19 @@ def run_model(model, header, recording, verbose=0):
             order=TrainCfg.bandpass_order,
             fs=TrainCfg.fs,
         )
-    if dl_data.shape[1] >= ModelCfg.dl_siglen:
-        dl_data = ensure_siglen(dl_data, siglen=ModelCfg.dl_siglen, fmt="lead_first")
-        if TrainCfg.normalize_data:
-            # normalize
-            dl_data = ((dl_data - np.mean(dl_data)) / np.std(dl_data)).astype(DTYPE)
-    else:
-        if TrainCfg.normalize_data:
-            # normalize
-            dl_data = ((dl_data - np.mean(dl_data)) / np.std(dl_data)).astype(DTYPE)
-        dl_data = ensure_siglen(dl_data, siglen=ModelCfg.dl_siglen, fmt="lead_first")
+    # if dl_data.shape[1] >= ModelCfg.dl_siglen:
+    #     dl_data = ensure_siglen(dl_data, siglen=ModelCfg.dl_siglen, fmt="lead_first")
+    #     if TrainCfg.normalize_data:
+    #         # normalize
+    #         dl_data = ((dl_data - np.mean(dl_data)) / np.std(dl_data)).astype(DTYPE)
+    # else:
+    #     if TrainCfg.normalize_data:
+    #         # normalize
+    #         dl_data = ((dl_data - np.mean(dl_data)) / np.std(dl_data)).astype(DTYPE)
+    #     dl_data = ensure_siglen(dl_data, siglen=ModelCfg.dl_siglen, fmt="lead_first")
+    if TrainCfg.normalize_data:
+        # normalize
+        dl_data = ((dl_data - np.mean(dl_data)) / np.std(dl_data)).astype(DTYPE)
     # unsqueeze to add a batch dimention
     dl_data = (torch.from_numpy(dl_data)).unsqueeze(0).to(device=DEVICE)
 
