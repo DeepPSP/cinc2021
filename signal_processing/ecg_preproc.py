@@ -30,7 +30,6 @@ from biosppy.signals.tools import filter_signal
 
 np.set_printoptions(precision=5, suppress=True)
 
-from cfg import PreprocCfg
 from .ecg_rpeaks import (
     pantompkins_detect,
     xqrs_detect, gqrs_detect,
@@ -63,6 +62,13 @@ QRS_DETECTORS = {
 DL_QRS_DETECTORS = [
     "seq_lab",
 ]
+# ecg signal preprocessing configurations
+PreprocCfg = ED()
+# PreprocCfg.fs = 500
+PreprocCfg.rpeak_mask_radius = 50  # ms
+PreprocCfg.rpeak_lead_num_thr = 8/12  # ratio of leads, used for merging rpeaks detected from multiple leads
+PreprocCfg.beat_winL = 250
+PreprocCfg.beat_winR = 250
 
 
 def preprocess_multi_lead_signal(
@@ -110,6 +116,8 @@ def preprocess_multi_lead_signal(
         with items
         - "filtered_ecg": the array of the processed ecg signal
         - "rpeaks": the array of indices of rpeaks; empty if `rpeak_fn` is not given
+
+    NOTE: currently NEVER set verbose >= 3
     """
     assert sig_fmt.lower() in ["channel_first", "lead_first", "channel_last", "lead_last"]
     if sig_fmt.lower() in ["channel_last", "lead_last"]:
@@ -324,7 +332,7 @@ def merge_rpeaks(
     for lead in range(sig.shape[0]):
         for r in rpeaks_candidates[lead]:
             rpeak_masks[lead,max(0,r-radius):min(sig_len-1,r+radius)] = 1
-    rpeak_masks = (rpeak_masks.sum(axis=0) >= PreprocCfg.rpeak_lead_num_thr).astype(int)
+    rpeak_masks = (rpeak_masks.sum(axis=0) >= int(PreprocCfg.rpeak_lead_num_thr * sig.shape[0])).astype(int)
     rpeak_masks[0], rpeak_masks[-1] = 0, 0
     split_indices = np.where(np.diff(rpeak_masks) != 0)[0]
     if verbose >= 1:

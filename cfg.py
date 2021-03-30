@@ -74,6 +74,7 @@ two_leads = ("II", "V5")
 
 BaseCfg = ED()
 # BaseCfg.db_dir = "/media/cfs/wenhao71/data/CPSC2021/"
+# BaseCfg.db_dir = "D://Jupyter/data/CinC2021/All_training_WFDB/All_training_WFDB/"
 BaseCfg.db_dir = "/home/taozi/Data/CinC2021/All_training_WFDB/"
 BaseCfg.log_dir = os.path.join(_BASE_DIR, "log")
 BaseCfg.model_dir = os.path.join(_BASE_DIR, "saved_models")
@@ -83,20 +84,9 @@ BaseCfg.fs = 500
 BaseCfg.torch_dtype = "float"  # "double"
 
 
-# ecg signal preprocessing configurations
-PreprocCfg = ED()
-# PreprocCfg.fs = 500
-PreprocCfg.leads_ordering = deepcopy(Standard12Leads)
-PreprocCfg.rpeak_mask_radius = 50  # ms
-# PreprocCfg.rpeak_num_threshold = 8  # number of leads, used for merging rpeaks detected from 12 leads
-PreprocCfg.rpeak_lead_num_thr = 8  # number of leads, used for merging rpeaks detected from 12 leads
-PreprocCfg.beat_winL = 250
-PreprocCfg.beat_winR = 250
-
-
 
 SpecialDetectorCfg = ED()
-SpecialDetectorCfg.leads_ordering = deepcopy(PreprocCfg.leads_ordering)
+SpecialDetectorCfg.leads_ordering = deepcopy(Standard12Leads)
 SpecialDetectorCfg.pr_fs_lower_bound = 47  # Hz
 SpecialDetectorCfg.pr_spike_mph_ratio = 15  # ratio to the average amplitude of the signal
 SpecialDetectorCfg.pr_spike_mpd = 300  # ms

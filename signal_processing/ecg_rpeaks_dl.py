@@ -26,9 +26,9 @@ __all__ = [
 ]
 
 
-CNN_MODEL, CRNN_MODEL = load_model("keras_ecg_seq_lab_net")
+# CNN_MODEL, CRNN_MODEL = load_model("keras_ecg_seq_lab_net")
 
-# CNN_MODEL, CRNN_MODEL = None, None
+CNN_MODEL, CRNN_MODEL = None, None
 
 
 def seq_lab_net_detect(sig:np.ndarray, fs:Real, correction:bool=False, **kwargs) -> np.ndarray:

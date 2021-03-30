@@ -25,6 +25,7 @@ np.set_printoptions(precision=5, suppress=True)
 from scipy.signal import peak_prominences, peak_widths
 from biosppy.signals.tools import filter_signal
 from easydict import EasyDict as ED
+from deprecated import deprecated
 
 from cfg import (
     SpecialDetectorCfg,
@@ -37,7 +38,7 @@ from signal_processing import (
     xqrs_detect, gqrs_detect, pantompkins_detect,
     hamilton_detect, ssf_detect, christov_detect, engzee_detect, gamboa_detect,
 )
-from utils.utils_signal import detect_peaks
+from utils.utils_signal import detect_peaks, get_ampl
 from utils.misc import ms2samples, samples2ms, get_mask
 
 
@@ -65,7 +66,7 @@ def special_detectors(raw_sig:np.ndarray,
     fs: real number,
         sampling frequency of `sig`
     sig_fmt: str, default "channel_first",
-        format of the 12 lead ecg signal,
+        format of the multi-lead ecg signal,
         "channel_last" (alias "lead_last"), or
         "channel_first" (alias "lead_first", original)
     leads: sequence of str,
@@ -135,11 +136,11 @@ def pacing_rhythm_detector(raw_sig:np.ndarray,
     Parameters:
     -----------
     raw_sig: ndarray,
-        the raw 12-lead ecg signal, with units in mV
+        the raw multi-lead ecg signal, with units in mV
     fs: real number,
         sampling frequency of `sig`
     sig_fmt: str, default "channel_first",
-        format of the 12 lead ecg signal,
+        format of the multi-lead ecg signal,
         "channel_last" (alias "lead_last"), or
         "channel_first" (alias "lead_first", original)
     leads: sequence of str,
@@ -253,13 +254,13 @@ def electrical_axis_detector(filtered_sig:np.ndarray,
     Parameters:
     -----------
     filtered_sig: ndarray,
-        the filtered 12-lead ecg signal, with units in mV
+        the filtered multi-lead ecg signal, with units in mV
     rpeaks: ndarray,
         array of indices of the R peaks
     fs: real number,
         sampling frequency of `sig`
     sig_fmt: str, default "channel_first",
-        format of the 12 lead ecg signal,
+        format of the multi-lead ecg signal,
         "channel_last" (alias "lead_last"), or
         "channel_first" (alias "lead_first", original)
     leads: sequence of str,
@@ -439,6 +440,79 @@ def LQRSV_detector(filtered_sig:np.ndarray,
     Parameters:
     -----------
     filtered_sig: ndarray,
+        the filtered multi-lead ecg signal, with units in mV
+    rpeaks: ndarray,
+        array of indices of the R peaks
+    fs: real number,
+        sampling frequency of the ecg signal
+    sig_fmt: str, default "channel_first",
+        format of the 12 lead ecg signal,
+        "channel_last" (alias "lead_last"), or
+        "channel_first" (alias "lead_first", original)
+    leads: sequence of str,
+        names of the leads in the input signal
+    verbose: int, default 0,
+        print verbosity
+
+    Returns:
+    --------
+    is_LQRSV: bool,
+        the ecg signal is of arrhythmia `LQRSV` or not
+    """
+    sig_ampl = get_ampl(
+        sig=filtered_sig,
+        fs=fs,
+        fmt=sig_fmt,
+        window=2*SpecialDetectorCfg.lqrsv_qrs_mask_radius/1000,  # ms to s
+        critical_points=rpeaks,
+    )
+
+    # limb_lead_inds = [Standard12Leads.index(l) for l in LimbLeads]
+    # precordial_lead_inds = [Standard12Leads.index(l) for l in PrecordialLeads]
+    limb_leads = [l for l in leads if l in LimbLeads]
+    limb_lead_inds = [list(leads).index(l) for l in limb_leads]
+    precordial_leads = [l for l in leads if l in PrecordialLeads]
+    precordial_lead_inds = [list(leads).index(l) for l in precordial_leads]
+
+    if verbose >= 1:
+        print(f"limb_lead_inds = {limb_lead_inds}, precordial_lead_inds = {precordial_lead_inds}")
+    
+    low_qrs_limb_leads = [sig_ampl[idx] <= 0.5 + SpecialDetectorCfg.lqrsv_ampl_bias for idx in limb_lead_inds]
+    if len(low_qrs_limb_leads) > 0:
+        low_qrs_limb_leads = sum(low_qrs_limb_leads) / len(low_qrs_limb_leads)  # to ratio
+    else:  # no limb leads
+        # determining LQRSV using limb leads and precordial leads, its relation is OR
+        # hence default values are set 0 if no limb leads or precordial leads
+        low_qrs_limb_leads = 0
+    low_qrs_precordial_leads = [sig_ampl[idx] <= 1 + SpecialDetectorCfg.lqrsv_ampl_bias for idx in precordial_lead_inds]
+    if len(low_qrs_precordial_leads) > 0:
+        low_qrs_precordial_leads = sum(low_qrs_precordial_leads) / len(low_qrs_precordial_leads)
+    else:
+        low_qrs_precordial_leads = 0
+
+    if verbose >= 2:
+        print(f"ratio of low qrs in limb leads = {low_qrs_limb_leads}")
+        print(f"ratio of low qrs in precordial leads = {low_qrs_precordial_leads}")
+
+    is_LQRSV = \
+        (low_qrs_limb_leads >= SpecialDetectorCfg.lqrsv_ratio_threshold) \
+        or (low_qrs_precordial_leads >= SpecialDetectorCfg.lqrsv_ratio_threshold)
+
+    return is_LQRSV
+
+
+@deprecated
+def LQRSV_detector_backup(filtered_sig:np.ndarray,
+                   rpeaks:np.ndarray,
+                   fs:Real,
+                   sig_fmt:str="channel_first",
+                   leads:Sequence[str]=Standard12Leads,
+                   verbose:int=0) -> bool:
+    """ finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
+
+    Parameters:
+    -----------
+    filtered_sig: ndarray,
         the filtered 12-lead ecg signal, with units in mV
     rpeaks: ndarray,
         array of indices of the R peaks
@@ -459,9 +533,9 @@ def LQRSV_detector(filtered_sig:np.ndarray,
         the ecg signal is of arrhythmia `LQRSV` or not
     """
     if sig_fmt.lower() in ["channel_first", "lead_first"]:
-        sig_ampl = np.abs(filtered_sig)
+        sig_ampl = filtered_sig.copy()
     else:
-        sig_ampl = np.abs(filtered_sig.T)
+        sig_ampl = filtered_sig.T
     qrs_mask_radius = ms2samples(SpecialDetectorCfg.lqrsv_qrs_mask_radius, fs)
     l_qrs = get_mask(
         shape=sig_ampl.shape,
@@ -473,8 +547,12 @@ def LQRSV_detector(filtered_sig:np.ndarray,
     if verbose >= 2:
         print(f"qrs intervals = {l_qrs}")
 
-    limb_lead_inds = [Standard12Leads.index(l) for l in LimbLeads]
-    precordial_lead_inds = [Standard12Leads.index(l) for l in PrecordialLeads]
+    # limb_lead_inds = [Standard12Leads.index(l) for l in LimbLeads]
+    # precordial_lead_inds = [Standard12Leads.index(l) for l in PrecordialLeads]
+    limb_leads = [l for l in leads if l in LimbLeads]
+    limb_lead_inds = [list(leads).index(l) for l in limb_leads]
+    precordial_leads = [l for l in leads if l in PrecordialLeads]
+    precordial_lead_inds = [list(leads).index(l) for l in precordial_leads]
 
     l_qrs_limb_leads = []
     l_qrs_precordial_leads = []
@@ -494,9 +572,9 @@ def LQRSV_detector(filtered_sig:np.ndarray,
 
         if verbose >= 2:
             print("for limb leads, the qrs amplitudes are as follows:")
-            for idx, lead_name in enumerate(LimbLeads):
+            for idx, lead_name in enumerate(limb_leads):
                 print(f"for limb lead {lead_name}, the qrs amplitudes are {[np.max(item) for item in l_qrs_limb_leads[idx*len(l_qrs): (idx+1)*len(l_qrs)]]}")
-            for idx, lead_name in enumerate(PrecordialLeads):
+            for idx, lead_name in enumerate(precordial_leads):
                 print(f"for precordial lead {lead_name}, the qrs amplitudes are {[np.max(item) for item in l_qrs_limb_leads[idx*len(l_qrs): (idx+1)*len(l_qrs)]]}")
 
         low_qrs_limb_leads = [np.max(item) <= 0.5 + SpecialDetectorCfg.lqrsv_ampl_bias for item in l_qrs_limb_leads]
