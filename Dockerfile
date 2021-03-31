@@ -48,6 +48,7 @@ RUN pip install -r requirements.txt
 
 # cd ~/Jupyter/temp/cinc2021_docker_test/data/
 # cp E075* ../test_data
+# cd ~/Jupyter/temp/cinc2021_docker_test/cinc2021/
 # sudo docker build -t image .
 # sudo docker run -it -v ~/Jupyter/temp/cinc2021_docker_test/model:/physionet/model -v ~/Jupyter/temp/cinc2021_docker_test/test_data:/physionet/test_data -v ~/Jupyter/temp/cinc2021_docker_test/test_outputs:/physionet/test_outputs -v ~/Jupyter/temp/cinc2021_docker_test/data:/physionet/training_data image bash
 
