@@ -2,7 +2,14 @@
 # https://hub.docker.com/r/nvidia/cuda/
 # FROM nvidia/cuda:11.1.1-devel
 # FROM nvidia/cuda:11.1.1-devel-ubuntu20.04
-FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel
+# FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel
+FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel
+
+# NOTE: The GPU provided by the Challenge is  GPU Tesla T4 with nvidiaDriverVersion: 418.40.04
+# by checking https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html
+# and https://download.pytorch.org/whl/torch_stable.html
+# one should use 1.6.0-cuda10.1
+
 
 ## The MAINTAINER instruction sets the author field of the generated images.
 LABEL maintainer="wenh06@gmail.com"
@@ -29,7 +36,8 @@ RUN ln -s /usr/bin/python3 /usr/bin/python && ln -s /usr/bin/pip3 /usr/bin/pip
 # http://mirrors.aliyun.com/pypi/simple/
 # http://pypi.douban.com/simple/
 # RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-RUN pip install torch==1.8.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
+# RUN pip install torch==1.8.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
+RUN pip install torch==1.6.0+cu101 -f https://download.pytorch.org/whl/torch_stable.html
 # RUN pip install torch
 ## Include the following line if you have a requirements.txt file.
 RUN pip install -r requirements.txt

@@ -239,6 +239,7 @@ def train(model:nn.Module,
     save_prefix = f"{model.__name__}_{config.cnn_name}_{config.rnn_name}_tranche_{config.tranches_for_training or 'all'}_epoch"
 
     # monitor for training: challenge metric
+    # TODO: add early_stopping using this monitor
     best_state_dict = OrderedDict()
     best_challenge_metric = -np.inf
     best_eval_res = tuple()

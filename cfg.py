@@ -182,6 +182,8 @@ TrainCfg.stretch_compress = 1.0  # stretch or compress in time axis
 
 # configs of training epochs, batch, etc.
 TrainCfg.n_epochs = 80
+# TODO: automatic adjust batch size according to GPU capacity
+# https://stackoverflow.com/questions/45132809/how-to-select-batch-size-automatically-to-fit-gpu
 TrainCfg.batch_size = 64
 # TrainCfg.max_batches = 500500
 
