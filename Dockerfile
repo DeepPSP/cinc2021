@@ -19,6 +19,11 @@ RUN mkdir /physionet
 COPY ./ /physionet
 WORKDIR /physionet
 
+# submodule
+# RUN apt-get update
+# RUN apt-get -y install git
+RUN git submodule update --init --remote --recursive --merge
+
 ## Install your dependencies here using apt install, etc.
 # RUN apt update && apt upgrade -y && apt clean
 # RUN apt install -y python3.8 python3.8-dev python3.8-distutils python3-pip
@@ -41,6 +46,9 @@ RUN pip install torch==1.6.0+cu101 -f https://download.pytorch.org/whl/torch_sta
 # RUN pip install torch
 ## Include the following line if you have a requirements.txt file.
 RUN pip install -r requirements.txt
+
+
+RUN python docker_test.py
 
 
 
