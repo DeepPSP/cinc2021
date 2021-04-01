@@ -17,7 +17,10 @@ import torch
 from torch.utils.data.dataset import Dataset
 from sklearn.preprocessing import StandardScaler
 
-from cfg import (
+# from cfg import (
+#     TrainCfg, ModelCfg,
+# )
+from cfg_ns import (
     TrainCfg, ModelCfg,
 )
 from data_reader import CINC2021Reader as CR
@@ -174,9 +177,12 @@ class CINC2021(Dataset):
         _test_ratio = 100 - _train_ratio
         assert _train_ratio * _test_ratio > 0
 
-        file_suffix = f"_siglen_{self.siglen}.json"
+        ns = "_ns" if len(self.config.special_classes) == 0 else ""
+        file_suffix = f"_siglen_{self.siglen}{ns}.json"
         train_file = os.path.join(self.reader.db_dir_base, f"train_ratio_{_train_ratio}{file_suffix}")
         test_file = os.path.join(self.reader.db_dir_base, f"test_ratio_{_test_ratio}{file_suffix}")
+
+        print(f"train_file = {train_file}")
 
         if force_recompute or not all([os.path.isfile(train_file), os.path.isfile(test_file)]):
             tranche_records = {t: [] for t in _TRANCHES}
@@ -194,7 +200,7 @@ class CINC2021(Dataset):
                             fmt="a",
                             normalize=True
                         )
-                        rec_labels = [c for c in rec_labels if c in TrainCfg.tranche_classes[t]]
+                        rec_labels = [c for c in rec_labels if c in self.config.tranche_classes[t]]
                         if len(rec_labels) == 0:
                             # skip records with no scored class
                             continue
@@ -215,7 +221,7 @@ class CINC2021(Dataset):
                     train_set[t] = tranche_records[t][:split_idx]
                     test_set[t] = tranche_records[t][split_idx:]
                     is_valid = self._check_train_test_split_validity(
-                        train_set[t], test_set[t], set(TrainCfg.tranche_classes[t])
+                        train_set[t], test_set[t], set(self.config.tranche_classes[t])
                     )
             with open(train_file, "w") as f:
                 json.dump(train_set, f, ensure_ascii=False)

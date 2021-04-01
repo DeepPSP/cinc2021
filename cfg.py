@@ -64,7 +64,6 @@ from torch_ecg_bak.torch_ecg.model_configs.attn import (
 __all__ = [
     "BaseCfg",
     "PlotCfg",
-    "PreprocCfg",
     "SpecialDetectorCfg",
     "ModelCfg",
     "TrainCfg",

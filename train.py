@@ -243,6 +243,9 @@ def train(model:nn.Module,
 
     save_prefix = f"{model.__name__}_{config.cnn_name}_{config.rnn_name}_tranche_{config.tranches_for_training or 'all'}_epoch"
 
+    os.makedirs(config.checkpoints, exist_ok=True)
+    os.makedirs(config.model_dir, exist_ok=True)
+
     # monitor for training: challenge metric
     # TODO: add early_stopping using this monitor
     best_state_dict = OrderedDict()
