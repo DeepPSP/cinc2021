@@ -20,8 +20,9 @@ COPY ./ /physionet
 WORKDIR /physionet
 
 # submodule
-# RUN apt-get update
-# RUN apt-get -y install git
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y git
 RUN git submodule update --init --remote --recursive --merge --progress
 RUN git submodule update --remote --recursive --merge --progress
 
