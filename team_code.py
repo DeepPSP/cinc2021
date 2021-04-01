@@ -10,6 +10,7 @@ from datetime import datetime
 from copy import deepcopy
 from logging import Logger
 from typing import NoReturn
+import traceback
 
 import numpy as np
 import pandas as pd
@@ -380,14 +381,27 @@ def run_model(model, header, recording, verbose=0):
     final_scores, final_conclusions = [], []
 
     if len(TrainCfg.special_classes) > 0:
-        partial_conclusion = special_detectors(
-            raw_data.copy(),
-            TrainCfg.fs,
-            sig_fmt="lead_first",
-            leads=ann_dict["df_leads"]["lead_name"],
-            axis_method="3-lead",
-            verbose=verbose
-        )
+        try:
+            partial_conclusion = special_detectors(
+                raw_data.copy(),
+                TrainCfg.fs,
+                sig_fmt="lead_first",
+                leads=ann_dict["df_leads"]["lead_name"],
+                axis_method="3-lead",
+                verbose=verbose
+            )
+        except Exception as e:
+            partial_conclusion = dict(
+                is_brady = False
+                is_tachy = False
+                is_LAD = False
+                is_RAD = False
+                is_PR = False
+                is_LQRSV = False
+            )
+            print("special_detectors raises errors, as follows")
+            traceback.print_exc()
+
         is_brady = partial_conclusion.is_brady
         is_tachy = partial_conclusion.is_tachy
         is_LAD = partial_conclusion.is_LAD
