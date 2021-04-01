@@ -20,11 +20,11 @@ COPY ./ /physionet
 WORKDIR /physionet
 
 # submodule
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y git
-RUN git submodule update --init --remote --recursive --merge --progress
-RUN git submodule update --remote --recursive --merge --progress
+# RUN apt-get update && \
+#     apt-get upgrade -y && \
+#     apt-get install -y git
+# RUN git submodule update --init --remote --recursive --merge --progress
+# RUN git submodule update --remote --recursive --merge --progress
 
 ## Install your dependencies here using apt install, etc.
 # RUN apt update && apt upgrade -y && apt clean
