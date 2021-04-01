@@ -59,12 +59,17 @@ import torch.nn.functional as F
 from tensorboardX import SummaryWriter
 from easydict import EasyDict as ED
 
-from model import ECG_CRNN_CINC2021
-from torch_ecg.torch_ecg.models.nets import BCEWithLogitsWithClassWeightLoss
-from torch_ecg.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
-from torch_ecg.torch_ecg.utils.misc import (
+# from torch_ecg.torch_ecg.models.nets import BCEWithLogitsWithClassWeightLoss
+# from torch_ecg.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
+# from torch_ecg.torch_ecg.utils.misc import (
+#     init_logger, get_date_str, dict_to_str, str2bool,
+# )
+from torch_ecg_bak.torch_ecg.models.nets import BCEWithLogitsWithClassWeightLoss
+from torch_ecg_bak.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
+from torch_ecg_bak.torch_ecg.utils.misc import (
     init_logger, get_date_str, dict_to_str, str2bool,
 )
+from model import ECG_CRNN_CINC2021
 from utils.scoring_metrics import evaluate_scores
 from cfg import BaseCfg, TrainCfg, ModelCfg
 from dataset import CINC2021
