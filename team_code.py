@@ -392,12 +392,12 @@ def run_model(model, header, recording, verbose=0):
             )
         except Exception as e:
             partial_conclusion = dict(
-                is_brady = False
-                is_tachy = False
-                is_LAD = False
-                is_RAD = False
-                is_PR = False
-                is_LQRSV = False
+                is_brady = False,
+                is_tachy = False,
+                is_LAD = False,
+                is_RAD = False,
+                is_PR = False,
+                is_LQRSV = False,
             )
             print("special_detectors raises errors, as follows")
             traceback.print_exc()
