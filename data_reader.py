@@ -46,7 +46,7 @@ __all__ = [
 
 
 class CINC2021Reader(object):
-    """ NOT finished,
+    """ finished, checked, to improve,
 
     Will Two Do? Varying Dimensions in Electrocardiography:
     The PhysioNet/Computing in Cardiology Challenge 2021
