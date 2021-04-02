@@ -90,7 +90,7 @@ def train(model:nn.Module,
           device:torch.device,
           config:dict,
           logger:Optional[logging.Logger]=None,
-          debug:bool=False) -> NoReturn:
+          debug:bool=False) -> OrderedDict:
     """ finished, checked,
 
     Parameters:
@@ -412,6 +412,8 @@ def train(model:nn.Module,
             logger.info(f"Best model saved to {save_path}!")
 
     writer.close()
+
+    return best_state_dict
 
 
 # def train_one_epoch(model:nn.Module, criterion:nn.Module, optimizer:optim.Optimizer, data_loader:DataLoader, device:torch.device, epoch:int) -> NoReturn:
