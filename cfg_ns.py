@@ -284,6 +284,7 @@ ModelCfg.attn_name = TrainCfg.attn_name
 
 
 _BASE_MODEL_CONFIG = deepcopy(ECG_CRNN_CONFIG)
+_BASE_MODEL_CONFIG.cnn.multi_scopic_leadwise.block.batch_norm = "group_norm"  # False
 
 # detailed configs for 12-lead, 6-lead, 3-lead, 2-lead models
 # mostly follow from torch_ecg.torch_ecg.model_configs.ecg_crnn
