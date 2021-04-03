@@ -141,5 +141,10 @@ checkpoints
 log
 
 # training_notebooks
-train_*.ipynb
-team_code_test.ipynb
+# train_*.ipynb
+# team_code_test.ipynb
+
+
+*.ipynb
+!inspect_data.ipynb
+
