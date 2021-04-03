@@ -65,8 +65,13 @@ RUN python test_model.py ./saved_models ./test_data/two_leads ./log/test_2leads
 # cd ~/Jupyter/temp/cinc2021_docker_test/data/
 # cp E075* ../test_data
 # cd ~/Jupyter/temp/cinc2021_docker_test/cinc2021/
+
 # sudo docker build -t image .
-# sudo docker run -it -v ~/Jupyter/temp/cinc2021_docker_test/model:/physionet/model -v ~/Jupyter/temp/cinc2021_docker_test/test_data:/physionet/test_data -v ~/Jupyter/temp/cinc2021_docker_test/test_outputs:/physionet/test_outputs -v ~/Jupyter/temp/cinc2021_docker_test/data:/physionet/training_data image bash
+# sudo docker run -it --shm-size=10240m --gpus all -v ~/Jupyter/temp/cinc2021_docker_test/model:/physionet/model -v ~/Jupyter/temp/cinc2021_docker_test/test_data:/physionet/test_data -v ~/Jupyter/temp/cinc2021_docker_test/test_outputs:/physionet/test_outputs -v ~/Jupyter/temp/cinc2021_docker_test/data:/physionet/training_data image bash
+# ( or alternatively
+# sudo docker pull wenh06/cinc2021:pytorch1.6.0-cuda10.1-cudnn7-devel
+# sudo docker run -it --shm-size=10240m --gpus all -v ~/Jupyter/temp/cinc2021_docker_test/model:/physionet/model -v ~/Jupyter/temp/cinc2021_docker_test/test_data:/physionet/test_data -v ~/Jupyter/temp/cinc2021_docker_test/test_outputs:/physionet/test_outputs -v ~/Jupyter/temp/cinc2021_docker_test/data:/physionet/training_data wenh06/cinc2021:pytorch1.6.0-cuda10.1-cudnn7-devel bash
+# )
 
 # python train_model.py training_data model
 # python test_model.py model test_data test_outputs
