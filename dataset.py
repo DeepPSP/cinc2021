@@ -37,6 +37,9 @@ __all__ = [
 ]
 
 
+_BASE_DIR = os.path.dirname(__file__)
+
+
 class CINC2021(Dataset):
     """
     """
@@ -182,7 +185,9 @@ class CINC2021(Dataset):
         train_file = os.path.join(self.reader.db_dir_base, f"train_ratio_{_train_ratio}{file_suffix}")
         test_file = os.path.join(self.reader.db_dir_base, f"test_ratio_{_test_ratio}{file_suffix}")
 
-        print(f"train_file = {train_file}")
+        if not all([os.path.isfile(train_file), os.path.isfile(test_file)]):
+            train_file = os.path.join(_BASE_DIR, "utils", f"train_ratio_{_train_ratio}{file_suffix}")
+            test_file = os.path.join(_BASE_DIR, "utils", f"test_ratio_{_test_ratio}{file_suffix}")
 
         if force_recompute or not all([os.path.isfile(train_file), os.path.isfile(test_file)]):
             tranche_records = {t: [] for t in _TRANCHES}
@@ -223,13 +228,19 @@ class CINC2021(Dataset):
                     is_valid = self._check_train_test_split_validity(
                         train_set[t], test_set[t], set(self.config.tranche_classes[t])
                     )
-            with open(train_file, "w") as f:
-                json.dump(train_set, f, ensure_ascii=False)
-            with open(test_file, "w") as f:
-                json.dump(test_set, f, ensure_ascii=False)
+            train_file_1 = os.path.join(self.reader.db_dir_base, f"train_ratio_{_train_ratio}{file_suffix}")
+            train_file_2 = os.path.join(_BASE_DIR, "utils", f"train_ratio_{_train_ratio}{file_suffix}")
+            with open(train_file_1, "w") as f1, open(train_file_2, "w") as f2:
+                json.dump(train_set, f1, ensure_ascii=False)
+                json.dump(train_set, f2, ensure_ascii=False)
+            test_file_1 = os.path.join(self.reader.db_dir_base, f"test_ratio_{_test_ratio}{file_suffix}")
+            test_file_2 = os.path.join(_BASE_DIR, "utils", f"test_ratio_{_test_ratio}{file_suffix}")
+            with open(test_file_1, "w") as f1, open(test_file_2, "w") as f2:
+                json.dump(test_set, f1, ensure_ascii=False)
+                json.dump(test_set, f2, ensure_ascii=False)
             print(textwrap.dedent(f"""
-                train set saved to \042{train_file}\042
-                test set saved to \042{test_file}\042
+                train set saved to \n\042{train_file_1}\042and\n\042{train_file_2}\042
+                test set saved to \n\042{test_file_1}\042and\n\042{test_file_2}\042
                 """
             ))
         else:
