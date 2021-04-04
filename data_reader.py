@@ -605,9 +605,12 @@ class CINC2021Reader(object):
         ann_dict["nb_leads"] = int(ann_dict["nb_leads"])
         ann_dict["fs"] = int(ann_dict["fs"])
         ann_dict["nb_samples"] = int(ann_dict["nb_samples"])
-        ann_dict["datetime"] = datetime.strptime(
-            " ".join([ann_dict["datetime"], daytime]), "%d-%b-%Y %H:%M:%S"
-        )
+        try:
+            ann_dict["datetime"] = datetime.strptime(
+                " ".join([ann_dict["datetime"], daytime]), "%d-%b-%Y %H:%M:%S"
+            )
+        except:
+            pass
         try: # see NOTE. 1.
             ann_dict["age"] = \
                 int([l for l in header_reader.comments if "Age" in l][0].split(": ")[-1])
@@ -674,9 +677,12 @@ class CINC2021Reader(object):
         ann_dict["nb_leads"] = int(ann_dict["nb_leads"])
         ann_dict["fs"] = int(ann_dict["fs"])
         ann_dict["nb_samples"] = int(ann_dict["nb_samples"])
-        ann_dict["datetime"] = datetime.strptime(
-            " ".join([ann_dict["datetime"], daytime]), "%d-%b-%Y %H:%M:%S"
-        )
+        try:
+            ann_dict["datetime"] = datetime.strptime(
+                " ".join([ann_dict["datetime"], daytime]), "%d-%b-%Y %H:%M:%S"
+            )
+        except:
+            pass
         try: # see NOTE. 1.
             ann_dict["age"] = \
                 int([l for l in header_data if l.startswith("#Age")][0].split(": ")[-1])
