@@ -83,3 +83,8 @@ if __name__ == "__main__":
     except Exception as e:
         print("failed to import torch_ecg from the backup folder!")
         traceback.print_exc()
+
+    import torch
+    cuda_is_available = " " if torch.cuda.is_available() else " not "
+    print(f"torch version == {torch.__version__}")
+    print(f"cuda is{cuda_is_available}available")
