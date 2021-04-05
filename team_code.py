@@ -84,7 +84,7 @@ def training_code(data_directory, model_directory):
     train_config = deepcopy(TrainCfg)
     train_config.db_dir = data_directory
     train_config.model_dir = model_directory
-    train_config.debug = True
+    train_config.debug = False
     train_config.n_epochs = 30
 
     tranches = train_config.tranches_for_training
