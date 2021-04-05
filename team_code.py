@@ -29,10 +29,10 @@ from utils.utils_signal import ensure_siglen, butter_bandpass_filter
 from utils.scoring_aux_data import abbr_to_snomed_ct_code
 
 
-twelve_lead_model_filename = '12_lead_model.pth'
-six_lead_model_filename = '6_lead_model.pth'
-three_lead_model_filename = '3_lead_model.pth'
-two_lead_model_filename = '2_lead_model.pth'
+twelve_lead_model_filename = "12_lead_model.pth.tar"
+six_lead_model_filename = "6_lead_model.pth.tar"
+three_lead_model_filename = "3_lead_model.pth.tar"
+two_lead_model_filename = "2_lead_model.pth.tar"
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -53,13 +53,13 @@ else:
 # Train your model. This function is *required*. Do *not* change the arguments of this function.
 def training_code(data_directory, model_directory):
     # Find header and recording files.
-    print('Finding header and recording files...')
+    print("Finding header and recording files...")
 
     header_files, recording_files = find_challenge_files(data_directory)
     num_recordings = len(recording_files)
 
     if not num_recordings:
-        raise Exception('No data was provided.')
+        raise Exception("No data was provided.")
 
     # Create a folder for the model if it does not already exist.
     if not os.path.isdir(model_directory):
@@ -67,7 +67,7 @@ def training_code(data_directory, model_directory):
     # os.makedirs(model_directory, exist_ok=True)
 
     # Extract classes from dataset.
-    print('Extracting classes...')
+    print("Extracting classes...")
 
     classes = set()
     for header_file in header_files:
@@ -103,7 +103,7 @@ def training_code(data_directory, model_directory):
 
 
     # Train 12-lead ECG model.
-    print('Training 12-lead ECG model...')
+    print("Training 12-lead ECG model...")
 
     train_config.leads = twelve_leads
     train_config.n_leads = len(train_config.leads)
@@ -117,7 +117,7 @@ def training_code(data_directory, model_directory):
 
 
     # Train 6-lead ECG model.
-    print('Training 6-lead ECG model...')
+    print("Training 6-lead ECG model...")
 
     train_config.leads = six_leads
     train_config.n_leads = len(train_config.leads)
@@ -131,7 +131,7 @@ def training_code(data_directory, model_directory):
     
 
     # Train 3-lead ECG model.
-    print('Training 3-lead ECG model...')
+    print("Training 3-lead ECG model...")
 
     train_config.leads = three_leads
     train_config.n_leads = len(train_config.leads)
@@ -145,7 +145,7 @@ def training_code(data_directory, model_directory):
     
 
     # Train 2-lead ECG model.
-    print('Training 2-lead ECG model...')
+    print("Training 2-lead ECG model...")
 
     train_config.leads = two_leads
     train_config.n_leads = len(train_config.leads)
@@ -183,6 +183,7 @@ def training_12_leads(train_config:ED, model_config:ED, logger:Logger) -> NoRetu
 
     train(
         model=model,
+        model_config=model_config,
         config=train_config,
         device=DEVICE,
         logger=logger,
@@ -212,6 +213,7 @@ def training_6_leads(train_config:ED, model_config:ED, logger:Logger) -> NoRetur
 
     train(
         model=model,
+        model_config=model_config,
         config=train_config,
         device=DEVICE,
         logger=logger,
@@ -241,6 +243,7 @@ def training_3_leads(train_config:ED, model_config:ED, logger:Logger) -> NoRetur
 
     train(
         model=model,
+        model_config=model_config,
         config=train_config,
         device=DEVICE,
         logger=logger,
@@ -270,6 +273,7 @@ def training_2_leads(train_config:ED, model_config:ED, logger:Logger) -> NoRetur
 
     train(
         model=model,
+        model_config=model_config,
         config=train_config,
         device=DEVICE,
         logger=logger,
@@ -291,62 +295,66 @@ def save_model(filename, classes, leads, imputer, classifier):
 
 # Load your trained 12-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
 def load_twelve_lead_model(model_directory):
-    model = ECG_CRNN_CINC2021(
-        classes=ModelCfg.dl_classes,
-        n_leads=12,
-        config=ModelCfg.twelve_leads,
-    )
     if torch.cuda.is_available():
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
+    ckpt = torch.load(os.path.join(model_directory, twelve_lead_model_filename), map_location=device)
+    model = ECG_CRNN_CINC2021(
+        classes=ckpt["train_config"].classes,
+        n_leads=12,  # ckpt["train_config"].n_leads
+        config=ckpt["model_config"],
+    )
     model.eval()
-    model.load_state_dict(torch.load(os.path.join(model_directory, twelve_lead_model_filename), map_location=device))
+    model.load_state_dict(ckpt["model_state_dict"])
     return model
 
 # Load your trained 6-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
 def load_six_lead_model(model_directory):
-    model = ECG_CRNN_CINC2021(
-        classes=ModelCfg.dl_classes,
-        n_leads=6,
-        config=ModelCfg.six_leads,
-    )
     if torch.cuda.is_available():
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
+    ckpt = torch.load(os.path.join(model_directory, six_lead_model_filename), map_location=device)
+    model = ECG_CRNN_CINC2021(
+        classes=ckpt["train_config"].classes,
+        n_leads=6,  # ckpt["train_config"].n_leads
+        config=ckpt["model_config"],
+    )
     model.eval()
-    model.load_state_dict(torch.load(os.path.join(model_directory, six_lead_model_filename), map_location=device))
+    model.load_state_dict(ckpt["model_state_dict"])
     return model
 
 # Load your trained 3-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
 def load_three_lead_model(model_directory):
-    model = ECG_CRNN_CINC2021(
-        classes=ModelCfg.dl_classes,
-        n_leads=3,
-        config=ModelCfg.three_leads,
-    )
     if torch.cuda.is_available():
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
+    ckpt = torch.load(os.path.join(model_directory, three_lead_model_filename), map_location=device)
+    model = ECG_CRNN_CINC2021(
+        classes=ckpt["train_config"].classes,
+        n_leads=3,  # ckpt["train_config"].n_leads
+        config=ckpt["model_config"],
+    )
     model.eval()
-    model.load_state_dict(torch.load(os.path.join(model_directory, three_lead_model_filename), map_location=device))
+    model.load_state_dict(ckpt["model_state_dict"])
     return model
 
 # Load your trained 2-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
 def load_two_lead_model(model_directory):
-    model = ECG_CRNN_CINC2021(
-        classes=ModelCfg.dl_classes,
-        n_leads=2,
-        config=ModelCfg.two_leads,
-    )
     if torch.cuda.is_available():
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
+    ckpt = torch.load(os.path.join(model_directory, two_lead_model_filename), map_location=device)
+    model = ECG_CRNN_CINC2021(
+        classes=ckpt["train_config"].classes,
+        n_leads=2,  # ckpt["train_config"].n_leads
+        config=ckpt["model_config"],
+    )
     model.eval()
-    model.load_state_dict(torch.load(os.path.join(model_directory, two_lead_model_filename), map_location=device))
+    model.load_state_dict(ckpt["model_state_dict"])
     return model
 
 # Generic function for loading a model.
@@ -570,50 +578,3 @@ def preprocess_data(header:str, recording:np.ndarray):
         data = resample_poly(data, TrainCfg.fs, ann_dict["fs"], axis=1)
 
     return data, ann_dict
-
-
-
-################################################################################
-#
-# Other functions
-#
-################################################################################
-
-# Extract features from the header and recording.
-# def get_features(header, recording, leads):
-#     # Extract age.
-#     age = get_age(header)
-#     if age is None:
-#         age = float('nan')
-
-#     # Extract sex. Encode as 0 for female, 1 for male, and NaN for other.
-#     sex = get_sex(header)
-#     if sex in ('Female', 'female', 'F', 'f'):
-#         sex = 0
-#     elif sex in ('Male', 'male', 'M', 'm'):
-#         sex = 1
-#     else:
-#         sex = float('nan')
-
-#     # Reorder/reselect leads in recordings.
-#     available_leads = get_leads(header)
-#     indices = list()
-#     for lead in leads:
-#         i = available_leads.index(lead)
-#         indices.append(i)
-#     recording = recording[indices, :]
-
-#     # Pre-process recordings.
-#     adc_gains = get_adcgains(header, leads)
-#     baselines = get_baselines(header, leads)
-#     num_leads = len(leads)
-#     for i in range(num_leads):
-#         recording[i, :] = (recording[i, :] - baselines[i]) / adc_gains[i]
-
-#     # Compute the root mean square of each ECG lead signal.
-#     rms = np.zeros(num_leads, dtype=np.float32)
-#     for i in range(num_leads):
-#         x = recording[i, :]
-#         rms[i] = np.sqrt(np.sum(x**2) / np.size(x))
-
-#     return age, sex, rms

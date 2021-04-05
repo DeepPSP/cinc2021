@@ -87,6 +87,7 @@ __all__ = [
 
 
 def train(model:nn.Module,
+          model_config:dict,
           device:torch.device,
           config:dict,
           logger:Optional[logging.Logger]=None,
@@ -97,6 +98,8 @@ def train(model:nn.Module,
     -----------
     model: Module,
         the model to train
+    model_config: dict,
+        config of the model, to store into the checkpoints
     device: torch.device,
         device on which the model trains
     config: dict,
@@ -385,9 +388,15 @@ def train(model:nn.Module,
             except OSError:
                 pass
             save_suffix = f"epochloss_{epoch_loss:.5f}_fb_{eval_res[4]:.2f}_gb_{eval_res[5]:.2f}_cm_{eval_res[6]:.2f}"
-            save_filename = f"{save_prefix}{epoch + 1}_{get_date_str()}_{save_suffix}.pth"
+            save_filename = f"{save_prefix}{epoch + 1}_{get_date_str()}_{save_suffix}.pth.tar"
             save_path = os.path.join(config.checkpoints, save_filename)
-            torch.save(model.state_dict(), save_path)
+            torch.save({
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "model_config": model_config,
+                "train_config": config,
+                "epoch": epoch+1,
+            }, save_path)
             if logger:
                 logger.info(f"Checkpoint {epoch + 1} saved!")
             saved_models.append(save_path)
@@ -405,9 +414,14 @@ def train(model:nn.Module,
             save_filename = config.final_model_name
         else:
             save_suffix = f"BestModel_fb_{best_eval_res[4]:.2f}_gb_{best_eval_res[5]:.2f}_cm_{best_eval_res[6]:.2f}"
-            save_filename = f"{save_prefix}_{get_date_str()}_{save_suffix}.pth"
+            save_filename = f"{save_prefix}_{get_date_str()}_{save_suffix}.pth.tar"
         save_path = os.path.join(config.model_dir, save_filename)
-        torch.save(best_state_dict, save_path)
+        torch.save({
+            "model_state_dict": best_state_dict,
+            "model_config": model_config,
+            "train_config": config,
+            "epoch": best_epoch,
+        }, save_path)
         if logger:
             logger.info(f"Best model saved to {save_path}!")
 
@@ -616,13 +630,18 @@ if __name__ == "__main__":
     try:
         train(
             model=model,
+            model_config=model_config,
             config=config,
             device=device,
             logger=logger,
             debug=config.debug,
         )
     except KeyboardInterrupt:
-        torch.save(model.state_dict(), os.path.join(config.checkpoints, "INTERRUPTED.pth"))
+        torch.save({
+            "model_state_dict": model.state_dict(),
+            "model_config": model_config,
+            "train_config": config,
+        }, os.path.join(config.checkpoints, "INTERRUPTED.pth.tar"))
         logger.info("Saved interrupt")
         try:
             sys.exit(0)
