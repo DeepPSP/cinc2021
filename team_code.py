@@ -20,13 +20,17 @@ from scipy.signal import resample, resample_poly
 
 from train import train
 from cfg import TrainCfg, ModelCfg, SpecialDetectorCfg
-from cfg import TrainCfg as TrainCfg_ns, ModelCfg as ModelCfg_ns
+from cfg_ns import TrainCfg as TrainCfg_ns, ModelCfg as ModelCfg_ns
 from model import ECG_CRNN_CINC2021
 from utils.special_detectors import special_detectors
 from utils.utils_nn import extend_predictions
 from utils.misc import get_date_str, dict_to_str, init_logger, rdheader
 from utils.utils_signal import ensure_siglen, butter_bandpass_filter
 from utils.scoring_aux_data import abbr_to_snomed_ct_code
+
+
+_TrainCfg = deepcopy(TrainCfg_ns)
+_ModelCfg = deepcopy(ModelCfg_ns)
 
 
 twelve_lead_model_filename = "12_lead_model.pth.tar"
@@ -36,7 +40,7 @@ two_lead_model_filename = "2_lead_model.pth.tar"
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-if ModelCfg.torch_dtype.lower() == "double":
+if _ModelCfg.torch_dtype.lower() == "double":
     torch.set_default_tensor_type(torch.DoubleTensor)
     DTYPE = np.float64
 else:
@@ -81,7 +85,7 @@ def training_code(data_directory, model_directory):
 
 
     # configs and logger
-    train_config = deepcopy(TrainCfg)
+    train_config = deepcopy(_TrainCfg)
     train_config.db_dir = data_directory
     train_config.model_dir = model_directory
     train_config.debug = False
@@ -109,7 +113,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = twelve_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = twelve_lead_model_filename
-    model_config = deepcopy(ModelCfg.twelve_leads)
+    model_config = deepcopy(_ModelCfg.twelve_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
@@ -123,7 +127,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = six_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = six_lead_model_filename
-    model_config = deepcopy(ModelCfg.six_leads)
+    model_config = deepcopy(_ModelCfg.six_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
@@ -137,7 +141,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = three_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = three_lead_model_filename
-    model_config = deepcopy(ModelCfg.three_leads)
+    model_config = deepcopy(_ModelCfg.three_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
@@ -151,7 +155,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = two_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = two_lead_model_filename
-    model_config = deepcopy(ModelCfg.two_leads)
+    model_config = deepcopy(_ModelCfg.two_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
@@ -390,11 +394,11 @@ def run_model(model, header, recording, verbose=0):
 
     final_scores, final_conclusions = [], []
 
-    if len(TrainCfg.special_classes) > 0:
+    if len(_TrainCfg.special_classes) > 0:
         try:
             partial_conclusion = special_detectors(
                 raw_data.copy(),
-                TrainCfg.fs,
+                _TrainCfg.fs,
                 sig_fmt="lead_first",
                 leads=ann_dict["df_leads"]["lead_name"],
                 axis_method="3-lead",
@@ -422,12 +426,12 @@ def run_model(model, header, recording, verbose=0):
         if verbose >= 1:
             print(f"results from special detectors: {dict_to_str(partial_conclusion)}")
 
-        tmp = np.zeros(shape=(len(ModelCfg.full_classes,)))
-        tmp[ModelCfg.full_classes.index("Brady")] = int(is_brady)
-        tmp[ModelCfg.full_classes.index("LAD")] = int(is_LAD)
-        tmp[ModelCfg.full_classes.index("RAD")] = int(is_RAD)
-        tmp[ModelCfg.full_classes.index("PR")] = int(is_PR)
-        tmp[ModelCfg.full_classes.index("LQRSV")] = int(is_LQRSV)
+        tmp = np.zeros(shape=(len(_ModelCfg.full_classes,)))
+        tmp[_ModelCfg.full_classes.index("Brady")] = int(is_brady)
+        tmp[_ModelCfg.full_classes.index("LAD")] = int(is_LAD)
+        tmp[_ModelCfg.full_classes.index("RAD")] = int(is_RAD)
+        tmp[_ModelCfg.full_classes.index("PR")] = int(is_PR)
+        tmp[_ModelCfg.full_classes.index("LQRSV")] = int(is_LQRSV)
         partial_conclusion = tmp
 
         final_scores.append(partial_conclusion)
@@ -435,35 +439,35 @@ def run_model(model, header, recording, verbose=0):
     
     # DL part
     dl_data = raw_data.copy()
-    if TrainCfg.bandpass is not None:
+    if _TrainCfg.bandpass is not None:
         # bandpass
         dl_data = butter_bandpass_filter(
             dl_data,
-            lowcut=TrainCfg.bandpass[0],
-            highcut=TrainCfg.bandpass[1],
-            order=TrainCfg.bandpass_order,
-            fs=TrainCfg.fs,
+            lowcut=_TrainCfg.bandpass[0],
+            highcut=_TrainCfg.bandpass[1],
+            order=_TrainCfg.bandpass_order,
+            fs=_TrainCfg.fs,
         )
-    # if dl_data.shape[1] >= ModelCfg.dl_siglen:
-    #     dl_data = ensure_siglen(dl_data, siglen=ModelCfg.dl_siglen, fmt="lead_first")
-    #     if TrainCfg.normalize_data:
+    # if dl_data.shape[1] >= _ModelCfg.dl_siglen:
+    #     dl_data = ensure_siglen(dl_data, siglen=_ModelCfg.dl_siglen, fmt="lead_first")
+    #     if _TrainCfg.normalize_data:
     #         # normalize
     #         dl_data = ((dl_data - np.mean(dl_data)) / np.std(dl_data)).astype(DTYPE)
     # else:
-    #     if TrainCfg.normalize_data:
+    #     if _TrainCfg.normalize_data:
     #         # normalize
     #         dl_data = ((dl_data - np.mean(dl_data)) / np.std(dl_data)).astype(DTYPE)
-    #     dl_data = ensure_siglen(dl_data, siglen=ModelCfg.dl_siglen, fmt="lead_first")
-    if TrainCfg.normalize_data:
+    #     dl_data = ensure_siglen(dl_data, siglen=_ModelCfg.dl_siglen, fmt="lead_first")
+    if _TrainCfg.normalize_data:
         # normalize
         dl_data = ((dl_data - np.mean(dl_data)) / np.std(dl_data)).astype(DTYPE)
     # unsqueeze to add a batch dimention
     dl_data = (torch.from_numpy(dl_data)).unsqueeze(0).to(device=DEVICE)
 
-    if "NSR" in ModelCfg.dl_classes:
-        dl_nsr_cid = ModelCfg.dl_classes.index("NSR")
-    elif "426783006" in ModelCfg.dl_classes:
-        dl_nsr_cid = ModelCfg.dl_classes.index("426783006")
+    if "NSR" in _ModelCfg.dl_classes:
+        dl_nsr_cid = _ModelCfg.dl_classes.index("NSR")
+    elif "426783006" in _ModelCfg.dl_classes:
+        dl_nsr_cid = _ModelCfg.dl_classes.index("426783006")
     else:
         dl_nsr_cid = None
 
@@ -481,13 +485,13 @@ def run_model(model, header, recording, verbose=0):
 
     dl_scores = extend_predictions(
         dl_scores,
-        ModelCfg.dl_classes,
-        ModelCfg.full_classes,
+        _ModelCfg.dl_classes,
+        _ModelCfg.full_classes,
     )
     dl_conclusions = extend_predictions(
         dl_conclusions,
-        ModelCfg.dl_classes,
-        ModelCfg.full_classes,
+        _ModelCfg.dl_classes,
+        _ModelCfg.full_classes,
     )
 
     final_scores.append(dl_scores)
@@ -499,7 +503,7 @@ def run_model(model, header, recording, verbose=0):
     # filter contradictory conclusions from dl model and from special detector
 
 
-    classes = ModelCfg.full_classes
+    classes = _ModelCfg.full_classes
     # class abbr name to snomed ct code
     classes = [abbr_to_snomed_ct_code[c] for c in classes]
     labels = final_conclusions.astype(int).tolist()
@@ -575,7 +579,7 @@ def preprocess_data(header:str, recording:np.ndarray):
     adc_gain = header_info["adc_gain"].values.reshape(data.shape[0], -1)
     data = np.asarray(data-baselines) / adc_gain
 
-    if ann_dict["fs"] != TrainCfg.fs:
-        data = resample_poly(data, TrainCfg.fs, ann_dict["fs"], axis=1)
+    if ann_dict["fs"] != _TrainCfg.fs:
+        data = resample_poly(data, _TrainCfg.fs, ann_dict["fs"], axis=1)
 
     return data, ann_dict
