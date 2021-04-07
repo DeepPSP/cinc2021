@@ -273,7 +273,8 @@ def training_2_leads(train_config:ED, model_config:ED, logger:Logger) -> NoRetur
     )
 
     if torch.cuda.device_count() > 1:
-        model = torch.nn.DataParallel(model)
+        # model = torch.nn.DataParallel(model)
+        model = torch.nn.parallel.DistributedDataParallel(model)
     model.to(device=DEVICE)
     model.__DEBUG__ = False
 
