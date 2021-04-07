@@ -470,6 +470,8 @@ def run_model(model, header, recording, verbose=0):
     if _TrainCfg.normalize_data:
         # normalize
         dl_data = ((dl_data - np.mean(dl_data)) / np.std(dl_data)).astype(DTYPE)
+    else: # to resolve the negative stride error of torch with numpy array after `butter_bandpass_filter` 
+        dl_data = dl_data.copy().astype(DTYPE)
     # unsqueeze to add a batch dimention
     dl_data = (torch.from_numpy(dl_data)).unsqueeze(0).to(device=DEVICE)
 
@@ -492,16 +494,17 @@ def run_model(model, header, recording, verbose=0):
     if verbose >= 1:
         print(f"results from dl model:\n{dl_scores}\n{dl_conclusions}")
 
-    dl_scores = extend_predictions(
-        dl_scores,
-        _ModelCfg.dl_classes,
-        _ModelCfg.full_classes,
-    )
-    dl_conclusions = extend_predictions(
-        dl_conclusions,
-        _ModelCfg.dl_classes,
-        _ModelCfg.full_classes,
-    )
+    if len(_TrainCfg.special_classes) > 0:
+        dl_scores = extend_predictions(
+            dl_scores,
+            _ModelCfg.dl_classes,
+            _ModelCfg.full_classes,
+        )
+        dl_conclusions = extend_predictions(
+            dl_conclusions,
+            _ModelCfg.dl_classes,
+            _ModelCfg.full_classes,
+        )
 
     final_scores.append(dl_scores)
     final_conclusions.append(dl_conclusions)
