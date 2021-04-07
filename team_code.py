@@ -11,6 +11,7 @@ from copy import deepcopy
 from logging import Logger
 from typing import NoReturn
 import traceback
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -312,6 +313,8 @@ def load_twelve_lead_model(model_directory):
     )
     model.eval()
     model.load_state_dict(ckpt["model_state_dict"])
+    if len(ckpt["train_config"].classes) != len(_TrainCfg.classes):
+        warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
     return model
 
 # Load your trained 6-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
@@ -328,6 +331,8 @@ def load_six_lead_model(model_directory):
     )
     model.eval()
     model.load_state_dict(ckpt["model_state_dict"])
+    if len(ckpt["train_config"].classes) != len(_TrainCfg.classes):
+        warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
     return model
 
 # Load your trained 3-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
@@ -344,6 +349,8 @@ def load_three_lead_model(model_directory):
     )
     model.eval()
     model.load_state_dict(ckpt["model_state_dict"])
+    if len(ckpt["train_config"].classes) != len(_TrainCfg.classes):
+        warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
     return model
 
 # Load your trained 2-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
@@ -360,6 +367,8 @@ def load_two_lead_model(model_directory):
     )
     model.eval()
     model.load_state_dict(ckpt["model_state_dict"])
+    if len(ckpt["train_config"].classes) != len(_TrainCfg.classes):
+        warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
     return model
 
 # Generic function for loading a model.
