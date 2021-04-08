@@ -371,7 +371,7 @@ ModelCfg.three_leads.cnn.vgg16_leadwise.num_filters = [
 ModelCfg.three_leads.cnn.resnet_leadwise.groups = 3
 ModelCfg.three_leads.cnn.resnet_leadwise.init_num_filters = 3 * 12  # 12 * 8
 ModelCfg.three_leads.cnn.multi_scopic_leadwise.groups = 3
-_base_num_filters = 3 * 6  # 12 * 4
+_base_num_filters = 3 * 8  # 12 * 4
 ModelCfg.three_leads.cnn.multi_scopic_leadwise.num_filters = [
     [
         _base_num_filters*4,
