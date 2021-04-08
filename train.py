@@ -255,11 +255,13 @@ def train(model:nn.Module,
     best_challenge_metric = -np.inf
     best_eval_res = tuple()
     best_epoch = -1
+    pseudo_best_epoch = -1
 
     saved_models = deque()
     model.train()
     global_step = 0
     for epoch in range(n_epochs):
+        # train one epoch
         model.train()
         epoch_loss = 0
 
@@ -372,6 +374,18 @@ def train(model:nn.Module,
                 best_state_dict = model.state_dict()
                 best_eval_res = deepcopy(eval_res)
                 best_epoch = epoch + 1
+                pseudo_best_epoch = epoch + 1
+            elif config.early_stopping:
+                if eval_res[6] >= best_challenge_metric - config.early_stopping.min_delta:
+                    pseudo_best_epoch = epoch + 1
+                elif epoch - pseudo_best_epoch > config.early_stopping.patience:
+                    msg = f"early stopping is triggered at epoch {epoch + 1}"
+                    if logger:
+                        logger.info(msg)
+                    else:
+                        print(msg)
+                    break
+
             msg = textwrap.dedent(f"""
                 best challenge metric = {best_challenge_metric},
                 obtained at epoch {best_epoch}

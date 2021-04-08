@@ -224,6 +224,10 @@ TrainCfg.steps = [5000, 10000]
 TrainCfg.momentum = 0.949
 TrainCfg.decay = 0.0005
 
+TrainCfg.early_stopping = ED()  # early stopping according to challenge metric
+TrainCfg.early_stopping.min_delta = 0.001  # should be non-negative
+TrainCfg.early_stopping.patience = 6
+
 # configs of loss function
 # TrainCfg.loss = "BCEWithLogitsLoss"
 TrainCfg.loss = "BCEWithLogitsWithClassWeightLoss"
