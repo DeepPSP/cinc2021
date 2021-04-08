@@ -300,7 +300,7 @@ ModelCfg.six_leads.cnn.name = ModelCfg.cnn_name
 ModelCfg.six_leads.rnn.name = ModelCfg.rnn_name
 ModelCfg.six_leads.attn.name = ModelCfg.attn_name
 ModelCfg.six_leads.cnn.vgg16_leadwise.groups = 6
-_base_num_filters = 6 * 4  # 12 * 4
+_base_num_filters = 6 * 6  # 12 * 4
 ModelCfg.six_leads.cnn.vgg16_leadwise.num_filters = [
     _base_num_filters*4,
     _base_num_filters*8,
@@ -311,7 +311,7 @@ ModelCfg.six_leads.cnn.vgg16_leadwise.num_filters = [
 ModelCfg.six_leads.cnn.resnet_leadwise.groups = 6
 ModelCfg.six_leads.cnn.resnet_leadwise.init_num_filters = 6 * 8  # 12 * 8
 ModelCfg.six_leads.cnn.multi_scopic_leadwise.groups = 6
-_base_num_filters = 6 * 4  # 12 * 4
+_base_num_filters = 6 * 6  # 12 * 4
 ModelCfg.six_leads.cnn.multi_scopic_leadwise.num_filters = [
     [
         _base_num_filters*4,
