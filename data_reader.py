@@ -10,6 +10,7 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Union, Optional, Any, List, Dict, Tuple, Set, Sequence, NoReturn
 from numbers import Real, Number
+from collections.abc import Iterable
 
 import numpy as np
 np.set_printoptions(precision=5, suppress=True)
@@ -196,6 +197,13 @@ class CINC2021Reader(object):
         self.db_dir_base = db_dir
         self.db_dirs = ED({tranche:"" for tranche in self.db_tranches})
         self._all_records = None
+        self._stats = pd.DataFrame()
+        self._stats_columns = {
+            "record", "tranche", "tranche_name",
+            "age", "sex",
+            "medical_prescription", "history", "symptom_or_surgery",
+            "diagnosis", "diagnosis_scored",  # in the form of abbreviations
+        }
         self._ls_rec()  # loads file system structures into self.db_dirs and self._all_records
 
         self._diagnoses_records_list = None
@@ -288,6 +296,34 @@ class CINC2021Reader(object):
                 json.dump(to_save, f)
         self._all_records = ED(self._all_records)
 
+        stats_fn = "stats.csv"
+        list_sep = ";"
+        stats_file_fp = os.path.join(self.db_dir_base, stats_file)
+        stats_file_fp_aux = os.path.join(utils._BASE_DIR, "utils", stats_file)
+        if os.path.isfile(stats_file_fp):
+            self._stats = pd.read_csv(stats_file_fp)
+        elif os.path.isfile(stats_file_fp_aux):
+            self._stats = pd.read_csv(stats_file_fp_aux)
+        if self._stats.empty or self._stats_columns != set(self._stats.columns):
+            self._stats = pd.DataFrame(list_sum(self._all_records.values()), columns=["record"])
+            self._stats["tranche"] = self._stats["record"].apply(lambda rec: self._get_tranche(rec))
+            self._stats["tranche_name"] = self._stats["tranche"].apply(lambda t: self.tranche_names[t]))
+            for idx, row in self._stats.iterrows():
+                ann_dict = self.load_ann(row["record"])
+                for k in ["age", "sex", "medical_prescription", "history", "symptom_or_surgery",]:
+                    self._stats.at[idx, k] = ann_dict[k]
+                for k in ["diagnosis", "diagnosis_scored",]:
+                    self._stats.at[idx, k] = ann_dict[k]["diagnosis_abbr"]
+            _stats_to_save = self._stats.copy()
+            for k in ["diagnosis", "diagnosis_scored",]:
+                _stats_to_save[k] = _stats_to_save[k].apply(lambda l: list_sep.join(l))
+            _stats_to_save.to_csv(stats_file_fp, index=False)
+            _stats_to_save.to_csv(stats_file_fp_aux, index=False)
+        else:
+            for k in ["diagnosis", "diagnosis_scored",]:
+                for idx, row in self._stats.iterrows():
+                    self._stats.at[idx, k] = row[k].split(list_sep)
+
 
     @property
     def all_records(self):
@@ -325,6 +361,7 @@ class CINC2021Reader(object):
                 json.dump(self._diagnoses_records_list, f)
             with open(os.path.join(utils._BASE_DIR, "utils", filename), "w") as f:
                 json.dump(self._diagnoses_records_list, f)
+        self._diagnoses_records_list = ED(self._diagnoses_records_list)
 
 
     @property
