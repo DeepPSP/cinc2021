@@ -311,6 +311,8 @@ class CINC2021Reader(object):
             self._stats = pd.DataFrame(list_sum(self._all_records.values()), columns=["record"])
             self._stats["tranche"] = self._stats["record"].apply(lambda rec: self._get_tranche(rec))
             self._stats["tranche_name"] = self._stats["tranche"].apply(lambda t: self.tranche_names[t])
+            for k in ["diagnosis", "diagnosis_scored",]:
+                self._stats[k] = ""  # otherwise cells in the first row would be str instead of list
             for idx, row in self._stats.iterrows():
                 ann_dict = self.load_ann(row["record"])
                 for k in ["age", "sex", "medical_prescription", "history", "symptom_or_surgery",]:
@@ -338,6 +340,13 @@ class CINC2021Reader(object):
         return self._all_records
 
 
+    @property
+    def df_stats(self):
+        """
+        """
+        return self._stats
+
+
     def _ls_diagnoses_records(self) -> NoReturn:
         """ finished, checked,
 
@@ -354,12 +363,17 @@ class CINC2021Reader(object):
             print("Please wait several minutes patiently to let the reader list records for each diagnosis...")
             start = time.time()
             self._diagnoses_records_list = {d: [] for d in df_weights_abbr.columns.values.tolist()}
-            for tranche, l_rec in self.all_records.items():
-                for rec in l_rec:
-                    ann = self.load_ann(rec)
-                    ld = ann["diagnosis_scored"]["diagnosis_abbr"]
-                    for d in ld:
-                        self._diagnoses_records_list[d].append(rec)
+            if not self._stats.empty:
+                for d in df_weights_abbr.columns.values.tolist():
+                    self._diagnoses_records_list[d] = \
+                        sorted(self._stats[self._stats["diagnosis_scored"].apply(lambda l: d in l)]["record"].tolist())
+            else:
+                for tranche, l_rec in self.all_records.items():
+                    for rec in l_rec:
+                        ann = self.load_ann(rec)
+                        ld = ann["diagnosis_scored"]["diagnosis_abbr"]
+                        for d in ld:
+                            self._diagnoses_records_list[d].append(rec)
             print(f"Done in {time.time() - start:.5f} seconds!")
             with open(os.path.join(self.db_dir_base, filename), "w") as f:
                 json.dump(self._diagnoses_records_list, f)
