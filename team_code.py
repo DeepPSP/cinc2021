@@ -20,6 +20,7 @@ from easydict import EasyDict as ED
 from scipy.signal import resample, resample_poly
 
 from train import train
+from helper_code import twelve_leads, six_leads, four_leads, three_leads, two_leads, lead_sets
 from cfg import TrainCfg, ModelCfg, SpecialDetectorCfg
 from cfg_ns import TrainCfg as TrainCfg_ns, ModelCfg as ModelCfg_ns
 from model import ECG_CRNN_CINC2021
@@ -134,6 +135,9 @@ def training_code(data_directory, model_directory):
     model_config.attn.name = train_config.attn_name
 
     training_6_leads(train_config, model_config, logger)
+
+
+    # TODO: add training 4-lead ECG model
     
 
     # Train 3-lead ECG model.
@@ -295,9 +299,14 @@ def training_2_leads(train_config:ED, model_config:ED, logger:Logger) -> NoRetur
 #
 ################################################################################
 
-# Save your trained models.
+# Save a trained model. This function is not required. You can change or remove it.
 def save_model(filename, classes, leads, imputer, classifier):
     # Construct a data structure for the model and save it.
+    raise NotImplementedError
+
+# Load a trained model. This function is *required*. Do *not* change the arguments of this function.
+def load_model(model_directory, leads):
+    # TODO: Implement this function
     raise NotImplementedError
 
 # Load your trained 12-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
@@ -372,33 +381,13 @@ def load_two_lead_model(model_directory):
         warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
     return model
 
-# Generic function for loading a model.
-def load_model(filename):
-    raise NotImplementedError
-
 ################################################################################
 #
 # Running trained model functions
 #
 ################################################################################
 
-# Run your trained 12-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
-def run_twelve_lead_model(model, header, recording):
-    return run_model(model, header, recording)
-
-# Run your trained 6-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
-def run_six_lead_model(model, header, recording):
-    return run_model(model, header, recording)
-
-# Run your trained 3-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
-def run_three_lead_model(model, header, recording):
-    return run_model(model, header, recording)
-
-# Run your trained 2-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
-def run_two_lead_model(model, header, recording):
-    return run_model(model, header, recording)
-
-# Generic function for running a trained model.
+# Run your trained model. This function is *required*. Do *not* change the arguments of this function.
 def run_model(model, header, recording, verbose=0):
     raw_data, ann_dict = preprocess_data(header, recording)
 

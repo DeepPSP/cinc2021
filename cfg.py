@@ -88,8 +88,10 @@ LimbLeads = ["I", "II", "III", "aVR", "aVL", "aVF",]
 # settings from official repo
 twelve_leads = ("I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6")
 six_leads = ("I", "II", "III", "aVR", "aVL", "aVF")
+four_leads = ("I", "II", "III", "V2")
 three_leads = ("I", "II", "V2")
-two_leads = ("II", "V5")
+two_leads = ("I", "II")
+lead_sets = (twelve_leads, six_leads, four_leads, three_leads, two_leads)
 
 
 
