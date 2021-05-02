@@ -85,6 +85,10 @@ class CINC2021Reader(object):
             all retained as test data,
             geographically distinct from the Georgia database.
             Perhaps is the main part of the hidden test set of CINC2020
+        - CUSPHNFH (NEW, the Chapman University, Shaoxing People’s Hospital and Ningbo First Hospital database)
+            contains 45,152 ECGS,
+            all shared as training data.
+            Each recording is 10 seconds long with a sampling frequency of 500 Hz
     2. only a part of diagnosis_abbr (diseases that appear in the labels of the 6 tranches of training data) are used in the scoring function, while others are ignored. The scored diagnoses were chosen based on prevalence of the diagnoses in the training data, the severity of the diagnoses, and the ability to determine the diagnoses from ECG recordings. The ignored diagnosis_abbr can be put in a a "non-class" group.
     3. the (updated) scoring function has a scoring matrix with nonzero off-diagonal elements. This scoring function reflects the clinical reality that some misdiagnoses are more harmful than others and should be scored accordingly. Moreover, it reflects the fact that confusing some classes is much less harmful than confusing other classes.
     4. all data are recorded in the leads ordering of
@@ -190,9 +194,10 @@ class CINC2021Reader(object):
             "D": "PTB",
             "E": "PTB-XL",
             "F": "Georgia",
+            "G": "CUSPHNFH",
         })
         self.rec_prefix = ED({
-            "A": "A", "B": "Q", "C": "I", "D": "S", "E": "HR", "F": "E",
+            "A": "A", "B": "Q", "C": "I", "D": "S", "E": "HR", "F": "E", "G": "JS",
         })
 
         self.db_dir_base = db_dir
@@ -201,6 +206,7 @@ class CINC2021Reader(object):
         self._stats = pd.DataFrame()
         self._stats_columns = {
             "record", "tranche", "tranche_name",
+            "nb_leads", "fs", "nb_samples",
             "age", "sex",
             "medical_prescription", "history", "symptom_or_surgery",
             "diagnosis", "diagnosis_scored",  # in the form of abbreviations
@@ -211,7 +217,7 @@ class CINC2021Reader(object):
         self._ls_diagnoses_records()
 
         self.fs = {
-            "A": 500, "B": 500, "C": 257, "D": 1000, "E": 500, "F": 500,
+            "A": 500, "B": 500, "C": 257, "D": 1000, "E": 500, "F": 500, "G": 500,
         }
         self.spacing = {t: 1000 / f for t,f in self.fs.items()}
 
@@ -245,7 +251,7 @@ class CINC2021Reader(object):
         sid: int,
             the `subject_id` corr. to `rec`
         """
-        s2d = {"A":"11", "B":"12", "C":"21", "D":"31", "E":"32", "F":"41"}
+        s2d = {"A":"11", "B":"12", "C":"21", "D":"31", "E":"32", "F":"41", "G":"51",}
         s2d = {self.rec_prefix[k]:v for k,v in s2d.items()}
         prefix = "".join(re.findall(r"[A-Z]", rec))
         n = rec.replace(prefix,"")
@@ -315,7 +321,7 @@ class CINC2021Reader(object):
                 self._stats[k] = ""  # otherwise cells in the first row would be str instead of list
             for idx, row in self._stats.iterrows():
                 ann_dict = self.load_ann(row["record"])
-                for k in ["age", "sex", "medical_prescription", "history", "symptom_or_surgery",]:
+                for k in ["nb_leads", "fs", "nb_samples", "age", "sex", "medical_prescription", "history", "symptom_or_surgery",]:
                     self._stats.at[idx, k] = ann_dict[k]
                 for k in ["diagnosis", "diagnosis_scored",]:
                     self._stats.at[idx, k] = ann_dict[k]["diagnosis_abbr"]
