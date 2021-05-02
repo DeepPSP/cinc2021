@@ -35,10 +35,13 @@ _TrainCfg = deepcopy(TrainCfg_ns)
 _ModelCfg = deepcopy(ModelCfg_ns)
 
 
-twelve_lead_model_filename = "12_lead_model.pth.tar"
-six_lead_model_filename = "6_lead_model.pth.tar"
-three_lead_model_filename = "3_lead_model.pth.tar"
-two_lead_model_filename = "2_lead_model.pth.tar"
+_ModelFilename = {
+    n: f"{n}_lead_model.pth.tar" for n in [12, 6, 4, 3, 2,]
+}
+# twelve_lead_model_filename = "12_lead_model.pth.tar"
+# six_lead_model_filename = "6_lead_model.pth.tar"
+# three_lead_model_filename = "3_lead_model.pth.tar"
+# two_lead_model_filename = "2_lead_model.pth.tar"
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -306,19 +309,16 @@ def save_model(filename, classes, leads, imputer, classifier):
 
 # Load a trained model. This function is *required*. Do *not* change the arguments of this function.
 def load_model(model_directory, leads):
-    # TODO: Implement this function
-    raise NotImplementedError
-
-# Load your trained 12-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
-def load_twelve_lead_model(model_directory):
+    n_leads = len(leads)
+    model_filename = _ModelFilename[n_leads]
     if torch.cuda.is_available():
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
-    ckpt = torch.load(os.path.join(model_directory, twelve_lead_model_filename), map_location=device)
+    ckpt = torch.load(os.path.join(model_directory, model_filename), map_location=device)
     model = ECG_CRNN_CINC2021(
         classes=ckpt["train_config"].classes,
-        n_leads=12,  # ckpt["train_config"].n_leads
+        n_leads=n_leads,  # ckpt["train_config"].n_leads
         config=ckpt["model_config"],
     )
     model.eval()
@@ -327,59 +327,77 @@ def load_twelve_lead_model(model_directory):
         warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
     return model
 
-# Load your trained 6-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
-def load_six_lead_model(model_directory):
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-    else:
-        device = torch.device("cpu")
-    ckpt = torch.load(os.path.join(model_directory, six_lead_model_filename), map_location=device)
-    model = ECG_CRNN_CINC2021(
-        classes=ckpt["train_config"].classes,
-        n_leads=6,  # ckpt["train_config"].n_leads
-        config=ckpt["model_config"],
-    )
-    model.eval()
-    model.load_state_dict(ckpt["model_state_dict"])
-    if len(ckpt["train_config"].classes) != len(_TrainCfg.classes):
-        warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
-    return model
+# # Load your trained 12-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
+# def load_twelve_lead_model(model_directory):
+#     if torch.cuda.is_available():
+#         device = torch.device("cuda")
+#     else:
+#         device = torch.device("cpu")
+#     ckpt = torch.load(os.path.join(model_directory, twelve_lead_model_filename), map_location=device)
+#     model = ECG_CRNN_CINC2021(
+#         classes=ckpt["train_config"].classes,
+#         n_leads=12,  # ckpt["train_config"].n_leads
+#         config=ckpt["model_config"],
+#     )
+#     model.eval()
+#     model.load_state_dict(ckpt["model_state_dict"])
+#     if len(ckpt["train_config"].classes) != len(_TrainCfg.classes):
+#         warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
+#     return model
 
-# Load your trained 3-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
-def load_three_lead_model(model_directory):
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-    else:
-        device = torch.device("cpu")
-    ckpt = torch.load(os.path.join(model_directory, three_lead_model_filename), map_location=device)
-    model = ECG_CRNN_CINC2021(
-        classes=ckpt["train_config"].classes,
-        n_leads=3,  # ckpt["train_config"].n_leads
-        config=ckpt["model_config"],
-    )
-    model.eval()
-    model.load_state_dict(ckpt["model_state_dict"])
-    if len(ckpt["train_config"].classes) != len(_TrainCfg.classes):
-        warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
-    return model
+# # Load your trained 6-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
+# def load_six_lead_model(model_directory):
+#     if torch.cuda.is_available():
+#         device = torch.device("cuda")
+#     else:
+#         device = torch.device("cpu")
+#     ckpt = torch.load(os.path.join(model_directory, six_lead_model_filename), map_location=device)
+#     model = ECG_CRNN_CINC2021(
+#         classes=ckpt["train_config"].classes,
+#         n_leads=6,  # ckpt["train_config"].n_leads
+#         config=ckpt["model_config"],
+#     )
+#     model.eval()
+#     model.load_state_dict(ckpt["model_state_dict"])
+#     if len(ckpt["train_config"].classes) != len(_TrainCfg.classes):
+#         warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
+#     return model
 
-# Load your trained 2-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
-def load_two_lead_model(model_directory):
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-    else:
-        device = torch.device("cpu")
-    ckpt = torch.load(os.path.join(model_directory, two_lead_model_filename), map_location=device)
-    model = ECG_CRNN_CINC2021(
-        classes=ckpt["train_config"].classes,
-        n_leads=2,  # ckpt["train_config"].n_leads
-        config=ckpt["model_config"],
-    )
-    model.eval()
-    model.load_state_dict(ckpt["model_state_dict"])
-    if len(ckpt["train_config"].classes) != len(_TrainCfg.classes):
-        warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
-    return model
+# # Load your trained 3-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
+# def load_three_lead_model(model_directory):
+#     if torch.cuda.is_available():
+#         device = torch.device("cuda")
+#     else:
+#         device = torch.device("cpu")
+#     ckpt = torch.load(os.path.join(model_directory, three_lead_model_filename), map_location=device)
+#     model = ECG_CRNN_CINC2021(
+#         classes=ckpt["train_config"].classes,
+#         n_leads=3,  # ckpt["train_config"].n_leads
+#         config=ckpt["model_config"],
+#     )
+#     model.eval()
+#     model.load_state_dict(ckpt["model_state_dict"])
+#     if len(ckpt["train_config"].classes) != len(_TrainCfg.classes):
+#         warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
+#     return model
+
+# # Load your trained 2-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
+# def load_two_lead_model(model_directory):
+#     if torch.cuda.is_available():
+#         device = torch.device("cuda")
+#     else:
+#         device = torch.device("cpu")
+#     ckpt = torch.load(os.path.join(model_directory, two_lead_model_filename), map_location=device)
+#     model = ECG_CRNN_CINC2021(
+#         classes=ckpt["train_config"].classes,
+#         n_leads=2,  # ckpt["train_config"].n_leads
+#         config=ckpt["model_config"],
+#     )
+#     model.eval()
+#     model.load_state_dict(ckpt["model_state_dict"])
+#     if len(ckpt["train_config"].classes) != len(_TrainCfg.classes):
+#         warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
+#     return model
 
 ################################################################################
 #
