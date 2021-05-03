@@ -57,8 +57,10 @@ class CINC2021Reader(object):
     ---------------
     0. goal: build an algorithm that can classify cardiac abnormalities from either
         - twelve-lead (I, II, III, aVR, aVL, aVF, V1, V2, V3, V4, V5, V6)
-        - six-lead (I, II, III, aVL, aVR, and aVF),
-        - two-lead (II and V5)
+        - six-lead (I, II, III, aVL, aVR, aVF),
+        - four-lead (I, II, III, V2)
+        - three-lead (I, II, V2)
+        - two-lead (I, II)
     ECG recordings.
     1. tranches of data:
         - CPSC2018 (tranches A and B of CINC2020):
@@ -186,7 +188,7 @@ class CINC2021Reader(object):
         self.rec_ext = "mat"
         self.ann_ext = "hea"
 
-        self.db_tranches = list("ABCDEF")
+        self.db_tranches = list("ABCDEFG")
         self.tranche_names = ED({
             "A": "CPSC",
             "B": "CPSC-Extra",
@@ -212,6 +214,7 @@ class CINC2021Reader(object):
             "diagnosis", "diagnosis_scored",  # in the form of abbreviations
         }
         self._ls_rec()  # loads file system structures into self.db_dirs and self._all_records
+        self._aggregate_stats()
 
         self._diagnoses_records_list = None
         self._ls_diagnoses_records()
@@ -281,7 +284,7 @@ class CINC2021Reader(object):
             print("Please wait patiently to let the reader find all records of all the tranches...")
             start = time.time()
             rec_patterns_with_ext = {
-                tranche: f"{self.rec_prefix[tranche]}(?:\d+).{self.rec_ext}" \
+                tranche: f"^{self.rec_prefix[tranche]}(?:\d+).{self.rec_ext}$" \
                     for tranche in self.db_tranches
             }
             self._all_records = \
@@ -303,6 +306,12 @@ class CINC2021Reader(object):
                 json.dump(to_save, f)
         self._all_records = ED(self._all_records)
 
+
+    def _aggregate_stats(self) -> NoReturn:
+        """ finished, checked,
+
+        aggregate stats on the whole dataset
+        """
         stats_file = "stats.csv"
         list_sep = ";"
         stats_file_fp = os.path.join(self.db_dir_base, stats_file)
@@ -794,34 +803,37 @@ class CINC2021Reader(object):
             the scored items in `diag_dict`
         """
         diag_dict, diag_scored_dict = {}, {}
-        try:
-            diag_dict["diagnosis_code"] = [item for item in l_Dx]
-            # selection = dx_mapping_all["SNOMED CT Code"].isin(diag_dict["diagnosis_code"])
-            # diag_dict["diagnosis_abbr"] = dx_mapping_all[selection]["Abbreviation"].tolist()
+        # try:
+        diag_dict["diagnosis_code"] = [item for item in l_Dx if item in dx_mapping_all["SNOMED CT Code"].tolist()]
+        # in case not listed in dx_mapping_all
+        left = [item for item in l_Dx if item not in dx_mapping_all["SNOMED CT Code"].tolist()]
+        # selection = dx_mapping_all["SNOMED CT Code"].isin(diag_dict["diagnosis_code"])
+        # diag_dict["diagnosis_abbr"] = dx_mapping_all[selection]["Abbreviation"].tolist()
+        # diag_dict["diagnosis_fullname"] = dx_mapping_all[selection]["Dx"].tolist()
+        diag_dict["diagnosis_abbr"] = \
+            [ dx_mapping_all[dx_mapping_all["SNOMED CT Code"]==dc]["Abbreviation"].values[0] \
+                for dc in diag_dict["diagnosis_code"] ] + left
+        diag_dict["diagnosis_fullname"] = \
+            [ dx_mapping_all[dx_mapping_all["SNOMED CT Code"]==dc]["Dx"].values[0] \
+                for dc in diag_dict["diagnosis_code"] ] + left
+        diag_dict["diagnosis_code"] = diag_dict["diagnosis_code"] + left
+        scored_indices = np.isin(
+            diag_dict["diagnosis_code"],
+            dx_mapping_scored["SNOMED CT Code"].values
+        )
+        diag_scored_dict["diagnosis_code"] = \
+            [ item for idx, item in enumerate(diag_dict["diagnosis_code"]) \
+                if scored_indices[idx] ]
+        diag_scored_dict["diagnosis_abbr"] = \
+            [ item for idx, item in enumerate(diag_dict["diagnosis_abbr"]) \
+                if scored_indices[idx] ]
+        diag_scored_dict["diagnosis_fullname"] = \
+            [ item for idx, item in enumerate(diag_dict["diagnosis_fullname"]) \
+                if scored_indices[idx] ]
+        # except:  # the old version, the Dx's are abbreviations, deprecated
+            # diag_dict["diagnosis_abbr"] = diag_dict["diagnosis_code"]
+            # selection = dx_mapping_all["Abbreviation"].isin(diag_dict["diagnosis_abbr"])
             # diag_dict["diagnosis_fullname"] = dx_mapping_all[selection]["Dx"].tolist()
-            diag_dict["diagnosis_abbr"] = \
-                [ dx_mapping_all[dx_mapping_all["SNOMED CT Code"]==dc]["Abbreviation"].values[0] \
-                    for dc in diag_dict["diagnosis_code"] ]
-            diag_dict["diagnosis_fullname"] = \
-                [ dx_mapping_all[dx_mapping_all["SNOMED CT Code"]==dc]["Dx"].values[0] \
-                    for dc in diag_dict["diagnosis_code"] ]
-            scored_indices = np.isin(
-                diag_dict["diagnosis_code"],
-                dx_mapping_scored["SNOMED CT Code"].values
-            )
-            diag_scored_dict["diagnosis_code"] = \
-                [ item for idx, item in enumerate(diag_dict["diagnosis_code"]) \
-                    if scored_indices[idx] ]
-            diag_scored_dict["diagnosis_abbr"] = \
-                [ item for idx, item in enumerate(diag_dict["diagnosis_abbr"]) \
-                    if scored_indices[idx] ]
-            diag_scored_dict["diagnosis_fullname"] = \
-                [ item for idx, item in enumerate(diag_dict["diagnosis_fullname"]) \
-                    if scored_indices[idx] ]
-        except:  # the old version, the Dx's are abbreviations
-            diag_dict["diagnosis_abbr"] = diag_dict["diagnosis_code"]
-            selection = dx_mapping_all["Abbreviation"].isin(diag_dict["diagnosis_abbr"])
-            diag_dict["diagnosis_fullname"] = dx_mapping_all[selection]["Dx"].tolist()
         # if not keep_original:
         #     for idx, d in enumerate(ann_dict["diagnosis_abbr"]):
         #         if d in ["Normal", "NSR"]:
