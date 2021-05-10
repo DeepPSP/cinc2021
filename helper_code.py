@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # Do *not* edit this script.
-# These are helper variables and functions that you can use with your code.
+# These are helper functions that you can use with your code.
 
 import numpy as np, os
 from scipy.io import loadmat
@@ -28,6 +28,13 @@ def is_number(x):
 def is_integer(x):
     if is_number(x):
         return float(x).is_integer()
+    else:
+        return False
+
+# Check if a variable is a a finite number or represents a finite number.
+def is_finite_number(x):
+    if is_number(x):
+        return np.isfinite(float(x))
     else:
         return False
 
@@ -238,7 +245,7 @@ def load_outputs(output_file):
             elif i==2:
                 labels = tuple(entry.strip() for entry in l.split(','))
             elif i==3:
-                probabilities = tuple(float(entry) if is_number_entry() else float('nan') for entry in l.split(','))
+                probabilities = tuple(float(entry) if is_finite_number(entry) else float('nan') for entry in l.split(','))
             else:
                 break
     return recording_id, classes, labels, probabilities
