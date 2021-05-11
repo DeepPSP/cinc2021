@@ -61,7 +61,7 @@ df_weights = pd.read_csv(StringIO(""",270492004,164889003,164890007,426627000,71
 df_weights.index = df_weights.index.map(str)
 
 
-def expand_equiv_class(df:pd.DataFrame, sep:str="|") -> pd.DataFrame:
+def expand_equiv_classes(df:pd.DataFrame, sep:str="|") -> pd.DataFrame:
     """ finished, checked,
 
     expand df so that rows/cols with equivalent classes indicated by `sep` are separated
@@ -89,15 +89,15 @@ def expand_equiv_class(df:pd.DataFrame, sep:str="|") -> pd.DataFrame:
         for new_c in c.split(sep)[1:]:
             new_cols.append(new_c)
             df_out[new_c] = df_out[c].values
-    for new_r in new_cols:
-        df_out.loc[new_r] = df_out.loc[df_out.index.str.contains(new_r)].values[0]
+            new_r = new_c
+            df_out.loc[new_r] = df_out.loc[df_out.index.str.contains(new_r)].values[0]
     col_row = [c.split(sep)[0] for c in col_row] + new_cols
     df_out.columns = col_row
     df_out.index = col_row
     return df_out
 
 
-df_weights_expanded = expand_equiv_class(df_weights)
+df_weights_expanded = expand_equiv_classes(df_weights)
     
 
 dx_mapping_scored = pd.read_csv(StringIO("""Dx,SNOMED CT Code,Abbreviation,CPSC,CPSC-Extra,StPetersburg,PTB,PTB-XL,Georgia,Total,Notes
