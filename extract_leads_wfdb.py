@@ -3,7 +3,7 @@
 # Load libraries.
 import os, sys, argparse
 import numpy as np, scipy as sp
-from scipy.io import loadmat
+from scipy.io import loadmat, savemat
 
 from helper_code import (
     find_challenge_files, load_header, load_recording, get_leads
