@@ -42,11 +42,11 @@ from easydict import EasyDict as ED
 
 __all__ = [
     "AF", "AFL",  # atrial
-    "IAVB", "LBBB", "RBBB", "CRBBB", "IRBBB", "LAnFB", "NSIVCB",  # conduction block
+    "IAVB", "LBBB", "RBBB", "CRBBB", "IRBBB", "LAnFB", "NSIVCB", "BBB",  # conduction block
     "PAC", "PJC", "PVC", "SPB",  # premature: qrs, morphology
     "LPR", "LQT", "QAb", "TAb", "TInv",  # wave morphology
     "LAD", "RAD",  # axis
-    "Brady", "LQRSV",  # qrs (RR interval, amplitude)
+    "Brady", "LQRSV", "PRWP",  # qrs (RR interval, amplitude)
     "SA", "SB", "NSR", "STach",  # sinus
     "PR",  # pacer
     "STD", "STE",  # ST segments
@@ -97,7 +97,13 @@ Brady = ED({  # rr
     ],
 })
 
-IAVB = {  # morphology
+BBB = ED({  # morphology
+    "fullname": "bundle branch block",
+    "url": [],
+    "knowledge": [],
+})
+
+IAVB = ED({  # morphology
     "fullname": "1st degree av block",
     "url": [
         "https://litfl.com/first-degree-heart-block-ecg-library/",
@@ -109,7 +115,7 @@ IAVB = {  # morphology
         "P waves might be buried in the preceding T wave",
         "there are no dropped, or skipped, beats",
     ],
-}
+})
 
 LBBB = ED({  # morphology
     "fullname": "left bundle branch block",
@@ -190,6 +196,14 @@ LQRSV = ED({  # voltage
     "knowledge": [
         "peak-to-peak (VERY IMPORTANT) amplitudes of all the QRS complexes in the limb leads are < 5mm (0.5mV); or amplitudes of all the QRS complexes in the precordial leads are < 10mm (1mV)",
     ],
+})
+
+PRWP = ED({  # voltage
+    "fullname": "poor R wave progression",
+    "url": [
+        "https://litfl.com/poor-r-wave-progression-prwp-ecg-library/",
+    ],
+    "knowledge": [],
 })
 
 NSIVCB = ED({  # mophology
