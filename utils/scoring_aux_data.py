@@ -240,16 +240,20 @@ abbr_to_snomed_ct_code = ED({v:k for k,v in snomed_ct_code_to_abbr.items()})
 df_weights_abbr = df_weights_expanded.copy()
 
 df_weights_abbr.columns = \
-    df_weights_abbr.columns.map(lambda i: snomed_ct_code_to_abbr[i])
+    df_weights_abbr.columns.map(lambda i: snomed_ct_code_to_abbr.get(i, i))
+    # df_weights_abbr.columns.map(lambda i: snomed_ct_code_to_abbr[i])
 
 df_weights_abbr.index = \
-    df_weights_abbr.index.map(lambda i: snomed_ct_code_to_abbr[i])
+    df_weights_abbr.index.map(lambda i: snomed_ct_code_to_abbr.get(i, i))
+    # df_weights_abbr.index.map(lambda i: snomed_ct_code_to_abbr[i])
 
 df_weights_abbreviations = df_weights.copy()  # corresponding to weights_abbreviations.csv
 df_weights_abbreviations.columns = \
-    df_weights_abbreviations.columns.map(lambda i: "|".join([snomed_ct_code_to_abbr[item] for item in i.split("|")]))
+    df_weights_abbreviations.columns.map(lambda i: "|".join([snomed_ct_code_to_abbr.get(item, item) for item in i.split("|")]))
+    # df_weights_abbreviations.columns.map(lambda i: "|".join([snomed_ct_code_to_abbr[item] for item in i.split("|")]))
 df_weights_abbreviations.index = \
-    df_weights_abbreviations.index.map(lambda i: "|".join([snomed_ct_code_to_abbr[item] for item in i.split("|")]))
+    df_weights_abbreviations.index.map(lambda i: "|".join([snomed_ct_code_to_abbr.get(item, item) for item in i.split("|")]))
+    # df_weights_abbreviations.index.map(lambda i: "|".join([snomed_ct_code_to_abbr[item] for item in i.split("|")]))
 
 
 snomed_ct_code_to_fullname = \
@@ -259,10 +263,12 @@ fullname_to_snomed_ct_code = ED({v:k for k,v in snomed_ct_code_to_fullname.items
 df_weights_fullname = df_weights_expanded.copy()
 
 df_weights_fullname.columns = \
-    df_weights_fullname.columns.map(lambda i: snomed_ct_code_to_fullname[i])
+    df_weights_fullname.columns.map(lambda i: snomed_ct_code_to_fullname.get(i, i))
+    # df_weights_fullname.columns.map(lambda i: snomed_ct_code_to_fullname[i])
 
 df_weights_fullname.index = \
-    df_weights_fullname.index.map(lambda i: snomed_ct_code_to_fullname[i])
+    df_weights_fullname.index.map(lambda i: snomed_ct_code_to_fullname.get(i, i))
+    # df_weights_fullname.index.map(lambda i: snomed_ct_code_to_fullname[i])
 
 
 abbr_to_fullname = \
