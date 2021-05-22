@@ -39,10 +39,12 @@ NOTE that wikipedia is NOT listed in the References
 """
 from easydict import EasyDict as ED
 
+from .scoring_aux_data import dx_mapping_all
+
 
 __all__ = [
     "AF", "AFL",  # atrial
-    "IAVB", "LBBB", "RBBB", "CRBBB", "IRBBB", "LAnFB", "NSIVCB", "BBB",  # conduction block
+    "IAVB", "LBBB", "CLBBB", "RBBB", "CRBBB", "IRBBB", "LAnFB", "NSIVCB", "BBB",  # conduction block
     "PAC", "PJC", "PVC", "SPB",  # premature: qrs, morphology
     "LPR", "LQT", "QAb", "TAb", "TInv",  # wave morphology
     "LAD", "RAD",  # axis
@@ -51,6 +53,9 @@ __all__ = [
     "PR",  # pacer
     "STD", "STE",  # ST segments
 ]
+
+
+_snomedbrowser_url = "https://snomedbrowser.com/Codes/Details/"
 
 
 AF = ED({  # rr, morphology
@@ -99,7 +104,8 @@ Brady = ED({  # rr
 
 BBB = ED({  # morphology
     "fullname": "bundle branch block",
-    "url": [],
+    "url": [
+    ],
     "knowledge": [],
 })
 
@@ -131,6 +137,14 @@ LBBB = ED({  # morphology
         "chest (precordial) leads: poor R wave progression",
         "left precordial leads (V5-6): prolonged R wave peak time > 60ms",
         "ST segments and T waves always go in the opposite direction to the main vector of the QRS complex",
+    ],
+})
+
+CLBBB = ED({  # morphology
+    "fullname": "complete left bundle branch block",
+    "url": [
+    ],
+    "knowledge": [
     ],
 })
 
@@ -457,3 +471,17 @@ STE = ED({
         "",
     ],
 })
+
+
+try:
+    from .scoring_aux_data import dx_mapping_all
+
+    for ea_str in __all__:
+        ea = eval(ea_str)
+        try:
+            ea["url"].insert(0, f"{_snomedbrowser_url}{dx_mapping_all[dx_mapping_all.Abbreviation==ea_str]['SNOMED CT Code'].values[0]}")
+        except:
+            pass
+except:
+    print("error loading dx_mapping_all")
+    pass
