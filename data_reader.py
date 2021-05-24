@@ -91,6 +91,9 @@ class CINC2021Reader(object):
             contains 45,152 ECGS,
             all shared as training data.
             Each recording is 10 seconds long with a sampling frequency of 500 Hz
+            this tranche contains two subsets:
+            - Chapman_Shaoxing: "JS00001" - "JS10646"
+            - Ningbo: "JS10647" - "JS45551"
     2. only a part of diagnosis_abbr (diseases that appear in the labels of the 6 tranches of training data) are used in the scoring function, while others are ignored. The scored diagnoses were chosen based on prevalence of the diagnoses in the training data, the severity of the diagnoses, and the ability to determine the diagnoses from ECG recordings. The ignored diagnosis_abbr can be put in a a "non-class" group.
     3. the (updated) scoring function has a scoring matrix with nonzero off-diagonal elements. This scoring function reflects the clinical reality that some misdiagnoses are more harmful than others and should be scored accordingly. Moreover, it reflects the fact that confusing some classes is much less harmful than confusing other classes.
     4. all data are recorded in the leads ordering of
