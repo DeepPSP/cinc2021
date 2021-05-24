@@ -140,6 +140,9 @@ class CINC2021Reader(object):
     10. there"re 3 equivalent (2 classes are equivalent if the corr. value in the scoring matrix is 1):
         (RBBB, CRBBB), (PAC, SVPB), (PVC, VPB)
     11. in the newly (Feb., 2021) created dataset (ref. [7]), header files of each subset were gathered into one separate compressed file. This is due to the fact that updates on the dataset are almost always done in the header files. The correct usage of ref. [7], after uncompressing, is replacing the header files in the folder `All_training_WFDB` by header files from the 6 folders containing all header files from the 6 subsets. This procedure has to be done, since `All_training_WFDB` contains the very original headers with baselines: {"A": {1000.0}, "B": {1000.0}, "C": {1000.0}, "D": {2000000.0}, "E": {200.0}, "F": {4880.0}} (the last 3 are NOT correct)
+    12. IMPORTANT: organization of the total dataset:
+    either one moves all training records into ONE folder,
+    or at least one moves the subsets Chapman_Shaoxing (WFDB_ChapmanShaoxing) and Ningbo (WFDB_Ningbo) into ONE folder, or use the data WFDB_ShaoxingUniv which is the union of WFDB_ChapmanShaoxing and WFDB_Ningbo
 
     Usage:
     ------
@@ -230,7 +233,7 @@ class CINC2021Reader(object):
         self.all_leads = deepcopy(Standard12Leads)
         self._all_leads_set = set(self.all_leads)
 
-        self.df_ecg_arrhythmia = dx_mapping_all[["Dx", "SNOMED CT Code", "Abbreviation"]]
+        self.df_ecg_arrhythmia = dx_mapping_all[["Dx", "SNOMEDCTCode", "Abbreviation"]]
         self.ann_items = [
             "rec_name", "nb_leads", "fs", "nb_samples", "datetime", "age", "sex",
             "diagnosis", "df_leads",
@@ -807,22 +810,22 @@ class CINC2021Reader(object):
         """
         diag_dict, diag_scored_dict = {}, {}
         # try:
-        diag_dict["diagnosis_code"] = [item for item in l_Dx if item in dx_mapping_all["SNOMED CT Code"].tolist()]
+        diag_dict["diagnosis_code"] = [item for item in l_Dx if item in dx_mapping_all["SNOMEDCTCode"].tolist()]
         # in case not listed in dx_mapping_all
-        left = [item for item in l_Dx if item not in dx_mapping_all["SNOMED CT Code"].tolist()]
-        # selection = dx_mapping_all["SNOMED CT Code"].isin(diag_dict["diagnosis_code"])
+        left = [item for item in l_Dx if item not in dx_mapping_all["SNOMEDCTCode"].tolist()]
+        # selection = dx_mapping_all["SNOMEDCTCode"].isin(diag_dict["diagnosis_code"])
         # diag_dict["diagnosis_abbr"] = dx_mapping_all[selection]["Abbreviation"].tolist()
         # diag_dict["diagnosis_fullname"] = dx_mapping_all[selection]["Dx"].tolist()
         diag_dict["diagnosis_abbr"] = \
-            [ dx_mapping_all[dx_mapping_all["SNOMED CT Code"]==dc]["Abbreviation"].values[0] \
+            [ dx_mapping_all[dx_mapping_all["SNOMEDCTCode"]==dc]["Abbreviation"].values[0] \
                 for dc in diag_dict["diagnosis_code"] ] + left
         diag_dict["diagnosis_fullname"] = \
-            [ dx_mapping_all[dx_mapping_all["SNOMED CT Code"]==dc]["Dx"].values[0] \
+            [ dx_mapping_all[dx_mapping_all["SNOMEDCTCode"]==dc]["Dx"].values[0] \
                 for dc in diag_dict["diagnosis_code"] ] + left
         diag_dict["diagnosis_code"] = diag_dict["diagnosis_code"] + left
         scored_indices = np.isin(
             diag_dict["diagnosis_code"],
-            dx_mapping_scored["SNOMED CT Code"].values
+            dx_mapping_scored["SNOMEDCTCode"].values
         )
         diag_scored_dict["diagnosis_code"] = \
             [ item for idx, item in enumerate(diag_dict["diagnosis_code"]) \
@@ -906,7 +909,7 @@ class CINC2021Reader(object):
             the format of labels, one of the following (case insensitive):
             - "a", abbreviations
             - "f", full names
-            - "s", SNOMED CT Code
+            - "s", SNOMEDCTCode
         normalize: bool, default True,
             if True, the labels will be transformed into their equavalents,
             which are defined in `utils.scoring_aux_data.py`,
@@ -1020,7 +1023,7 @@ class CINC2021Reader(object):
         labels: list of int,
             0 or 1, binary predictions
         classes: list of str,
-            SNOMED CT Code of binary predictions
+            SNOMEDCTCode of binary predictions
         """
         new_file = f"{rec}.csv"
         output_file = os.path.join(output_dir, new_file)
@@ -1285,7 +1288,7 @@ class CINC2021Reader(object):
         Parameters:
         -----------
         arrhythmias: str, or list of str,
-            the arrhythmia(s) to check, in abbreviations or in SNOMED CT Code
+            the arrhythmia(s) to check, in abbreviations or in SNOMEDCTCode
         """
         if isinstance(arrhythmias, str):
             d = [normalize_class(arrhythmias)]

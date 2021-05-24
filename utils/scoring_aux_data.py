@@ -134,7 +134,9 @@ t wave abnormal,164934002,TAb,0,22,0,0,2345,2306,1876,5167,11716,
 t wave inversion,59931005,TInv,0,5,1,0,294,812,157,2720,3989,
 ventricular premature beats,17338001,VPB,0,8,0,0,0,357,294,0,659,We score 427172004 and 17338001 as the same diagnosis."""))
 dx_mapping_scored = dx_mapping_scored.fillna("")
-dx_mapping_scored["SNOMED CT Code"] = dx_mapping_scored["SNOMED CT Code"].apply(str)
+dx_mapping_scored["SNOMEDCTCode"] = dx_mapping_scored["SNOMEDCTCode"].apply(str)
+dx_mapping_scored["CUSPHNFH"] = dx_mapping_scored["Chapman_Shaoxing"].values + dx_mapping_scored["Ningbo"].values
+dx_mapping_scored.columns = "Dx,SNOMEDCTCode,Abbreviation,CPSC,CPSC_Extra,StPetersburg,PTB,PTB_XL,Georgia,CUSPHNFH,Chapman_Shaoxing,Ningbo,Total,Notes".split(",")
 
 
 dx_mapping_unscored = pd.read_csv(StringIO("""Dx,SNOMEDCTCode,Abbreviation,CPSC,CPSC_Extra,StPetersburg,PTB,PTB_XL,Georgia,Chapman_Shaoxing,Ningbo,Total
@@ -241,7 +243,9 @@ ventricular tachycardia,164895002,VTach,0,1,1,10,0,0,0,0,12
 ventricular trigeminy,251180001,VTrig,0,4,4,0,20,1,8,0,37
 wandering atrial pacemaker,195101003,WAP,0,0,0,0,0,7,2,0,9
 wolff parkinson white pattern,74390002,WPW,0,0,4,2,80,2,4,68,160"""))
-dx_mapping_unscored["SNOMED CT Code"] = dx_mapping_unscored["SNOMED CT Code"].apply(str)
+dx_mapping_unscored["SNOMEDCTCode"] = dx_mapping_unscored["SNOMEDCTCode"].apply(str)
+dx_mapping_unscored["CUSPHNFH"] = dx_mapping_unscored["Chapman_Shaoxing"].values + dx_mapping_unscored["Ningbo"].values
+dx_mapping_unscored.columns = "Dx,SNOMEDCTCode,Abbreviation,CPSC,CPSC_Extra,StPetersburg,PTB,PTB_XL,Georgia,CUSPHNFH,Chapman_Shaoxing,Ningbo,Total,Notes".split(",")
 
 
 dms = dx_mapping_scored.copy()
@@ -256,7 +260,7 @@ df_weights_snomed = df_weights_expanded  # alias
 
 
 snomed_ct_code_to_abbr = \
-    ED({row["SNOMED CT Code"]:row["Abbreviation"] for _,row in dx_mapping_all.iterrows()})
+    ED({row["SNOMEDCTCode"]:row["Abbreviation"] for _,row in dx_mapping_all.iterrows()})
 abbr_to_snomed_ct_code = ED({v:k for k,v in snomed_ct_code_to_abbr.items()})
 
 df_weights_abbr = df_weights_expanded.copy()
@@ -279,7 +283,7 @@ df_weights_abbreviations.index = \
 
 
 snomed_ct_code_to_fullname = \
-    ED({row["SNOMED CT Code"]:row["Dx"] for _,row in dx_mapping_all.iterrows()})
+    ED({row["SNOMEDCTCode"]:row["Dx"] for _,row in dx_mapping_all.iterrows()})
 fullname_to_snomed_ct_code = ED({v:k for k,v in snomed_ct_code_to_fullname.items()})
 
 df_weights_fullname = df_weights_expanded.copy()
@@ -323,7 +327,7 @@ def load_weights(classes:Sequence[Union[int,str]]=None,
     Parameters:
     -----------
     classes: sequence of str or int, optional,
-        the classes (abbr. or SNOMED CT Code) to load their weights,
+        the classes (abbr. or SNOMEDCTCode) to load their weights,
         if not given, weights of all classes in `dx_mapping_scored` will be loaded
     equivalent_classes: dict or list, optional,
         list or dict of equivalent classes,
@@ -364,7 +368,7 @@ def normalize_class(c:Union[str,int], ensure_scored:bool=False) -> str:
     Parameters:
     -----------
     c: str or int,
-        abbr. or SNOMED CT Code of the class
+        abbr. or SNOMEDCTCode of the class
     ensure_scored: bool, default False,
         ensure that the class is a scored class,
         if True, `ValueError` would be raised if `c` is not scored
@@ -384,12 +388,12 @@ def get_class(snomed_ct_code:Union[str,int]) -> Dict[str,str]:
     """ finished, checked,
 
     look up the abbreviation and the full name of an ECG arrhythmia,
-    given its SNOMED CT Code
+    given its SNOMEDCTCode
 
     Parameters:
     -----------
     snomed_ct_code: str or int,
-        the SNOMED CT Code of the arrhythmia
+        the SNOMEDCTCode of the arrhythmia
     
     Returns:
     --------
@@ -416,7 +420,7 @@ def get_class_count(tranches:Union[str, Sequence[str]],
     tranches: str or sequence of str,
         tranches to count classes, can be combinations of "A", "B", "C", "D", "E", "F"
     exclude_classes: sequence of str, optional,
-        abbrevations or SNOMED CT Codes of classes to be excluded from counting
+        abbrevations or SNOMEDCTCodes of classes to be excluded from counting
     scored_only: bool, default True,
         if True, only scored classes are counted
     normalize: bool, default True,
@@ -429,7 +433,7 @@ def get_class_count(tranches:Union[str, Sequence[str]],
         can be one of the following (case insensitive):
         - "a", abbreviations
         - "f", full names
-        - "s", SNOMED CT Code
+        - "s", SNOMEDCTCode
 
     Returns:
     --------
@@ -500,7 +504,7 @@ def get_class_weight(tranches:Union[str, Sequence[str]],
     tranches: str or sequence of str,
         tranches to count classes, can be combinations of "A", "B", "C", "D", "E", "F"
     exclude_classes: sequence of str, optional,
-        abbrevations or SNOMED CT Codes of classes to be excluded from counting
+        abbrevations or SNOMEDCTCodes of classes to be excluded from counting
     scored_only: bool, default True,
         if True, only scored classes are counted
     normalize: bool, default True,
@@ -513,7 +517,7 @@ def get_class_weight(tranches:Union[str, Sequence[str]],
         can be one of the following (case insensitive):
         - "a", abbreviations
         - "f", full names
-        - "s", SNOMED CT Code
+        - "s", SNOMEDCTCode
     min_weight: real number, default 0.5,
         minimum value of the weight of all classes,
         or equivalently the weight of the largest class
