@@ -102,123 +102,145 @@ def expand_equiv_classes(df:pd.DataFrame, sep:str="|") -> pd.DataFrame:
 df_weights_expanded = expand_equiv_classes(df_weights)
     
 
-dx_mapping_scored = pd.read_csv(StringIO("""Dx,SNOMED CT Code,Abbreviation,CPSC,CPSC-Extra,StPetersburg,PTB,PTB-XL,Georgia,Total,Notes
-1st degree av block,270492004,IAVB,722,106,0,0,797,769,2394,
-atrial fibrillation,164889003,AF,1221,153,2,15,1514,570,3475,
-atrial flutter,164890007,AFL,0,54,0,1,73,186,314,
-bradycardia,426627000,Brady,0,271,11,0,0,6,288,
-complete right bundle branch block,713427006,CRBBB,0,113,0,0,542,28,683,We score 713427006 and 59118001 as the same diagnosis.
-incomplete right bundle branch block,713426002,IRBBB,0,86,0,0,1118,407,1611,
-left anterior fascicular block,445118002,LAnFB,0,0,0,0,1626,180,1806,
-left axis deviation,39732003,LAD,0,0,0,0,5146,940,6086,
-left bundle branch block,164909002,LBBB,236,38,0,0,536,231,1041,
-low qrs voltages,251146004,LQRSV,0,0,0,0,182,374,556,
-nonspecific intraventricular conduction disorder,698252002,NSIVCB,0,4,1,0,789,203,997,
-pacing rhythm,10370003,PR,0,3,0,0,296,0,299,
-premature atrial contraction,284470004,PAC,616,73,3,0,398,639,1729,We score 284470004 and 63593006 as the same diagnosis.
-premature ventricular contractions,427172004,PVC,0,188,0,0,0,0,188,We score 427172004 and 17338001 as the same diagnosis.
-prolonged pr interval,164947007,LPR,0,0,0,0,340,0,340,
-prolonged qt interval,111975006,LQT,0,4,0,0,118,1391,1513,
-qwave abnormal,164917005,QAb,0,1,0,0,548,464,1013,
-right axis deviation,47665007,RAD,0,1,0,0,343,83,427,
-right bundle branch block,59118001,RBBB,1857,1,2,0,0,542,2402,We score 713427006 and 59118001 as the same diagnosis.
-sinus arrhythmia,427393009,SA,0,11,2,0,772,455,1240,
-sinus bradycardia,426177001,SB,0,45,0,0,637,1677,2359,
-sinus rhythm,426783006,NSR,918,4,0,80,18092,1752,20846,
-sinus tachycardia,427084000,STach,0,303,11,1,826,1261,2402,
-supraventricular premature beats,63593006,SVPB,0,53,4,0,157,1,215,We score 284470004 and 63593006 as the same diagnosis.
-t wave abnormal,164934002,TAb,0,22,0,0,2345,2306,4673,
-t wave inversion,59931005,TInv,0,5,1,0,294,812,1112,
-ventricular premature beats,17338001,VPB,0,8,0,0,0,357,365,We score 427172004 and 17338001 as the same diagnosis."""))
+dx_mapping_scored = pd.read_csv(StringIO("""Dx,SNOMEDCTCode,Abbreviation,CPSC,CPSC_Extra,StPetersburg,PTB,PTB_XL,Georgia,Chapman_Shaoxing,Ningbo,Total,Notes
+atrial fibrillation,164889003,AF,1221,153,2,15,1514,570,1780,0,5255,
+atrial flutter,164890007,AFL,0,54,0,1,73,186,445,7615,8374,
+bundle branch block,6374002,BBB,0,0,1,20,0,116,0,385,522,
+bradycardia,426627000,Brady,0,271,11,0,0,6,0,7,295,
+complete left bundle branch block,733534002,CLBBB,0,0,0,0,0,0,0,213,213,We score 733534002 and 164909002 as the same diagnosis
+complete right bundle branch block,713427006,CRBBB,0,113,0,0,542,28,0,1096,1779,We score 713427006 and 59118001 as the same diagnosis.
+1st degree av block,270492004,IAVB,722,106,0,0,797,769,247,893,3534,
+incomplete right bundle branch block,713426002,IRBBB,0,86,0,0,1118,407,0,246,1857,
+left axis deviation,39732003,LAD,0,0,0,0,5146,940,382,1163,7631,
+left anterior fascicular block,445118002,LAnFB,0,0,0,0,1626,180,0,380,2186,
+left bundle branch block,164909002,LBBB,236,38,0,0,536,231,205,248,1494,We score 733534002 and 164909002 as the same diagnosis
+low qrs voltages,251146004,LQRSV,0,0,0,0,182,374,249,1364,2169,
+nonspecific intraventricular conduction disorder,698252002,NSIVCB,0,4,1,0,789,203,235,536,1768,
+sinus rhythm,426783006,NSR,918,4,0,80,18092,1752,1826,6299,28971,
+premature atrial contraction,284470004,PAC,616,73,3,0,398,639,258,1054,3041,We score 284470004 and 63593006 as the same diagnosis.
+pacing rhythm,10370003,PR,0,3,0,0,296,0,0,1182,1481,
+poor R wave Progression,365413008,PRWP,0,0,0,0,0,0,0,638,638,
+premature ventricular contractions,427172004,PVC,0,188,0,0,0,0,0,1091,1279,We score 427172004 and 17338001 as the same diagnosis.
+prolonged pr interval,164947007,LPR,0,0,0,0,340,0,12,40,392,
+prolonged qt interval,111975006,LQT,0,4,0,0,118,1391,57,334,1904,
+qwave abnormal,164917005,QAb,0,1,0,0,548,464,235,828,2076,
+right axis deviation,47665007,RAD,0,1,0,0,343,83,215,638,1280,
+right bundle branch block,59118001,RBBB,1857,1,2,0,0,542,454,195,3051,We score 713427006 and 59118001 as the same diagnosis.
+sinus arrhythmia,427393009,SA,0,11,2,0,772,455,0,2550,3790,
+sinus bradycardia,426177001,SB,0,45,0,0,637,1677,3889,12670,18918,
+sinus tachycardia,427084000,STach,0,303,11,1,826,1261,12,40,2454,
+supraventricular premature beats,63593006,SVPB,0,53,4,0,157,1,0,9,224,We score 284470004 and 63593006 as the same diagnosis.
+t wave abnormal,164934002,TAb,0,22,0,0,2345,2306,1876,5167,11716,
+t wave inversion,59931005,TInv,0,5,1,0,294,812,157,2720,3989,
+ventricular premature beats,17338001,VPB,0,8,0,0,0,357,294,0,659,We score 427172004 and 17338001 as the same diagnosis."""))
 dx_mapping_scored = dx_mapping_scored.fillna("")
 dx_mapping_scored["SNOMED CT Code"] = dx_mapping_scored["SNOMED CT Code"].apply(str)
 
 
-dx_mapping_unscored = pd.read_csv(StringIO("""Dx,SNOMED CT Code,Abbreviation,CPSC,CPSC-Extra,StPetersburg,PTB,PTB-XL,Georgia,Total
-2nd degree av block,195042002,IIAVB,0,21,0,0,14,23,58
-abnormal QRS,164951009,abQRS,0,0,0,0,3389,0,3389
-accelerated junctional rhythm,426664006,AJR,0,0,0,0,0,19,19
-acute myocardial infarction,57054005,AMI,0,0,6,0,0,0,6
-acute myocardial ischemia,413444003,AMIs,0,1,0,0,0,1,2
-anterior ischemia,426434006,AnMIs,0,0,0,0,44,281,325
-anterior myocardial infarction,54329005,AnMI,0,62,0,0,354,0,416
-atrial bigeminy,251173003,AB,0,0,3,0,0,0,3
-atrial fibrillation and flutter,195080001,AFAFL,0,39,0,0,0,2,41
-atrial hypertrophy,195126007,AH,0,2,0,0,0,60,62
-atrial pacing pattern,251268003,AP,0,0,0,0,0,52,52
-atrial tachycardia,713422000,ATach,0,15,0,0,0,28,43
-atrioventricular junctional rhythm,29320008,AVJR,0,6,0,0,0,0,6
-av block,233917008,AVB,0,5,0,0,0,74,79
-blocked premature atrial contraction,251170000,BPAC,0,2,3,0,0,0,5
-brady tachy syndrome,74615001,BTS,0,1,1,0,0,0,2
-bundle branch block,6374002,BBB,0,0,1,20,0,116,137
-cardiac dysrhythmia,698247007,CD,0,0,0,16,0,0,16
-chronic atrial fibrillation,426749004,CAF,0,1,0,0,0,0,1
-chronic myocardial ischemia,413844008,CMI,0,161,0,0,0,0,161
-complete heart block,27885002,CHB,0,27,0,0,16,8,51
-congenital incomplete atrioventricular heart block,204384007,CIAHB,0,0,0,2,0,0,2
-coronary heart disease,53741008,CHD,0,0,16,21,0,0,37
-decreased qt interval,77867006,SQT,0,1,0,0,0,0,1
-diffuse intraventricular block,82226007,DIB,0,1,0,0,0,0,1
-early repolarization,428417006,ERe,0,0,0,0,0,140,140
-fusion beats,13640000,FB,0,0,7,0,0,0,7
-heart failure,84114007,HF,0,0,0,7,0,0,7
-heart valve disorder,368009,HVD,0,0,0,6,0,0,6
-high t-voltage,251259000,HTV,0,1,0,0,0,0,1
-idioventricular rhythm,49260003,IR,0,0,2,0,0,0,2
-incomplete left bundle branch block,251120003,ILBBB,0,42,0,0,77,86,205
-indeterminate cardiac axis,251200008,ICA,0,0,0,0,156,0,156
-inferior ischaemia,425419005,IIs,0,0,0,0,219,451,670
-inferior ST segment depression,704997005,ISTD,0,1,0,0,0,0,1
-junctional escape,426995002,JE,0,4,0,0,0,5,9
-junctional premature complex,251164006,JPC,0,2,0,0,0,0,2
-junctional tachycardia,426648003,JTach,0,2,0,0,0,4,6
-lateral ischaemia,425623009,LIs,0,0,0,0,142,903,1045
-left atrial abnormality,253352002,LAA,0,0,0,0,0,72,72
-left atrial enlargement,67741000119109,LAE,0,1,0,0,427,870,1298
-left atrial hypertrophy,446813000,LAH,0,40,0,0,0,0,40
-left posterior fascicular block,445211001,LPFB,0,0,0,0,177,25,202
-left ventricular hypertrophy,164873001,LVH,0,158,10,0,2359,1232,3759
-left ventricular strain,370365005,LVS,0,1,0,0,0,0,1
-mobitz type i wenckebach atrioventricular block,54016002,MoI,0,0,3,0,0,0,3
-myocardial infarction,164865005,MI,0,376,9,368,5261,7,6021
-myocardial ischemia,164861001,MIs,0,384,0,0,2175,0,2559
-nonspecific st t abnormality,428750005,NSSTTA,0,1290,0,0,381,1883,3554
-old myocardial infarction,164867002,OldMI,0,1168,0,0,0,0,1168
-paired ventricular premature complexes,251182009,VPVC,0,0,23,0,0,0,23
-paroxysmal atrial fibrillation,282825002,PAF,0,0,1,1,0,0,2
-paroxysmal supraventricular tachycardia,67198005,PSVT,0,0,3,0,24,0,27
-paroxysmal ventricular tachycardia,425856008,PVT,0,0,15,0,0,0,15
-r wave abnormal,164921003,RAb,0,1,0,0,0,10,11
-rapid atrial fibrillation,314208002,RAF,0,0,0,2,0,0,2
-right atrial abnormality,253339007,RAAb,0,0,0,0,0,14,14
-right atrial hypertrophy,446358003,RAH,0,18,0,0,99,0,117
-right ventricular hypertrophy,89792004,RVH,0,20,0,0,126,86,232
-s t changes,55930002,STC,0,1,0,0,770,6,777
-shortened pr interval,49578007,SPRI,0,3,0,0,0,2,5
-sinoatrial block,65778007,SAB,0,9,0,0,0,0,9
-sinus node dysfunction,60423000,SND,0,0,2,0,0,0,2
-st depression,429622005,STD,869,57,4,0,1009,38,1977
-st elevation,164931005,STE,220,66,4,0,28,134,452
-st interval abnormal,164930006,STIAb,0,481,2,0,0,992,1475
-supraventricular bigeminy,251168009,SVB,0,0,1,0,0,0,1
-supraventricular tachycardia,426761007,SVT,0,3,1,0,27,32,63
-suspect arm ecg leads reversed,251139008,ALR,0,0,0,0,0,12,12
-transient ischemic attack,266257000,TIA,0,0,7,0,0,0,7
-u wave abnormal,164937009,UAb,0,1,0,0,0,0,1
-ventricular bigeminy,11157007,VBig,0,5,9,0,82,2,98
-ventricular ectopics,164884008,VEB,700,0,49,0,1154,41,1944
-ventricular escape beat,75532003,VEsB,0,3,1,0,0,0,4
-ventricular escape rhythm,81898007,VEsR,0,1,0,0,0,1,2
-ventricular fibrillation,164896001,VF,0,10,0,25,0,3,38
-ventricular flutter,111288001,VFL,0,1,0,0,0,0,1
-ventricular hypertrophy,266249003,VH,0,5,0,13,30,71,119
-ventricular pacing pattern,251266004,VPP,0,0,0,0,0,46,46
-ventricular pre excitation,195060002,VPEx,0,6,0,0,0,2,8
-ventricular tachycardia,164895002,VTach,0,1,1,10,0,0,12
-ventricular trigeminy,251180001,VTrig,0,4,4,0,20,1,29
-wandering atrial pacemaker,195101003,WAP,0,0,0,0,0,7,7
-wolff parkinson white pattern,74390002,WPW,0,0,4,2,80,2,88"""))
+dx_mapping_unscored = pd.read_csv(StringIO("""Dx,SNOMEDCTCode,Abbreviation,CPSC,CPSC_Extra,StPetersburg,PTB,PTB_XL,Georgia,Chapman_Shaoxing,Ningbo,Total
+accelerated atrial escape rhythm,233892002,AAR,0,0,0,0,0,0,0,16,16
+abnormal QRS,164951009,abQRS,0,0,0,0,3389,0,0,0,3389
+atrial escape beat,251187003,AED,0,0,0,0,0,0,0,17,17
+accelerated idioventricular rhythm,61277005,AIVR,0,0,0,0,0,0,0,14,14
+accelerated junctional rhythm,426664006,AJR,0,0,0,0,0,19,0,12,31
+suspect arm ecg leads reversed,251139008,ALR,0,0,0,0,0,12,0,0,12
+acute myocardial infarction,57054005,AMI,0,0,6,0,0,0,0,49,55
+acute myocardial ischemia,413444003,AMIs,0,1,0,0,0,1,0,0,2
+anterior ischemia,426434006,AnMIs,0,0,0,0,44,281,0,0,325
+anterior myocardial infarction,54329005,AnMI,0,62,0,0,354,0,0,57,473
+atrial bigeminy,251173003,AB,0,0,3,0,0,0,3,0,6
+atrial fibrillation and flutter,195080001,AFAFL,0,39,0,0,0,2,0,0,41
+atrial hypertrophy,195126007,AH,0,2,0,0,0,60,0,0,62
+atrial pacing pattern,251268003,AP,0,0,0,0,0,52,0,0,52
+atrial rhythm,106068003,ARH,0,0,0,0,0,0,0,215,215
+atrial tachycardia,713422000,ATach,0,15,0,0,0,28,121,176,340
+av block,233917008,AVB,0,5,0,0,0,74,166,78,323
+atrioventricular dissociation,50799005,AVD,0,0,0,0,0,0,0,59,59
+atrioventricular junctional rhythm,29320008,AVJR,0,6,0,0,0,0,0,139,145
+atrioventricular  node reentrant tachycardia,251166008,AVNRT,0,0,0,0,0,0,16,0,16
+atrioventricular reentrant tachycardia,233897008,AVRT,0,0,0,0,0,0,8,18,26
+blocked premature atrial contraction,251170000,BPAC,0,2,3,0,0,0,0,62,67
+brugada,418818005,BRU,0,0,0,0,0,0,0,5,5
+brady tachy syndrome,74615001,BTS,0,1,1,0,0,0,0,0,2
+chronic atrial fibrillation,426749004,CAF,0,1,0,0,0,0,0,0,1
+countercolockwise rotation,251199005,CCR,0,0,0,0,0,0,162,0,162
+clockwise or counterclockwise vectorcardiographic loop,61721007,CVCL/CCVCL,0,0,0,0,0,0,0,653,653
+cardiac dysrhythmia,698247007,CD,0,0,0,16,0,0,0,0,16
+complete heart block,27885002,CHB,0,27,0,0,16,8,1,75,127
+congenital incomplete atrioventricular heart block,204384007,CIAHB,0,0,0,2,0,0,0,0,2
+coronary heart disease,53741008,CHD,0,0,16,21,0,0,0,0,37
+chronic myocardial ischemia,413844008,CMI,0,161,0,0,0,0,0,0,161
+clockwise rotation,251198002,CR,0,0,0,0,0,0,76,0,76
+diffuse intraventricular block,82226007,DIB,0,1,0,0,0,0,0,0,1
+early repolarization,428417006,ERe,0,0,0,0,0,140,22,344,506
+fusion beats,13640000,FB,0,0,7,0,0,0,2,114,123
+fqrs wave,164942001,FQRS,0,0,0,0,0,0,3,0,3
+heart failure,84114007,HF,0,0,0,7,0,0,0,0,7
+heart valve disorder,368009,HVD,0,0,0,6,0,0,0,0,6
+high t-voltage,251259000,HTV,0,1,0,0,0,0,0,0,1
+indeterminate cardiac axis,251200008,ICA,0,0,0,0,156,0,0,0,156
+2nd degree av block,195042002,IIAVB,0,21,0,0,14,23,8,58,124
+mobitz type II atrioventricular block,426183003,IIAVBII,0,0,0,0,0,0,0,7,7
+inferior ischaemia,425419005,IIs,0,0,0,0,219,451,0,0,670
+incomplete left bundle branch block,251120003,ILBBB,0,42,0,0,77,86,0,6,211
+inferior ST segment depression,704997005,ISTD,0,1,0,0,0,0,0,0,1
+idioventricular rhythm,49260003,IR,0,0,2,0,0,0,0,0,2
+junctional escape,426995002,JE,0,4,0,0,0,5,15,60,84
+junctional premature complex,251164006,JPC,0,2,0,0,0,0,1,10,13
+junctional tachycardia,426648003,JTach,0,2,0,0,0,4,0,24,30
+left atrial abnormality,253352002,LAA,0,0,0,0,0,72,0,0,72
+left atrial enlargement,67741000119109,LAE,0,1,0,0,427,870,8,29,1335
+left atrial hypertrophy,446813000,LAH,0,40,0,0,0,0,0,8,48
+lateral ischaemia,425623009,LIs,0,0,0,0,142,903,0,0,1045
+left posterior fascicular block,445211001,LPFB,0,0,0,0,177,25,0,5,207
+left ventricular hypertrophy,164873001,LVH,0,158,10,0,2359,1232,15,632,4406
+left ventricular high voltage,55827005,LVHV,0,0,0,0,0,0,1295,4106,5401
+left ventricular strain,370365005,LVS,0,1,0,0,0,0,0,0,1
+myocardial infarction,164865005,MI,0,376,9,368,5261,7,40,83,6144
+myocardial ischemia,164861001,MIs,0,384,0,0,2175,0,0,0,2559
+mobitz type i wenckebach atrioventricular block,54016002,MoI,0,0,3,0,0,0,6,25,34
+nonspecific st t abnormality,428750005,NSSTTA,0,1290,0,0,381,1883,1158,0,4712
+old myocardial infarction,164867002,OldMI,0,1168,0,0,0,0,0,0,1168
+paroxysmal atrial fibrillation,282825002,PAF,0,0,1,1,0,0,0,0,2
+prolonged P wave,251205003,PPW,0,0,0,0,0,0,0,106,106
+paroxysmal supraventricular tachycardia,67198005,PSVT,0,0,3,0,24,0,0,0,27
+paroxysmal ventricular tachycardia,425856008,PVT,0,0,15,0,0,0,0,109,124
+p wave change,164912004,PWC,0,0,0,0,0,0,95,47,142
+right atrial abnormality,253339007,RAAb,0,0,0,0,0,14,0,0,14
+r wave abnormal,164921003,RAb,0,1,0,0,0,10,0,0,11
+right atrial hypertrophy,446358003,RAH,0,18,0,0,99,0,3,33,153
+right atrial  high voltage,67751000119106,RAHV,0,0,0,0,0,0,0,36,36
+rapid atrial fibrillation,314208002,RAF,0,0,0,2,0,0,0,0,2
+right ventricular hypertrophy,89792004,RVH,0,20,0,0,126,86,4,106,342
+sinus atrium to atrial wandering rhythm,17366009,SAAWR,0,0,0,0,0,0,7,0,7
+sinoatrial block,65778007,SAB,0,9,0,0,0,0,0,5,14
+sinus arrest,5609005,SARR,0,0,0,0,0,0,0,33,33
+sinus node dysfunction,60423000,SND,0,0,2,0,0,0,0,0,2
+shortened pr interval,49578007,SPRI,0,3,0,0,0,2,0,23,28
+decreased qt interval,77867006,SQT,0,1,0,0,0,0,0,2,3
+s t changes,55930002,STC,0,1,0,0,770,6,0,4232,5009
+st depression,429622005,STD,869,57,4,0,1009,38,402,1266,3645
+st elevation,164931005,STE,220,66,4,0,28,134,176,0,628
+st interval abnormal,164930006,STIAb,0,481,2,0,0,992,2,799,2276
+supraventricular bigeminy,251168009,SVB,0,0,1,0,0,0,0,0,1
+supraventricular tachycardia,426761007,SVT,0,3,1,0,27,32,587,137,787
+transient ischemic attack,266257000,TIA,0,0,7,0,0,0,0,0,7
+tall p wave,251223006,TPW,0,0,0,0,0,0,0,215,215
+u wave abnormal,164937009,UAb,0,1,0,0,0,0,22,114,137
+ventricular bigeminy,11157007,VBig,0,5,9,0,82,2,3,0,101
+ventricular ectopics,164884008,VEB,700,0,49,0,1154,41,0,0,1944
+ventricular escape beat,75532003,VEsB,0,3,1,0,0,0,7,49,60
+ventricular escape rhythm,81898007,VEsR,0,1,0,0,0,1,0,96,98
+ventricular fibrillation,164896001,VF,0,10,0,25,0,3,0,59,97
+ventricular flutter,111288001,VFL,0,1,0,0,0,0,0,7,8
+ventricular hypertrophy,266249003,VH,0,5,0,13,30,71,0,0,119
+ventricular pre excitation,195060002,VPEx,0,6,0,0,0,2,12,0,20
+ventricular pacing pattern,251266004,VPP,0,0,0,0,0,46,0,0,46
+paired ventricular premature complexes,251182009,VPVC,0,0,23,0,0,0,0,0,23
+ventricular tachycardia,164895002,VTach,0,1,1,10,0,0,0,0,12
+ventricular trigeminy,251180001,VTrig,0,4,4,0,20,1,8,0,37
+wandering atrial pacemaker,195101003,WAP,0,0,0,0,0,7,2,0,9
+wolff parkinson white pattern,74390002,WPW,0,0,4,2,80,2,4,68,160"""))
 dx_mapping_unscored["SNOMED CT Code"] = dx_mapping_unscored["SNOMED CT Code"].apply(str)
 
 
