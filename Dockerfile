@@ -53,10 +53,12 @@ RUN pip install -r requirements.txt
 RUN python docker_test.py
 
 
-RUN python test_model.py ./saved_models ./test_data/twelve_leads ./log/test_12leads
-RUN python test_model.py ./saved_models ./test_data/six_leads ./log/test_6leads
-RUN python test_model.py ./saved_models ./test_data/three_leads ./log/test_3leads
-RUN python test_model.py ./saved_models ./test_data/two_leads ./log/test_2leads
+# temporarily commented, await for the updates of the official phase
+# RUN python test_model.py ./saved_models ./test_data/twelve_leads ./log/test_12leads
+# RUN python test_model.py ./saved_models ./test_data/six_leads ./log/test_6leads
+# RUN python test_model.py ./saved_models ./test_data/four_leads ./log/test_4leads
+# RUN python test_model.py ./saved_models ./test_data/three_leads ./log/test_3leads
+# RUN python test_model.py ./saved_models ./test_data/two_leads ./log/test_2leads
 
 
 
