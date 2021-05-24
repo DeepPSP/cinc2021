@@ -197,10 +197,10 @@ class CINC2021Reader(object):
         self.db_tranches = list("ABCDEFG")
         self.tranche_names = ED({
             "A": "CPSC",
-            "B": "CPSC-Extra",
+            "B": "CPSC_Extra",
             "C": "StPetersburg",
             "D": "PTB",
-            "E": "PTB-XL",
+            "E": "PTB_XL",
             "F": "Georgia",
             "G": "CUSPHNFH",
         })
