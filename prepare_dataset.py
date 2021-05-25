@@ -6,7 +6,6 @@ from copy import deepcopy
 from typing import Optional, Sequence, NoReturn
 
 from cfg import BaseCfg
-from utils.misc import str2bool
 
 
 data_files = [
@@ -60,7 +59,7 @@ def get_parser() -> dict:
         dest="tranches",
     )
     parser.add_argument(
-        "-v", "--verbose", type=int, default=0,
+        "-v", "--verbose", action="store_true",
         help=f"verbosity",
         dest="verbose",
     )
@@ -73,7 +72,7 @@ def get_parser() -> dict:
 def run(input_directory:str,
         output_directory:Optional[str]=None,
         tranches:Optional[Sequence[str]]=None,
-        verbose:int=0) -> NoReturn:
+        verbose:bool=False) -> NoReturn:
     """ finished, checked,
 
     Parameters:
@@ -85,7 +84,7 @@ def run(input_directory:str,
         if not specified, defaults to `input_directory`
     tranches: sequence of str, optional,
         the tranches to extract
-    verbose: int, default 0,
+    verbose: bool, default False,
         printint verbosity
 
     NOTE: currently, for updating headers only, corresponding .tar.gz file of records should be presented
@@ -132,7 +131,7 @@ def run(input_directory:str,
                     if member.isfile():
                         member.name = os.path.basename(member.name)
                         tar.extract(member, os.path.join(_output_directory, df_name))
-                        if verbose > 0:
+                        if verbose:
                             print(f"extracted '{os.path.join(_output_directory, df_name, member.name)}'")
         print(f"finish extracting {df}")
         # corresponding header files
@@ -145,7 +144,7 @@ def run(input_directory:str,
                 if member.isfile():
                     member.name = os.path.basename(member.name)
                     tar.extract(member, os.path.join(headers_tmp, hf_name))
-                    if verbose > 0:
+                    if verbose:
                         print(f"extracted '{os.path.join(headers_tmp, hf_name, member.name)}'")
         print(f"finish extracting {hf}")
         # remove old headers
@@ -154,7 +153,7 @@ def run(input_directory:str,
         # subprocess.Popen(cmd, shell=True)
         for f in glob(os.path.join(_output_directory, df_name, "*.hea")):
             os.remove(f)
-            if verbose > 0:
+            if verbose:
                 print(f"removed '{f}'")
         # copy new headers
         cmd = f"""cp {os.path.join(headers_tmp, hf_name, "*.hea")} {os.path.join(_output_directory, df_name)} -v"""
@@ -162,7 +161,7 @@ def run(input_directory:str,
         # subprocess.Popen(cmd, shell=True)
         for f in glob(os.path.join(headers_tmp, hf_name, "*.hea")):
             shutil.copy2(f, os.path.join(_output_directory, df_name))
-            if verbose > 0:
+            if verbose:
                 print(f"'{f}' -> '{os.path.join(_output_directory, df_name, os.path.basename(f))}'")
         print(f"{df_name} done! --- {acc}/{len(tranches) if tranches else len(_data_files)}")
         time.sleep(3)
@@ -174,12 +173,12 @@ def run(input_directory:str,
 if __name__ == "__main__":
     # usage example:
     # python prepare_dataset.py --help (check for details of arguments)
-    # python prepare_dataset.py -i "E:/Data/CinC2021/" -t "PTB,Georgia" -v 1
+    # python prepare_dataset.py -i "E:/Data/CinC2021/" -t "PTB,Georgia" -v
     args = get_parser()
     input_directory = args.get("input_directory", BaseCfg.db_dir)
     output_directory = args.get("output_directory", None)
     tranches = args.get("tranches", None)
-    verbose = args.get("verbose", 0)
+    verbose = args.get("verbose", False)
     if tranches:
         tranches = tranches.split(",")
     run(input_directory, output_directory, tranches, verbose)

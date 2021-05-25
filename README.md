@@ -3,7 +3,7 @@ Will Two Do? Varying Dimensions in Electrocardiography: The PhysioNet/Computing 
 
 ## Data Preparation
 One can download training data from [GCP](https://console.cloud.google.com/storage/browser/physionetchallenge2021-public-datasets),
-and use `python prepare_dataset -i {data_directory} -v 1` to prepare the data for training
+and use `python prepare_dataset -i {data_directory} -v` to prepare the data for training
 
 
 ## Deep Models
