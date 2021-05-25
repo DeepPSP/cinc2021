@@ -87,6 +87,8 @@ def run(input_directory:str,
         the tranches to extract
     verbose: int, default 0,
         printint verbosity
+
+    NOTE: currently, for updating headers only, corresponding .tar.gz file of records should be presented
     """
     _dir = os.path.abspath(input_directory)
     if data_files[-3] in os.listdir(input_directory):
@@ -171,6 +173,7 @@ def run(input_directory:str,
 
 if __name__ == "__main__":
     # usage example:
+    # python prepare_dataset.py --help (check for details of arguments)
     # python prepare_dataset.py -i "E:/Data/CinC2021/" -t "PTB,Georgia" -v 1
     args = get_parser()
     input_directory = args.get("input_directory", BaseCfg.db_dir)
