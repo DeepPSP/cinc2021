@@ -64,7 +64,7 @@ class CINC2021Reader(object):
     ECG recordings.
     1. tranches of data:
         - CPSC2018 (tranches A and B of CINC2020):
-            contains 13,256 ECGs,
+            contains 13,256 ECGs (6,877 from tranche A, 3,453 from tranche B),
             10,330 ECGs shared as training data, 1,463 retained as validation data,
             and 1,463 retained as test data.
             Each recording is between 6 and 144 seconds long with a sampling frequency of 500 Hz
