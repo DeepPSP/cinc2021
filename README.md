@@ -7,7 +7,7 @@ and use `python prepare_dataset -i {data_directory} -v` to prepare the data for 
 
 
 ## Deep Models
-Deep learning models are constructed using [torch_ecg](https://github.com/wenh06/torch_ecg), which has already been added as a submodule.
+Deep learning models are constructed using [torch_ecg](https://github.com/DeepPSP/torch_ecg), which has already been added as a submodule.
 
 
 ## References:
