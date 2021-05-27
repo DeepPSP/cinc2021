@@ -90,6 +90,7 @@ def run(input_directory:str,
     NOTE: currently, for updating headers only, corresponding .tar.gz file of records should be presented
     """
     _dir = os.path.abspath(input_directory)
+    # ShaoxingUniv (CUSPHNFH) is the union of ChapmanShaoxing and Ningbo
     if data_files[-3] in os.listdir(input_directory):
         flag_CUSPHNFH = False
         _data_files =  data_files[:-2]
@@ -109,13 +110,8 @@ def run(input_directory:str,
     if flag_CUSPHNFH:
         os.makedirs(os.path.join(_output_directory, "WFDB_CUSPHNFH"), exist_ok=True)
 
-    headers_tmp = os.path.join(input_directory, "headers_tmp")
-    # if os.path.exists(headers_tmp):
-    #     shutil.rmtree(headers_tmp)
-    os.makedirs(headers_tmp, exist_ok=True)
-
     acc = 0
-    for df in _data_files:
+    for i, df in enumerate(_data_files):
         if tranches and _tranches[data_files.index(df)] not in tranches:
             continue
         acc += 1
@@ -130,43 +126,28 @@ def run(input_directory:str,
                 for member in tar.getmembers():
                     if member.isfile():
                         member.name = os.path.basename(member.name)
+                        # header files will not be extracted,
+                        # instead, they will be extracted from corresponding headers-only .tar.gz file
+                        if os.path.splitext(member.name)[1] == ".hea":
+                            continue
                         tar.extract(member, os.path.join(_output_directory, df_name))
                         if verbose:
                             print(f"extracted '{os.path.join(_output_directory, df_name, member.name)}'")
         print(f"finish extracting {df}")
+        time.sleep(3)
         # corresponding header files
         hf = header_files[data_files.index(df)]
-        hf_name = hf.replace(".tar.gz", "")
-        if os.path.exists(os.path.join(headers_tmp, hf_name)):
-            shutil.rmtree(os.path.join(headers_tmp, hf_name))
         with tarfile.open(os.path.join(_dir, hf), "r:gz") as tar:
             for member in tar.getmembers():
                 if member.isfile():
                     member.name = os.path.basename(member.name)
-                    tar.extract(member, os.path.join(headers_tmp, hf_name))
+                    tar.extract(member, os.path.join(_output_directory, df_name))
                     if verbose:
-                        print(f"extracted '{os.path.join(headers_tmp, hf_name, member.name)}'")
+                        print(f"extracted '{os.path.join(_output_directory, df_name, member.name)}'")
         print(f"finish extracting {hf}")
-        # remove old headers
-        cmd = f"""rm -f {os.path.join(_output_directory, df_name, "*.hea")} -v"""
-        print(f"executing --- {cmd}")
-        # subprocess.Popen(cmd, shell=True)
-        for f in glob(os.path.join(_output_directory, df_name, "*.hea")):
-            os.remove(f)
-            if verbose:
-                print(f"removed '{f}'")
-        # copy new headers
-        cmd = f"""cp {os.path.join(headers_tmp, hf_name, "*.hea")} {os.path.join(_output_directory, df_name)} -v"""
-        print(f"executing --- {cmd}")
-        # subprocess.Popen(cmd, shell=True)
-        for f in glob(os.path.join(headers_tmp, hf_name, "*.hea")):
-            shutil.copy2(f, os.path.join(_output_directory, df_name))
-            if verbose:
-                print(f"'{f}' -> '{os.path.join(_output_directory, df_name, os.path.basename(f))}'")
         print(f"{df_name} done! --- {acc}/{len(tranches) if tranches else len(_data_files)}")
-        time.sleep(3)
-    # remove temporary header files
-    # shutil.rmtree(headers_tmp)
+        if i < len(_data_files) - 1:
+            time.sleep(3)
 
 
 
