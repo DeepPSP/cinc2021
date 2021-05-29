@@ -59,7 +59,7 @@ else:
 ################################################################################
 
 
-# Train your model. This function is *required*. Do *not* change the arguments of this function.
+# Train your model. This function is *required*. You should edit this function to add your code, but do *not* change the arguments of this function.
 def training_code(data_directory, model_directory):
     # Find header and recording files.
     print("Finding header and recording files...")
@@ -307,7 +307,7 @@ def save_model(filename, classes, leads, imputer, classifier):
     # Construct a data structure for the model and save it.
     raise NotImplementedError
 
-# Load a trained model. This function is *required*. Do *not* change the arguments of this function.
+# Load a trained model. This function is *required*. You should edit this function to add your code, but do *not* change the arguments of this function.
 def load_model(model_directory, leads):
     n_leads = len(leads)
     model_filename = _ModelFilename[n_leads]
@@ -405,7 +405,7 @@ def load_model(model_directory, leads):
 #
 ################################################################################
 
-# Run your trained model. This function is *required*. Do *not* change the arguments of this function.
+# Run your trained model. This function is *required*. You should edit this function to add your code, but do *not* change the arguments of this function.
 def run_model(model, header, recording, verbose=0):
     raw_data, ann_dict = preprocess_data(header, recording)
 
