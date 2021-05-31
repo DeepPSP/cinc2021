@@ -212,9 +212,9 @@ TrainCfg.batch_size = 64
 
 # configs of optimizers and lr_schedulers
 TrainCfg.train_optimizer = "adamw_amsgrad"  # "sgd", "adam", "adamw"
-TrainCfg.momentum = 0.949
-TrainCfg.betas = (0.9, 0.999)
-TrainCfg.decay = 1e-2
+TrainCfg.momentum = 0.949  # default values for corresponding PyTorch optimizers
+TrainCfg.betas = (0.9, 0.999)  # default values for corresponding PyTorch optimizers
+TrainCfg.decay = 1e-2  # default values for corresponding PyTorch optimizers
 
 TrainCfg.learning_rate = 1e-3  # 1e-4
 TrainCfg.lr = TrainCfg.learning_rate
