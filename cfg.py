@@ -211,20 +211,21 @@ TrainCfg.batch_size = 64
 # TrainCfg.max_batches = 500500
 
 # configs of optimizers and lr_schedulers
-TrainCfg.train_optimizer = "adam"  # "sgd"
+TrainCfg.train_optimizer = "adamw_amsgrad"  # "sgd", "adam", "adamw"
+TrainCfg.momentum = 0.949
+TrainCfg.betas = (0.9, 0.999)
+TrainCfg.decay = 1e-2
 
-TrainCfg.learning_rate = 0.0001
+TrainCfg.learning_rate = 1e-3  # 1e-4
 TrainCfg.lr = TrainCfg.learning_rate
+
+TrainCfg.lr_scheduler = None  # "one_cycle", "plateau", "burn_in", "step", None
 TrainCfg.lr_step_size = 50
 TrainCfg.lr_gamma = 0.1
-
-TrainCfg.lr_scheduler = None  # "plateau", "burn_in", "step", None
+TrainCfg.max_lr = 1e-2  # for "one_cycle" scheduler, to adjust via expriments
 
 TrainCfg.burn_in = 400
 TrainCfg.steps = [5000, 10000]
-
-TrainCfg.momentum = 0.949
-TrainCfg.decay = 0.0005
 
 TrainCfg.early_stopping = ED()  # early stopping according to challenge metric
 TrainCfg.early_stopping.min_delta = 0.001  # should be non-negative

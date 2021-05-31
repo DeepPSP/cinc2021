@@ -13,6 +13,12 @@ Training strategy:
 
 4. one model will be trained using the whole dataset (consider excluding tranche C? good news is that tranche C mainly consists of "Brady" and "STach", which can be classified using the special detectors)
         
+References: (mainly tips for faster and better training)
+-----------
+1. https://efficientdl.com/faster-deep-learning-in-pytorch-a-guide/
+2. (optim) https://www.fast.ai/2018/07/02/adam-weight-decay/
+3. (lr) https://spell.ml/blog/lr-schedulers-and-adaptive-optimizers-YHmwMhAAACYADm6F
+4. more....
 """
 
 import os
@@ -117,11 +123,14 @@ def train(model:nn.Module,
     batch_size = config.batch_size
     lr = config.learning_rate
 
+    # https://discuss.pytorch.org/t/guidelines-for-assigning-num-workers-to-dataloader/813/4
+    num_workers = 4
+
     train_loader = DataLoader(
         dataset=train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=8,
+        num_workers=num_workers,
         pin_memory=True,
         drop_last=False,
         collate_fn=collate_fn,
@@ -132,7 +141,7 @@ def train(model:nn.Module,
             dataset=val_train_dataset,
             batch_size=batch_size,
             shuffle=True,
-            num_workers=8,
+            num_workers=num_workers,
             pin_memory=True,
             drop_last=False,
             collate_fn=collate_fn,
@@ -141,7 +150,7 @@ def train(model:nn.Module,
         dataset=val_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=8,
+        num_workers=num_workers,
         pin_memory=True,
         drop_last=False,
         collate_fn=collate_fn,
@@ -193,8 +202,17 @@ def train(model:nn.Module,
         optimizer = optim.Adam(
             params=model.parameters(),
             lr=lr,
-            betas=(0.9, 0.999),  # default
+            betas=config.betas,
             eps=1e-08,  # default
+        )
+    elif config.train_optimizer.lower() in ["adamw", "adamw_amsgrad"]:
+        optimizer = optim.AdamW(
+            params=model.parameters(),
+            lr=lr,
+            betas=config.betas,
+            weight_decay=config.decay,
+            eps=1e-08,  # default
+            amsgrad=config.train_optimizer.lower().endswith("amsgrad"),
         )
     elif config.train_optimizer.lower() == "sgd":
         optimizer = optim.SGD(
@@ -213,6 +231,13 @@ def train(model:nn.Module,
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "max", patience=2)
     elif config.lr_scheduler.lower() == "step":
         scheduler = optim.lr_scheduler.StepLR(optimizer, config.lr_step_size, config.lr_gamma)
+    elif config.lr_scheduler.lower() in ["one_cycle", "onecycle",]:
+        scheduler = optim.lr_scheduler.OneCycleLR(
+            optimizer=optimizer,
+            max_lr=config.max_lr,
+            epochs=n_epochs,
+            steps_per_epoch=len(train_loader),
+        )
     else:
         raise NotImplementedError(f"lr scheduler `{config.lr_scheduler.lower()}` not implemented for training")
 
