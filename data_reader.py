@@ -220,10 +220,10 @@ class CINC2021Reader(object):
             "diagnosis", "diagnosis_scored",  # in the form of abbreviations
         }
         self._ls_rec()  # loads file system structures into self.db_dirs and self._all_records
-        self._aggregate_stats()
+        # self._aggregate_stats()
 
         self._diagnoses_records_list = None
-        self._ls_diagnoses_records()
+        # self._ls_diagnoses_records()
 
         self.fs = {
             "A": 500, "B": 500, "C": 257, "D": 1000, "E": 500, "F": 500, "G": 500,
@@ -282,10 +282,13 @@ class CINC2021Reader(object):
             with open(record_list_fp, "r") as f:
                 self._all_records = json.load(f)
             for tranche in self.db_tranches:
-                self.db_dirs[tranche] = os.path.join(
-                    self.db_dir_base, os.path.dirname(self._all_records[tranche][0])
-                )
+                # self.db_dirs[tranche] = os.path.join(
+                #     self.db_dir_base, os.path.dirname(self._all_records[tranche][0])
+                # )
                 self._all_records[tranche] = [os.path.basename(f) for f in self._all_records[tranche]]
+                self.db_dirs[tranche] = self._find_dir(self.db_dir_base, tranche, 0)
+                if not self.db_dirs[tranche]:
+                    raise FileNotFoundError(f"failed to find the directory containing tranche {self.tranche_names[tranche]}")
         else:
             print("Please wait patiently to let the reader find all records of all the tranches...")
             start = time.time()
@@ -350,6 +353,27 @@ class CINC2021Reader(object):
             for k in ["diagnosis", "diagnosis_scored",]:
                 for idx, row in self._stats.iterrows():
                     self._stats.at[idx, k] = row[k].split(list_sep)
+
+
+    def _find_dir(self, root:str, tranche:str, level:int=0) -> str:
+        """
+        """
+        # print(f"searching for dir for tranche {self.tranche_names[tranche]} with root {root} at level {level}")
+        if level > 2:
+            raise FileNotFoundError(f"failed to find the directory containing tranche {self.tranche_names[tranche]}")
+        rec_pattern = f"^{self.rec_prefix[tranche]}(?:\d+).{self.rec_ext}$"
+        res = ""
+        candidates = os.listdir(root)
+        if len(list(filter(re.compile(rec_pattern).search, candidates))) > 0:
+            res = root
+            return res
+        new_roots = [os.path.join(root, item) for item in candidates if os.path.isdir(os.path.join(root, item))]
+        for r in new_roots:
+            tmp = self._find_dir(r, tranche, level+1)
+            if tmp:
+                res = tmp
+                return res
+        return res
 
 
     @property
