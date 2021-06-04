@@ -356,7 +356,21 @@ class CINC2021Reader(object):
 
 
     def _find_dir(self, root:str, tranche:str, level:int=0) -> str:
-        """
+        """ finished, checked,
+
+        Parameters:
+        -----------
+        root: str,
+            the root directory at which the data reader is searching
+        tranche: str,
+            the tranche to locate the directory containing it
+        level: int, default 0,
+            an identifier for ternimation of the search, regardless of finding the target directory or not
+
+        Returns:
+        res: str,
+            the directory containing the tranche,
+            if is "", then not found
         """
         # print(f"searching for dir for tranche {self.tranche_names[tranche]} with root {root} at level {level}")
         if level > 2:
