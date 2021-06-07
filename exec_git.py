@@ -1,5 +1,5 @@
 """
-to cope with DNS spoofing, automatically retry an git command until success
+to cope with DNS spoofing, automatically retry a git command until success
 """
 
 import os, argparse, warnings, time
