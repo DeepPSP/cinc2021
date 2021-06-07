@@ -5,7 +5,7 @@ import re
 import json
 import time
 import logging
-# import pprint
+import warnings
 from copy import deepcopy
 from datetime import datetime
 from typing import Union, Optional, Any, List, Dict, Tuple, Set, Sequence, NoReturn
@@ -403,6 +403,8 @@ class CINC2021Reader(object):
     def df_stats(self):
         """
         """
+        if self._stats.empty:
+            warnings.warn("the dataframe of stats is empty, try using _aggregate_stats")
         return self._stats
 
 
