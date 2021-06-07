@@ -220,7 +220,7 @@ class CINC2021Reader(object):
             "diagnosis", "diagnosis_scored",  # in the form of abbreviations
         }
         self._ls_rec()  # loads file system structures into self.db_dirs and self._all_records
-        # self._aggregate_stats()
+        self._aggregate_stats(fast=True)
 
         self._diagnoses_records_list = None
         # self._ls_diagnoses_records()
@@ -316,10 +316,16 @@ class CINC2021Reader(object):
         self._all_records = ED(self._all_records)
 
 
-    def _aggregate_stats(self) -> NoReturn:
+    def _aggregate_stats(self, fast:bool=False) -> NoReturn:
         """ finished, checked,
 
         aggregate stats on the whole dataset
+
+        Parameters:
+        -----------
+        fast: bool, default False,
+            if True, only load the cached stats,
+            otherwise aggregate from scratch
         """
         stats_file = "stats.csv"
         list_sep = ";"
@@ -329,6 +335,8 @@ class CINC2021Reader(object):
             self._stats = pd.read_csv(stats_file_fp)
         elif os.path.isfile(stats_file_fp_aux):
             self._stats = pd.read_csv(stats_file_fp_aux)
+        if fast:
+            return
         if self._stats.empty or self._stats_columns != set(self._stats.columns):
             print("Please wait patiently to let the reader collect statistics on the whole dataset...")
             start = time.time()
