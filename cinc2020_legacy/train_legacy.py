@@ -82,8 +82,8 @@ __all__ = [
 def train(model:nn.Module, device:torch.device, config:dict, log_step:int=20, logger:Optional[logging.Logger]=None, debug:bool=False):
     """
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     model: Module,
     device: torch.device,
     config: dict,
@@ -349,8 +349,8 @@ def train(model:nn.Module, device:torch.device, config:dict, log_step:int=20, lo
 def evaluate(model:nn.Module, data_loader:DataLoader, config:dict, device:torch.device, debug:bool=False) -> Tuple[float]:
     """ finished, checked,
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     model: Module,
         the model to evaluate
     data_loader: DataLoader,
@@ -361,8 +361,8 @@ def evaluate(model:nn.Module, data_loader:DataLoader, config:dict, device:torch.
         device for evaluation
     debug: bool, default False
 
-    Returns:
-    --------
+    Returns
+    -------
     eval_res: tuple of float,
         evaluation results, including
         auroc, auprc, accuracy, f_measure, f_beta_measure, g_beta_measure, challenge_metric

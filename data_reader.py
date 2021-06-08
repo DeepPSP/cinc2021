@@ -53,8 +53,8 @@ class CINC2021Reader(object):
     Will Two Do? Varying Dimensions in Electrocardiography:
     The PhysioNet/Computing in Cardiology Challenge 2021
 
-    ABOUT CINC2021:
-    ---------------
+    ABOUT CINC2021
+    --------------
     0. goal: build an algorithm that can classify cardiac abnormalities from either
         - twelve-lead (I, II, III, aVR, aVL, aVF, V1, V2, V3, V4, V5, V6)
         - six-lead (I, II, III, aVL, aVR, aVF),
@@ -110,8 +110,8 @@ class CINC2021Reader(object):
     ...     if leads not in set_leads:
     ...         set_leads.append(leads)
 
-    NOTE:
-    -----
+    NOTE
+    ----
     1. The datasets have been roughly processed to have a uniform format, hence differ from their original resource (e.g. differe in sampling frequency, sample duration, etc.)
     2. The original datasets might have richer metadata (especially those from PhysioNet), which can be fetched from corresponding reader's docstring or website of the original source
     3. Each sub-dataset might have its own organizing scheme of data, which should be carefully dealt with
@@ -144,8 +144,8 @@ class CINC2021Reader(object):
     either one moves all training records into ONE folder,
     or at least one moves the subsets Chapman_Shaoxing (WFDB_ChapmanShaoxing) and Ningbo (WFDB_Ningbo) into ONE folder, or use the data WFDB_ShaoxingUniv which is the union of WFDB_ChapmanShaoxing and WFDB_Ningbo
 
-    Usage:
-    ------
+    Usage
+    -----
     1. ECG arrhythmia detection
 
     ISSUES: (all in CinC2020, left unfixed)
@@ -158,8 +158,8 @@ class CINC2021Reader(object):
     >>> dr.plot(rec, dr.load_data(rec, backend="scipy", units="uv"))  # currently raising error
     5. many records (headers) have duplicate labels. For example, many records in the Georgia subset has duplicate "PAC" ("284470004") label
 
-    References:
-    -----------
+    References
+    ----------
     [0] https://physionetchallenges.github.io/2021/
     [1] https://physionetchallenges.github.io/2020/
     [2] http://2018.icbeb.org/#
@@ -175,8 +175,8 @@ class CINC2021Reader(object):
                  verbose:int=2,
                  **kwargs:Any) -> NoReturn:
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         db_dir: str,
             storage path of the database
         working_dir: str, optional,
@@ -250,13 +250,13 @@ class CINC2021Reader(object):
     def get_subject_id(self, rec:str) -> int:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         rec: str,
             name of the record
 
-        Returns:
-        --------
+        Returns
+        -------
         sid: int,
             the `subject_id` corr. to `rec`
         """
@@ -321,8 +321,8 @@ class CINC2021Reader(object):
 
         aggregate stats on the whole dataset
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         fast: bool, default False,
             if True, only load the cached stats,
             otherwise aggregate from scratch
@@ -366,8 +366,8 @@ class CINC2021Reader(object):
     def _find_dir(self, root:str, tranche:str, level:int=0) -> str:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         root: str,
             the root directory at which the data reader is searching
         tranche: str,
@@ -375,7 +375,8 @@ class CINC2021Reader(object):
         level: int, default 0,
             an identifier for ternimation of the search, regardless of finding the target directory or not
 
-        Returns:
+        Returns
+        -------
         res: str,
             the directory containing the tranche,
             if is "", then not found
@@ -466,8 +467,8 @@ class CINC2021Reader(object):
         config the logger,
         currently NOT used,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         prefix: str, optional,
             prefix (for each line) of the logger, and its file name
         """
@@ -509,13 +510,13 @@ class CINC2021Reader(object):
 
         get the tranche's symbol (one of "A","B","C","D","E","F") of a record via its name
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         rec: str,
             name of the record
 
-        Returns:
-        --------
+        Returns
+        -------
         tranche, str,
             symbol of the tranche, ref. `self.rec_prefix`
         """
@@ -529,8 +530,8 @@ class CINC2021Reader(object):
 
         get the absolute file path of the data file of `rec`
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         rec: str,
             name of the record
         with_ext: bool, default True,
@@ -538,8 +539,8 @@ class CINC2021Reader(object):
             otherwise without file extension,
             which is useful for `wfdb` functions
 
-        Returns:
-        --------
+        Returns
+        -------
         fp: str,
             absolute file path of the data file of the record
         """
@@ -555,8 +556,8 @@ class CINC2021Reader(object):
 
         get the absolute file path of the header file of `rec`
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         rec: str,
             name of the record
         with_ext: bool, default True,
@@ -564,8 +565,8 @@ class CINC2021Reader(object):
             otherwise without file extension,
             which is useful for `wfdb` functions
 
-        Returns:
-        --------
+        Returns
+        -------
         fp: str,
             absolute file path of the header file of the record
         """
@@ -596,8 +597,8 @@ class CINC2021Reader(object):
         load physical (converted from digital) ecg data,
         which is more understandable for humans
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         rec: str,
             name of the record
         leads: str or list of str, optional,
@@ -613,8 +614,8 @@ class CINC2021Reader(object):
         fs: real number, optional,
             if not None, the loaded data will be resampled to this frequency
         
-        Returns:
-        --------
+        Returns
+        -------
         data: ndarray,
             the ecg data
         """
@@ -671,8 +672,8 @@ class CINC2021Reader(object):
 
         load annotations (header) stored in the .hea files
         
-        Parameters:
-        -----------
+        Parameters
+        ----------
         rec: str,
             name of the record
         raw: bool, default False,
@@ -681,8 +682,8 @@ class CINC2021Reader(object):
             if is "wfdb", `wfdb.rdheader` will be used to load the annotations;
             if is "naive", annotations will be parsed from the lines read from the header files
         
-        Returns:
-        --------
+        Returns
+        -------
         ann_dict, dict or str,
             the annotations with items: ref. `self.ann_items`
         """
@@ -707,8 +708,8 @@ class CINC2021Reader(object):
     def _load_ann_wfdb(self, rec:str, header_data:List[str]) -> dict:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         rec: str,
             name of the record
         header_data: list of str,
@@ -716,8 +717,8 @@ class CINC2021Reader(object):
             complementary to data read using `wfdb.rdheader` if applicable,
             this data will be used, since `datetime` is not well parsed by `wfdb.rdheader`
 
-        Returns:
-        --------
+        Returns
+        -------
         ann_dict, dict,
             the annotations with items: ref. `self.ann_items`
         """
@@ -785,13 +786,13 @@ class CINC2021Reader(object):
 
         load annotations (header) using raw data read directly from a header file
         
-        Parameters:
-        -----------
+        Parameters
+        ----------
         header_data: list of str,
             list of lines read directly from a header file
         
-        Returns:
-        --------
+        Returns
+        -------
         ann_dict, dict,
             the annotations with items: ref. `self.ann_items`
         """
@@ -844,13 +845,13 @@ class CINC2021Reader(object):
     def _parse_diagnosis(self, l_Dx:List[str]) -> Tuple[dict, dict]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         l_Dx: list of str,
             raw information of diagnosis, read from a header file
 
-        Returns:
-        --------
+        Returns
+        -------
         diag_dict:, dict,
             diagnosis, including SNOMED CT Codes, fullnames and abbreviations of each diagnosis
         diag_scored_dict: dict,
@@ -898,13 +899,13 @@ class CINC2021Reader(object):
     def _parse_leads(self, l_leads_data:List[str]) -> pd.DataFrame:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         l_leads_data: list of str,
             raw information of each lead, read from a header file
 
-        Returns:
-        --------
+        Returns
+        -------
         df_leads: DataFrame,
             infomation of each leads in the format of DataFrame
         """
@@ -947,8 +948,8 @@ class CINC2021Reader(object):
 
         read labels (diagnoses or arrhythmias) of a record
         
-        Parameters:
-        -----------
+        Parameters
+        ----------
         rec: str,
             name of the record
         scored_only: bool, default True,
@@ -963,8 +964,8 @@ class CINC2021Reader(object):
             which are defined in `utils.scoring_aux_data.py`,
             and duplicates would be removed if exist after normalization
         
-        Returns:
-        --------
+        Returns
+        -------
         labels, list,
             the list of labels
         """
@@ -999,16 +1000,16 @@ class CINC2021Reader(object):
 
         get the sampling frequency of a record
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         rec: str,
             name of the record
         from_hea: bool, default True,
             if True, get sampling frequency from corresponding header file of the record;
             otherwise from `self.fs`
 
-        Returns:
-        --------
+        Returns
+        -------
         fs: real number,
             sampling frequency of the record `rec`
         """
@@ -1025,15 +1026,15 @@ class CINC2021Reader(object):
 
         read auxiliary information of a subject (a record) stored in the header files
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         rec: str,
             name of the record
         items: list of str, optional,
             items of the subject"s information (e.g. sex, age, etc.)
         
-        Returns:
-        --------
+        Returns
+        -------
         subject_info: dict,
             information about the subject, including
             "age", "sex", "medical_prescription", "history", "symptom_or_surgery",
@@ -1060,8 +1061,8 @@ class CINC2021Reader(object):
         
         TODO: update for the official phase
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         rec: str,
             name of the record
         output_dir: str,
@@ -1101,8 +1102,8 @@ class CINC2021Reader(object):
         with metadata (fs, labels, tranche, etc.),
         possibly also along with wave delineations
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         rec: str,
             name of the record
         data: ndarray, optional,
@@ -1281,13 +1282,13 @@ class CINC2021Reader(object):
         automatically infer the units of `data`,
         under the assumption that `data` not raw data, with baseline removed
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         data: ndarray,
             the data to infer its units
 
-        Returns:
-        --------
+        Returns
+        -------
         units: str,
             units of `data`, "μV" or "mV"
         """
@@ -1305,15 +1306,15 @@ class CINC2021Reader(object):
                                        scored_only:bool=True) -> Dict[str, int]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         tranches: sequence of str,
             tranche symbols (A-F)
         scored_only: bool, default True,
             only get class distributions that are scored in the CINC2021 official phase
         
-        Returns:
-        --------
+        Returns
+        -------
         distribution: dict,
             keys are abbrevations of the classes, values are appearance of corr. classes in the tranche.
         """
@@ -1333,8 +1334,8 @@ class CINC2021Reader(object):
 
         knowledge about ECG features of specific arrhythmias,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         arrhythmias: str, or list of str,
             the arrhythmia(s) to check, in abbreviations or in SNOMEDCTCode
         """
@@ -1364,8 +1365,8 @@ class CINC2021Reader(object):
         resample the data of `rec` to 500Hz,
         or load the resampled data in 500Hz, if the corr. data file already exists
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         rec: str,
             name of the record
         leads: str or list of str, optional,
@@ -1379,8 +1380,8 @@ class CINC2021Reader(object):
             if set, signal with length longer will be sliced to the length of `siglen`
             used for example when preparing/doing model training
 
-        Returns:
-        --------
+        Returns
+        -------
         data: ndarray,
             the resampled (and perhaps sliced) signal data
         """
@@ -1438,8 +1439,8 @@ class CINC2021Reader(object):
         load raw data from corresponding files with no further processing,
         in order to facilitate feeding data into the `run_12ECG_classifier` function
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         rec: str,
             name of the record
         backend: str, default "scipy",
@@ -1447,8 +1448,8 @@ class CINC2021Reader(object):
             note that "scipy" provides data in the format of "lead_first",
             while "wfdb" provides data in the format of "lead_last",
 
-        Returns:
-        --------
+        Returns
+        -------
         raw_data: ndarray,
             raw data (d_signal) loaded from corresponding data file,
             without subtracting baseline nor dividing adc gain
@@ -1473,8 +1474,8 @@ class CINC2021Reader(object):
         if exceptionally large values are encountered,
         this could help detect abnormal records as well
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         tranches: str or sequence of str,
             tranches to check
         """

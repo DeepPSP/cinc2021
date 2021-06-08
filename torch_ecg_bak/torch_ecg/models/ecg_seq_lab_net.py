@@ -58,8 +58,8 @@ class ECG_SEQ_LAB_NET(nn.Module):
     pipeline:
     multi-scopic cnn --> (bidi-lstm -->) "attention" --> seq linear
 
-    References:
-    -----------
+    References
+    ----------
     [1] Cai, Wenjie, and Danqin Hu. "QRS complex detection using novel deep learning neural networks." IEEE Access (2020).
     """
     __DEBUG__ = False
@@ -68,8 +68,8 @@ class ECG_SEQ_LAB_NET(nn.Module):
     def __init__(self, classes:Sequence[str], n_leads:int, input_len:Optional[int]=None, config:Optional[ED]=None) -> NoReturn:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         classes: list,
             list of the classes for sequence labeling
         n_leads: int,
@@ -167,8 +167,8 @@ class ECG_SEQ_LAB_NET(nn.Module):
     def forward(self, input:Tensor) -> Tensor:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input: Tensor,
             of shape (batch_size, channels, seq_len)
         """
@@ -203,15 +203,15 @@ class ECG_SEQ_LAB_NET(nn.Module):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int,
             length of the 1d sequence
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this block, given `seq_len` and `batch_size`
         """

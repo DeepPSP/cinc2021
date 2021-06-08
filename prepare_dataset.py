@@ -75,8 +75,8 @@ def run(input_directory:str,
         verbose:bool=False) -> NoReturn:
     """ finished, checked,
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     input_directory: str,
         directory containing the .tar.gz files of the records and headers
     output_directory: str, optional,

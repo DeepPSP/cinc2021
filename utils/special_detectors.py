@@ -59,8 +59,8 @@ def special_detectors(raw_sig:np.ndarray,
                       **kwargs:Any) -> dict:
     """ finished, checked,
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     raw_sig: ndarray,
         the raw multi-lead ecg signal, with units in mV
     fs: real number,
@@ -83,8 +83,8 @@ def special_detectors(raw_sig:np.ndarray,
             "2-lead", "3-lead"
         the default method is "2-lead"
 
-    Returns:
-    --------
+    Returns
+    -------
     conclusion: dict,
         probability or binary conclusion for each arrhythm
     """
@@ -133,8 +133,8 @@ def pacing_rhythm_detector(raw_sig:np.ndarray,
                            verbose:int=0) -> Real:
     """ finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     raw_sig: ndarray,
         the raw multi-lead ecg signal, with units in mV
     fs: real number,
@@ -151,8 +151,8 @@ def pacing_rhythm_detector(raw_sig:np.ndarray,
     verbose: int, default 0,
         print verbosity
 
-    Returns:
-    --------
+    Returns
+    -------
     is_PR: real number,
         probability for the ecg signal to be of pacing rhythm,
         or a binary disicion
@@ -251,8 +251,8 @@ def electrical_axis_detector(filtered_sig:np.ndarray,
     detector of the heart electrical axis by means of "2-lead" method or "3-lead" method,
     NOTE that the extreme axis is not checked and treated as "normal"
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     filtered_sig: ndarray,
         the filtered multi-lead ecg signal, with units in mV
     rpeaks: ndarray,
@@ -271,8 +271,8 @@ def electrical_axis_detector(filtered_sig:np.ndarray,
     verbose: int, default 0,
         print verbosity
 
-    Returns:
-    --------
+    Returns
+    -------
     axis: str,
         one of "normal", "LAD", "RAD",
         the heart electrical axis
@@ -386,8 +386,8 @@ def brady_tachy_detector(rpeaks:np.ndarray,
     this detector can be used alone (e.g. for the arrhythmia `Brady`),
     or combined with other detectors (e.g. for the arrhythmia `STach`)
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     rpeaks: ndarray,
         array of indices of the R peaks
     fs: real number,
@@ -398,8 +398,8 @@ def brady_tachy_detector(rpeaks:np.ndarray,
     verbose: int, default 0,
         print verbosity
 
-    Returns:
-    --------
+    Returns
+    -------
     conclusion: str,
         one of "T" (tachycardia), "B" (bradycardia), "N" (normal)
     """
@@ -437,8 +437,8 @@ def LQRSV_detector(filtered_sig:np.ndarray,
                    verbose:int=0) -> bool:
     """ finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     filtered_sig: ndarray,
         the filtered multi-lead ecg signal, with units in mV
     rpeaks: ndarray,
@@ -454,8 +454,8 @@ def LQRSV_detector(filtered_sig:np.ndarray,
     verbose: int, default 0,
         print verbosity
 
-    Returns:
-    --------
+    Returns
+    -------
     is_LQRSV: bool,
         the ecg signal is of arrhythmia `LQRSV` or not
     """
@@ -510,8 +510,8 @@ def LQRSV_detector_backup(filtered_sig:np.ndarray,
                    verbose:int=0) -> bool:
     """ finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     filtered_sig: ndarray,
         the filtered 12-lead ecg signal, with units in mV
     rpeaks: ndarray,
@@ -527,8 +527,8 @@ def LQRSV_detector_backup(filtered_sig:np.ndarray,
     verbose: int, default 0,
         print verbosity
 
-    Returns:
-    --------
+    Returns
+    -------
     is_LQRSV: bool,
         the ecg signal is of arrhythmia `LQRSV` or not
     """

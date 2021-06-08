@@ -173,8 +173,8 @@ class Bn_Activation(nn.Sequential):
                  dropout:float=0.0) -> NoReturn:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         num_features: int,
             number of features (channels) of the input (and output)
         activation: str or Module,
@@ -213,8 +213,8 @@ class Bn_Activation(nn.Sequential):
         """
         use the forward method of `nn.Sequential`
         
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input: Tensor,
             of shape (batch_size, n_channels, seq_len)
         """
@@ -224,15 +224,15 @@ class Bn_Activation(nn.Sequential):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int,
             length of the 1d sequence
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this `Bn_Activation` layer, given `seq_len` and `batch_size`
         """
@@ -270,8 +270,8 @@ class Conv_Bn_Activation(nn.Sequential):
                  **kwargs) -> NoReturn:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         in_channels: int,
             number of channels in the input signal
         out_channels: int,
@@ -433,8 +433,8 @@ class Conv_Bn_Activation(nn.Sequential):
         """
         use the forward method of `nn.Sequential`
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input: Tensor,
             of shape (batch_size, n_channels, seq_len)
         """
@@ -444,15 +444,15 @@ class Conv_Bn_Activation(nn.Sequential):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int,
             length of the 1d sequence
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this `Conv_Bn_Activation` layer, given `seq_len` and `batch_size`
         """
@@ -499,8 +499,8 @@ class MultiConv(nn.Sequential):
                  **config) -> NoReturn:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         in_channels: int,
             number of channels in the input
         out_channels: sequence of int,
@@ -611,15 +611,15 @@ class MultiConv(nn.Sequential):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int,
             length of the 1d sequence
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this `MultiConv` layer, given `seq_len` and `batch_size`
         """
@@ -659,8 +659,8 @@ class BranchedConv(nn.Module):
                  **config) -> NoReturn:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         in_channels: int,
             number of channels in the input
         out_channels: sequence of sequence of int,
@@ -741,15 +741,15 @@ class BranchedConv(nn.Module):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> List[Sequence[Union[int, None]]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int,
             length of the 1d sequence
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shapes: list of sequence,
             list of output shapes of each branch of this `BranchedConv` layer,
             given `seq_len` and `batch_size`
@@ -778,8 +778,8 @@ class SeparableConv(nn.Sequential):
 
     (Super-)Separable Convolution
 
-    References:
-    -----------
+    References
+    ----------
     [1] Kaiser, Lukasz, Aidan N. Gomez, and Francois Chollet. "Depthwise separable convolutions for neural machine translation." arXiv preprint arXiv:1706.03059 (2017).
     [2] https://github.com/Cadene/pretrained-models.pytorch/blob/master/pretrainedmodels/models/xception.py
     """
@@ -799,8 +799,8 @@ class SeparableConv(nn.Sequential):
                  **kwargs) -> NoReturn:
         """ finished, NOT checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         in_channels: int,
             number of channels in the input signal
         out_channels: int,
@@ -873,13 +873,13 @@ class SeparableConv(nn.Sequential):
     def forward(self, input:Tensor) -> Tensor:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input: Tensor,
             of shape (batch_size, n_channles, seq_len)
 
-        Returns:
-        --------
+        Returns
+        -------
         output: Tensor,
             of shape (batch_size, n_channles, seq_len)
         """
@@ -889,15 +889,15 @@ class SeparableConv(nn.Sequential):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int,
             length of the 1d sequence
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape, given `seq_len` and `batch_size`
         """
@@ -947,8 +947,8 @@ class DownSample(nn.Sequential):
                  mode:str="max") -> NoReturn:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         down_scale: int,
             scale (in terms of stride) of down sampling
         in_channels: int,
@@ -1047,8 +1047,8 @@ class DownSample(nn.Sequential):
         """
         use the forward method of `nn.Sequential`
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input: Tensor,
             of shape (batch_size, n_channels, seq_len)
         """
@@ -1067,15 +1067,15 @@ class DownSample(nn.Sequential):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int,
             length of the 1d sequence
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this `DownSample` layer, given `seq_len` and `batch_size`
         """
@@ -1123,8 +1123,8 @@ class BidirectionalLSTM(nn.Module):
                  **kwargs) -> NoReturn:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input_size: int,
             the number of features in the input
         hidden_size: int,
@@ -1158,8 +1158,8 @@ class BidirectionalLSTM(nn.Module):
 
     def forward(self, input:Tensor) -> Tensor:
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input: Tensor,
             of shape (seq_len, batch_size, n_channels)
         """
@@ -1171,15 +1171,15 @@ class BidirectionalLSTM(nn.Module):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int,
             length of the 1d sequence
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this `BidirectionalLSTM` layer, given `seq_len` and `batch_size`
         """
@@ -1198,8 +1198,8 @@ class StackedLSTM(nn.Sequential):
 
     stacked LSTM, which allows different hidden sizes for each LSTM layer
 
-    NOTE:
-    -----
+    NOTE
+    ----
     1. `batch_first` is fixed `False`
     2. currently, how to correctly pass the argument `hx` between LSTM layers is not known to me, hence should be careful (and not recommended, use `nn.LSTM` and set `num_layers` instead) to use
     """
@@ -1216,8 +1216,8 @@ class StackedLSTM(nn.Sequential):
                  **kwargs) -> NoReturn:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input_size: int,
             the number of features in the input
         hidden_sizes: sequence of int,
@@ -1277,14 +1277,14 @@ class StackedLSTM(nn.Sequential):
         """
         keep up with `nn.LSTM.forward`, parameters ref. `nn.LSTM.forward`
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input: Tensor,
             of shape (seq_len, batch_size, n_channels)
         hx: 2-tuple of Tensor, optional,
 
-        Returns:
-        --------
+        Returns
+        -------
         final_output: Tensor,
             of shape (seq_len, batch_size, n_channels) if `return_sequences` is True,
             otherwise of shape (batch_size, n_channels)
@@ -1306,15 +1306,15 @@ class StackedLSTM(nn.Sequential):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int,
             length of the 1d sequence
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this `StackedLSTM` layer, given `seq_len` and `batch_size`
         """
@@ -1343,8 +1343,8 @@ class AML_Attention(nn.Module):
     the feature extraction part is eliminated,
     with only the attention left,
 
-    References:
-    -----------
+    References
+    ----------
     [1] https://github.com/AMLab-Amsterdam/AttentionDeepMIL/blob/master/model.py#L6
     """
     __name__ = "AML_Attention"
@@ -1379,8 +1379,8 @@ class AML_GatedAttention(nn.Module):
 
     TODO: compare with `nn.MultiheadAttention`
 
-    References:
-    -----------
+    References
+    ----------
     [1] https://github.com/AMLab-Amsterdam/AttentionDeepMIL/blob/master/model.py#L72
     """
     __name__ = "AML_GatedAttention"
@@ -1423,8 +1423,8 @@ class AttentionWithContext(nn.Module):
     def __init__(self, in_channels:int, bias:bool=True, initializer:str="glorot_uniform"):
         """ finished, checked (might have bugs),
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         in_channels: int,
             number of channels in the input signal
         bias: bool, default True,
@@ -1460,16 +1460,16 @@ class AttentionWithContext(nn.Module):
     def compute_mask(self, input:Tensor, input_mask:Optional[Tensor]=None):
         """
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         to write
         """
         return None
 
     def forward(self, input:Tensor, mask:Optional[Tensor]=None) -> Tensor:
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input: Tensor,
             of shape (batch_size, seq_len, n_channels)
         mask: Tensor, optional,
@@ -1519,15 +1519,15 @@ class AttentionWithContext(nn.Module):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int,
             length of the 1d sequence
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this `AttentionWithContext` layer, given `seq_len` and `batch_size`
         """
@@ -1543,8 +1543,8 @@ class AttentionWithContext(nn.Module):
 
 class _ScaledDotProductAttention(nn.Module):
     """
-    References:
-    -----------
+    References
+    ----------
     [1] https://github.com/CyberZHG/torch-multi-head-attention
     """
     __DEBUG__ = False
@@ -1572,8 +1572,8 @@ class MultiHeadAttention(nn.Module):
 
     Multi-head attention.
 
-    References:
-    -----------
+    References
+    ----------
     [1] https://github.com/CyberZHG/torch-multi-head-attention
     """
     __DEBUG__ = False
@@ -1587,8 +1587,8 @@ class MultiHeadAttention(nn.Module):
                  **kwargs):
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         in_features: int,
             Size of each input sample
         head_num: int,
@@ -1667,15 +1667,15 @@ class MultiHeadAttention(nn.Module):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int,
             length of the 1d sequence
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this `MHA` layer, given `seq_len` and `batch_size`
         """
@@ -1709,8 +1709,8 @@ class SelfAttention(nn.Module):
                  **kwargs):
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         in_features: int,
             size of each input sample
         head_num: int,
@@ -1746,15 +1746,15 @@ class SelfAttention(nn.Module):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int,
             length of the 1d sequence
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this `SelfAttention` layer, given `seq_len` and `batch_size`
         """
@@ -1782,8 +1782,8 @@ class AttentivePooling(nn.Module):
                  **kwargs) -> NoReturn:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         in_channels: int,
             number of channels of input Tensor
         mid_channels: int, optional,
@@ -1810,8 +1810,8 @@ class AttentivePooling(nn.Module):
 
     def forward(self, input:Tensor) -> Tensor:
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input: Tensor,
             of shape (batch_size, seq_len, n_channels)
         """
@@ -1829,15 +1829,15 @@ class AttentivePooling(nn.Module):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int,
             length of the 1d sequence
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this `AttentivePooling` layer, given `seq_len` and `batch_size`
         """
@@ -1862,8 +1862,8 @@ class ZeroPadding(nn.Module):
     def __init__(self, in_channels:int, out_channels:int, loc:str="head") -> NoReturn:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         in_channels: int,
             number of channels in the input
         out_channels: int,
@@ -1882,8 +1882,8 @@ class ZeroPadding(nn.Module):
 
     def forward(self, input:Tensor) -> Tensor:
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input: Tensor,
             of shape (batch_size, n_channels, seq_len)
         """
@@ -1902,15 +1902,15 @@ class ZeroPadding(nn.Module):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int,
             length of the 1d sequence
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this `ZeroPadding` layer, given `seq_len` and `batch_size`
         """
@@ -1942,8 +1942,8 @@ class SeqLin(nn.Sequential):
                  **kwargs) -> NoReturn:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         in_channels: int,
             number of channels in the input
         out_channels: sequence of int,
@@ -2010,13 +2010,13 @@ class SeqLin(nn.Sequential):
 
     def forward(self, input:Tensor) -> Tensor:
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input: Tensor,
             of shape (batch_size, n_channels) or (batch_size, seq_len, n_channels)
         
-        Returns:
-        --------
+        Returns
+        -------
         output: Tensor,
             of shape (batch_size, n_channels) or (batch_size, seq_len, n_channels),
             ndim in accordance with `input`
@@ -2027,8 +2027,8 @@ class SeqLin(nn.Sequential):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None, input_seq:bool=True) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int, optional,
             length of the 1d sequence,
         batch_size: int, optional,
@@ -2037,8 +2037,8 @@ class SeqLin(nn.Sequential):
             if True, the input is a sequence (Tensor of dim 3) of vectors of features,
             otherwise a vector of features (Tensor of dim 2)
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this `SeqLin` layer, given `seq_len` and `batch_size`
         """
@@ -2060,8 +2060,8 @@ class NonLocalBlock(nn.Module):
 
     Non-local Neural Networks
 
-    References:
-    -----------
+    References
+    ----------
     [1] Wang, Xiaolong, et al. "Non-local neural networks." Proceedings of the IEEE conference on computer vision and pattern recognition. 2018.
     [2] https://github.com/AlexHex7/Non-local_pytorch
     """
@@ -2135,13 +2135,13 @@ class NonLocalBlock(nn.Module):
     def forward(self, x:Tensor) -> Tensor:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         x: Tensor,
             of shape (batch_size, n_channels, seq_len)
 
-        Returns:
-        --------
+        Returns
+        -------
         y: Tensor,
             of shape (batch_size, n_channels, seq_len)
         """
@@ -2165,16 +2165,16 @@ class NonLocalBlock(nn.Module):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int, optional,
             length of the 1d sequence,
             if is None, then the input is composed of single feature vectors for each batch
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this `NonLocalBlock` layer, given `seq_len` and `batch_size`
         """
@@ -2192,8 +2192,8 @@ class SEBlock(nn.Module):
 
     Squeeze-and-Excitation Block
 
-    References:
-    -----------
+    References
+    ----------
     [1] J. Hu, L. Shen, S. Albanie, G. Sun and E. Wu, "Squeeze-and-Excitation Networks," in IEEE Transactions on Pattern Analysis and Machine Intelligence, vol. 42, no. 8, pp. 2011-2023, 1 Aug. 2020, doi: 10.1109/TPAMI.2019.2913372.
     [2] J. Hu, L. Shen and G. Sun, "Squeeze-and-Excitation Networks," 2018 IEEE/CVF Conference on Computer Vision and Pattern Recognition, Salt Lake City, UT, 2018, pp. 7132-7141, doi: 10.1109/CVPR.2018.00745.
     [3] https://github.com/hujie-frank/SENet
@@ -2208,8 +2208,8 @@ class SEBlock(nn.Module):
     def __init__(self, in_channels:int, reduction:int=16, **config) -> NoReturn:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         in_channels: int,
             number of channels in the input
         reduction: int, default 16,
@@ -2243,13 +2243,13 @@ class SEBlock(nn.Module):
     def forward(self, input:Tensor) -> Tensor:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input: Tensor,
             of shape (batch_size, n_channels, seq_len)
         
-        Returns:
-        --------
+        Returns
+        -------
         output: Tensor,
             of shape (batch_size, n_channels, seq_len)
         """
@@ -2264,16 +2264,16 @@ class SEBlock(nn.Module):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int, optional,
             length of the 1d sequence,
             if is None, then the input is composed of single feature vectors for each batch
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this `SEBlock` layer, given `seq_len` and `batch_size`
         """
@@ -2291,8 +2291,8 @@ class GEBlock(nn.Module):
 
     Gather-excite Network
 
-    References:
-    -----------
+    References
+    ----------
     [1] Hu, J., Shen, L., Albanie, S., Sun, G., & Vedaldi, A. (2018). Gather-excite: Exploiting feature context in convolutional neural networks. Advances in neural information processing systems, 31, 9401-9411.
     [2] https://github.com/hujie-frank/GENet
     [3] https://github.com/BayesWatch/pytorch-GENet
@@ -2312,8 +2312,8 @@ class SKBlock(nn.Module):
 
     Selective Kernel Networks
 
-    References:
-    -----------
+    References
+    ----------
     [1] Li, X., Wang, W., Hu, X., & Yang, J. (2019). Selective kernel networks. In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 510-519).
     [2] https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/sknet.py
     """
@@ -2332,8 +2332,8 @@ class GlobalContextBlock(nn.Module):
 
     Global Context Block
 
-    References:
-    -----------
+    References
+    ----------
     [1] Cao, Yue, et al. "Gcnet: Non-local networks meet squeeze-excitation networks and beyond." Proceedings of the IEEE International Conference on Computer Vision Workshops. 2019.
     [2] https://github.com/xvjiarui/GCNet/blob/master/mmdet/ops/gcb/context_block.py
     [3] entry 0436 of CPSC2019
@@ -2354,8 +2354,8 @@ class GlobalContextBlock(nn.Module):
                  fusion_types:Sequence[str]=["add",]) -> NoReturn:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         in_channels: int,
             number of channels in the input
         ratio: int,
@@ -2414,8 +2414,8 @@ class GlobalContextBlock(nn.Module):
         x: Tensor,
             of shape (batch_size, n_channels, seq_len)
 
-        Returns:
-        --------
+        Returns
+        -------
         context: Tensor,
             of shape (batch_size, n_channels, 1)
         """
@@ -2439,8 +2439,8 @@ class GlobalContextBlock(nn.Module):
         input: Tensor,
             of shape (batch_size, n_channels, seq_len)
 
-        Returns:
-        --------
+        Returns
+        -------
         output: Tensor,
             of shape (batch_size, n_channels, seq_len)
         """
@@ -2459,16 +2459,16 @@ class GlobalContextBlock(nn.Module):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int, optional,
             length of the 1d sequence,
             if is None, then the input is composed of single feature vectors for each batch
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this `GlobalContextBlock` layer, given `seq_len` and `batch_size`
         """
@@ -2503,8 +2503,8 @@ class CRF(nn.Module):
         transitions (`~torch.nn.Parameter`): Transition score tensor of size
             ``(num_tags, num_tags)``.
 
-    References:
-    -----------
+    References
+    ----------
     [1] https://github.com/kmkurn/pytorch-crf
     [2] Lafferty, John, Andrew McCallum, and Fernando CN Pereira. "Conditional random fields: Probabilistic models for segmenting and labeling sequence data." (2001).
     [3] https://repository.upenn.edu/cis_papers/159/
@@ -2519,8 +2519,8 @@ class CRF(nn.Module):
     def __init__(self, num_tags:int, batch_first:bool=False) -> NoReturn:
         """
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         num_tags: int,
             number of tags.
         batch_first: bool, default False,
@@ -2557,8 +2557,8 @@ class CRF(nn.Module):
         Compute the negative conditional log likelihood (the loss function)
         of a sequence of tags given emission scores.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         emissions: Tensor,
             emission score tensor of shape (seq_len, batch_size, num_tags)
         tags: torch.LongTensor,
@@ -2573,8 +2573,8 @@ class CRF(nn.Module):
             ``mean``: the output will be averaged over batches.
             ``token_mean``: the output will be averaged over tokens.
 
-        Returns:
-        --------
+        Returns
+        -------
         nll: Tensor,
             The negative log likelihood.
             This will have size ``(batch_size,)`` if reduction is ``none``,
@@ -2615,15 +2615,15 @@ class CRF(nn.Module):
         """
         Find the most likely tag sequence using Viterbi algorithm.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         emissions: Tensor,
             emission score tensor of shape (seq_len, batch_size, num_tags)
         mask: torch.ByteTensor
             mask tensor of shape (seq_len, batch_size)
 
-        Returns:
-        --------
+        Returns
+        -------
         output: Tensor,
             one hot encoding Tensor of the most likely tag sequence
         """
@@ -2837,16 +2837,16 @@ class CRF(nn.Module):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int, optional,
             length of the 1d sequence,
             if is None, then the input is composed of single feature vectors for each batch
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this `CRF` layer, given `seq_len` and `batch_size`
         """
@@ -2869,8 +2869,8 @@ class ExtendedCRF(nn.Sequential):
     which allows the input size to be unequal to (usually greater than) num_tags,
     as in ref. 
 
-    References:
-    -----------
+    References
+    ----------
     [1] https://github.com/tensorflow/addons/blob/master/tensorflow_addons/layers/crf.py
     [2] https://github.com/tensorflow/addons/blob/master/tensorflow_addons/text/crf.py
     [3] https://github.com/keras-team/keras-contrib/blob/master/keras_contrib/layers/crf.py
@@ -2880,8 +2880,8 @@ class ExtendedCRF(nn.Sequential):
     def __init__(self, in_channels:int, num_tags:int, bias:bool=True) -> NoReturn:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         in_channels: int,
             number of channels in the input
         num_tags: int,
@@ -2913,13 +2913,13 @@ class ExtendedCRF(nn.Sequential):
     def forward(self, input:Tensor) -> Tensor:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         input: Tensor,
             of shape (batch_size, seq_len, n_channels)
 
-        Returns:
-        --------
+        Returns
+        -------
         output: Tensor,
             of shape (batch_size, seq_len, n_channels)
         """
@@ -2929,16 +2929,16 @@ class ExtendedCRF(nn.Sequential):
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         seq_len: int, optional,
             length of the 1d sequence,
             if is None, then the input is composed of single feature vectors for each batch
         batch_size: int, optional,
             the batch size, can be None
 
-        Returns:
-        --------
+        Returns
+        -------
         output_shape: sequence,
             the output shape of this layer, given `seq_len` and `batch_size`
         """
@@ -2960,8 +2960,8 @@ def weighted_binary_cross_entropy(sigmoid_x:Tensor,
                                   reduce:bool=True) -> Tensor:
     """ finished, checked,
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     sigmoid_x: Tensor,
         predicted probability of size [N,C], N sample and C Class.
         Eg. Must be in range of [0,1], i.e. Output from Sigmoid.
@@ -3008,8 +3008,8 @@ class WeightedBCELoss(nn.Module):
                  reduce:bool=True) -> NoReturn:
         """ checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         pos_weight: Tensor, default 1,
             Weight for postive samples. Size [1,C]
         weight: Tensor, optional,
@@ -3054,8 +3054,8 @@ class BCEWithLogitsWithClassWeightLoss(nn.BCEWithLogitsLoss):
     def __init__(self, class_weight:Tensor) -> NoReturn:
         """ finished, checked,
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         class_weight: Tensor,
             class weight, of shape (1, n_classes)
         """

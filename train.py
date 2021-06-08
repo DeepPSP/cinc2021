@@ -83,8 +83,8 @@ def train(model:nn.Module,
           debug:bool=False) -> OrderedDict:
     """ finished, checked,
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     model: Module,
         the model to train
     model_config: dict,
@@ -99,8 +99,8 @@ def train(model:nn.Module,
         if True, the training set itself would be evaluated 
         to check if the model really learns from the training set
 
-    TODO:
-    -----
+    TODO
+    ----
     1. add early stopping
     """
     msg = f"training configurations are as follows:\n{dict_to_str(config)}"
@@ -466,8 +466,8 @@ def evaluate(model:nn.Module,
              logger:Optional[logging.Logger]=None) -> Tuple[float,...]:
     """ finished, checked,
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     model: Module,
         the model to evaluate
     data_loader: DataLoader,
@@ -482,8 +482,8 @@ def evaluate(model:nn.Module,
         logger to record detailed evaluation output,
         if is None, detailed evaluation output will be printed
 
-    Returns:
-    --------
+    Returns
+    -------
     eval_res: tuple of float,
         evaluation results, including
         auroc, auprc, accuracy, f_measure, f_beta_measure, g_beta_measure, challenge_metric
