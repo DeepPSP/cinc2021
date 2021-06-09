@@ -66,6 +66,7 @@ def load_header(header_file):
 
 # Load recording file as an array.
 def load_recording(recording_file, header=None, leads=None, key='val'):
+    from scipy.io import loadmat
     recording = loadmat(recording_file)[key]
     if header and leads:
         recording = choose_leads(recording, header, leads)
@@ -131,13 +132,13 @@ def get_sex(header):
                 pass
     return sex
 
-# Get frequency from header.
+# Get number of leads from header.
 def get_num_leads(header):
     num_leads = None
     for i, l in enumerate(header.split('\n')):
         if i==0:
             try:
-                num_samples = float(l.split(' ')[1])
+                num_leads = float(l.split(' ')[1])
             except:
                 pass
         else:
