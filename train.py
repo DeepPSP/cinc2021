@@ -99,6 +99,11 @@ def train(model:nn.Module,
         if True, the training set itself would be evaluated 
         to check if the model really learns from the training set
 
+    Returns
+    -------
+    best_state_dict: OrderedDict,
+        state dict of the best model
+
     TODO
     ----
     1. add early stopping
