@@ -350,6 +350,8 @@ def train(model:nn.Module,
                 scheduler.step(metrics=eval_res[6])
             elif config.lr_scheduler.lower() == "step":
                 scheduler.step()
+            elif config.lr_scheduler.lower() in ["one_cycle", "onecycle",]:
+                scheduler.step()
 
             if debug:
                 eval_train_msg = f"""
@@ -632,9 +634,11 @@ if __name__ == "__main__":
         classes = config.classes
 
     if config.n_leads == 12:
-        model_config = deepcopy(ModelCfg.twelve_leads)  # TODO: adjust for CinC2021
+        model_config = deepcopy(ModelCfg.twelve_leads)
     elif config.n_leads == 6:
         model_config = deepcopy(ModelCfg.six_leads)
+    elif config.n_leads == 4:
+        model_config = deepcopy(ModelCfg.four_leads)
     elif config.n_leads == 3:
         model_config = deepcopy(ModelCfg.three_leads)
     elif config.n_leads == 2:
