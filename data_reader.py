@@ -351,7 +351,7 @@ class CINC2021Reader(object):
                     self._stats.at[idx, k] = ann_dict[k]
                 for k in ["diagnosis", "diagnosis_scored",]:
                     self._stats.at[idx, k] = ann_dict[k]["diagnosis_abbr"]
-                self.logger.debug(f"stats of {row.tranche_name} -- {row.record} --> gathered")
+                self.logger.debug(f"stats of {row.tranche_name} -- {row.record} --> ({idx+1} / {len(self._stats)}) gathered")
             _stats_to_save = self._stats.copy()
             for k in ["diagnosis", "diagnosis_scored",]:
                 _stats_to_save[k] = _stats_to_save[k].apply(lambda l: list_sep.join(l))
