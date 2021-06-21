@@ -351,6 +351,7 @@ class CINC2021Reader(object):
                     self._stats.at[idx, k] = ann_dict[k]
                 for k in ["diagnosis", "diagnosis_scored",]:
                     self._stats.at[idx, k] = ann_dict[k]["diagnosis_abbr"]
+                self.logger.debug(f"stats of {row.tranche_name} -- {row.record} --> gathered")
             _stats_to_save = self._stats.copy()
             for k in ["diagnosis", "diagnosis_scored",]:
                 _stats_to_save[k] = _stats_to_save[k].apply(lambda l: list_sep.join(l))
@@ -736,14 +737,14 @@ class CINC2021Reader(object):
             )
         except:
             pass
-        try: # see NOTE. 1.
+        try:  # see NOTE. 1.
             ann_dict["age"] = \
                 int([l for l in header_reader.comments if "Age" in l][0].split(": ")[-1])
         except:
             ann_dict["age"] = np.nan
-        try:
+        try:  # only "10726" has "NaN" sex
             ann_dict["sex"] = \
-                [l for l in header_reader.comments if "Sex" in l][0].split(": ")[-1]
+                [l for l in header_reader.comments if "Sex" in l][0].split(": ")[-1].replace("NaN", "Unknown")
         except:
             ann_dict["sex"] = "Unknown"
         try:
