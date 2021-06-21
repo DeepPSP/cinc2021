@@ -332,9 +332,9 @@ class CINC2021Reader(object):
         stats_file_fp = os.path.join(self.db_dir_base, stats_file)
         stats_file_fp_aux = os.path.join(utils._BASE_DIR, "utils", stats_file)
         if os.path.isfile(stats_file_fp):
-            self._stats = pd.read_csv(stats_file_fp)
+            self._stats = pd.read_csv(stats_file_fp, keep_default_na=False)
         elif os.path.isfile(stats_file_fp_aux):
-            self._stats = pd.read_csv(stats_file_fp_aux)
+            self._stats = pd.read_csv(stats_file_fp_aux, keep_default_na=False)
         if fast:
             return
         if self._stats.empty or self._stats_columns != set(self._stats.columns):
@@ -351,6 +351,8 @@ class CINC2021Reader(object):
                     self._stats.at[idx, k] = ann_dict[k]
                 for k in ["diagnosis", "diagnosis_scored",]:
                     self._stats.at[idx, k] = ann_dict[k]["diagnosis_abbr"]
+                for k in ["nb_leads", "fs", "nb_samples"]:
+                    self._stats[k] = self._stats[k].astype(int)
                 self.logger.debug(f"stats of {row.tranche_name} -- {row.record} --> ({idx+1} / {len(self._stats)}) gathered")
             _stats_to_save = self._stats.copy()
             for k in ["diagnosis", "diagnosis_scored",]:
