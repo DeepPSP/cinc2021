@@ -303,17 +303,25 @@ abbr_to_fullname = \
 fullname_to_abbr = ED({v:k for k,v in abbr_to_fullname.items()})
 
 
-equiv_class_dict = ED({
-    "CRBBB": "RBBB",
-    "SVPB": "PAC",
-    "VPB": "PVC",
-    "713427006": "59118001",
-    "63593006": "284470004",
-    "17338001": "427172004",
-    "complete right bundle branch block": "right bundle branch block",
-    "supraventricular premature beats": "premature atrial contraction",
-    "ventricular premature beats": "premature ventricular contractions",
-})
+# equiv_class_dict = ED({ # from unofficial phase, deprecated
+#     "CRBBB": "RBBB",
+#     "SVPB": "PAC",
+#     "VPB": "PVC",
+#     "713427006": "59118001",
+#     "63593006": "284470004",
+#     "17338001": "427172004",
+#     "complete right bundle branch block": "right bundle branch block",
+#     "supraventricular premature beats": "premature atrial contraction",
+#     "ventricular premature beats": "premature ventricular contractions",
+# })
+equiv_class_dict = {}
+for c in df_weights.columns:
+    if "|" not in c:
+        continue
+    v, k = c.split("|")
+    equiv_class_dict[k] = v
+    equiv_class_dict[snomed_ct_code_to_abbr[k]] = snomed_ct_code_to_abbr[v]
+    equiv_class_dict[snomed_ct_code_to_fullname[k]] = snomed_ct_code_to_fullname[v]
 
 
 # functions
@@ -574,30 +582,9 @@ def get_cooccurrence(c1:Union[str,int], c2:Union[str,int], ensure_scored:bool=Fa
         cooccurrence of class `c1` and `c2`, if they are not the same class;
         otherwise the occurrence of the class `c1` (also `c2`)
     """
+    if dx_cooccurrence_all is None or dx_cooccurrence_all.empty:
+        raise ValueError("dx_cooccurrence_all is not found, pre-compute it first!")
     _c1 = normalize_class(c1, ensure_scored=ensure_scored)
     _c2 = normalize_class(c2, ensure_scored=ensure_scored)
     cooccurrence = dx_cooccurrence_all.loc[_c1, _c2]
     return cooccurrence
-
-
-"""
-dx_cooccurrence_all is obtained via the following code
-
->>> db_dir = "/media/cfs/wenhao71/data/cinc2021_data/"
->>> working_dir = "./working_dir"
->>> dr = CINC2021Reader(db_dir=db_dir,working_dir=working_dir)
->>> dx_cooccurrence_all = pd.DataFrame(np.zeros((len(dx_mapping_all.Abbreviation), len(dx_mapping_all.Abbreviation)),dtype=int), columns=dx_mapping_all.Abbreviation.values)
->>> dx_cooccurrence_all.index = dx_mapping_all.Abbreviation.values
->>> for tranche, l_rec in dr.all_records.items():
-...     for rec in l_rec:
-...         ann = dr.load_ann(rec)
-...         d = ann["diagnosis"]["diagnosis_abbr"]
-...         for item in d:
-...             mat_cooccurance.loc[item,item] += 1
-...         for i in range(len(d)-1):
-...             for j in range(i+1,len(d)):
-...                 mat_cooccurance.loc[d[i],d[j]] += 1
-...                 mat_cooccurance.loc[d[j],d[i]] += 1
-
-the diagonal entries are total occurrence of corresponding arrhythmias in the dataset
-"""
