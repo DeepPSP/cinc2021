@@ -137,7 +137,7 @@ ventricular premature beats,17338001,VPB,0,8,0,0,0,357,294,0,659,We score 427172
 dx_mapping_scored = dx_mapping_scored.fillna("")
 dx_mapping_scored["SNOMEDCTCode"] = dx_mapping_scored["SNOMEDCTCode"].apply(str)
 dx_mapping_scored["CUSPHNFH"] = dx_mapping_scored["Chapman_Shaoxing"].values + dx_mapping_scored["Ningbo"].values
-dx_mapping_scored.columns = "Dx,SNOMEDCTCode,Abbreviation,CPSC,CPSC_Extra,StPetersburg,PTB,PTB_XL,Georgia,CUSPHNFH,Chapman_Shaoxing,Ningbo,Total,Notes".split(",")
+dx_mapping_scored = dx_mapping_scored["Dx,SNOMEDCTCode,Abbreviation,CPSC,CPSC_Extra,StPetersburg,PTB,PTB_XL,Georgia,CUSPHNFH,Chapman_Shaoxing,Ningbo,Total,Notes".split(",")]
 
 
 dx_mapping_unscored = pd.read_csv(StringIO("""Dx,SNOMEDCTCode,Abbreviation,CPSC,CPSC_Extra,StPetersburg,PTB,PTB_XL,Georgia,Chapman_Shaoxing,Ningbo,Total
@@ -246,7 +246,7 @@ wandering atrial pacemaker,195101003,WAP,0,0,0,0,0,7,2,0,9
 wolff parkinson white pattern,74390002,WPW,0,0,4,2,80,2,4,68,160"""))
 dx_mapping_unscored["SNOMEDCTCode"] = dx_mapping_unscored["SNOMEDCTCode"].apply(str)
 dx_mapping_unscored["CUSPHNFH"] = dx_mapping_unscored["Chapman_Shaoxing"].values + dx_mapping_unscored["Ningbo"].values
-dx_mapping_unscored.columns = "Dx,SNOMEDCTCode,Abbreviation,CPSC,CPSC_Extra,StPetersburg,PTB,PTB_XL,Georgia,CUSPHNFH,Chapman_Shaoxing,Ningbo,Total".split(",")
+dx_mapping_unscored = dx_mapping_unscored["Dx,SNOMEDCTCode,Abbreviation,CPSC,CPSC_Extra,StPetersburg,PTB,PTB_XL,Georgia,CUSPHNFH,Chapman_Shaoxing,Ningbo,Total".split(",")]
 
 
 dms = dx_mapping_scored.copy()
