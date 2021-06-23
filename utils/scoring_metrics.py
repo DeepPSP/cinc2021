@@ -10,6 +10,7 @@ from .scoring_aux_data import load_weights
 
 
 __all__ = [
+    "evaluate_scores_detailed",
     "evaluate_scores",
     "compute_auc",
     "compute_accuracy",
@@ -19,8 +20,81 @@ __all__ = [
 ]
 
 
-def evaluate_scores(classes:List[str], truth:Sequence, binary_pred:Sequence, scalar_pred:Sequence) -> Tuple[float]:
+def evaluate_scores_detailed(classes:List[str],
+                             truth:Sequence,
+                             binary_pred:Sequence,
+                             scalar_pred:Sequence) -> Tuple[Union[float, ndarray]]:
     """ finished, checked,
+
+    Parameters
+    ----------
+    classes: list of str,
+        list of all the classes, in the format of abbrevations
+    truth: sequence,
+        ground truth array, of shape (n_records, n_classes), with values 0 or 1
+    binary_pred: sequence,
+        binary predictions, of shape (n_records, n_classes), with values 0 or 1
+    scalar_pred: sequence,
+        probability predictions, of shape (n_records, n_classes), with values within [0,1]
+
+    Returns
+    -------
+    auroc: float,
+    auprc: float,
+    auroc_classes: ndarray,
+    auprc_classes: ndarray,
+    accuracy: float,
+    f_measure: float,
+    f_measure_classes: ndarray,
+    f_beta_measure: float,
+    g_beta_measure: float,
+    challenge_metric: float,
+    """
+    # sinus_rhythm = "426783006"
+    sinus_rhythm = "NSR"
+    weights = load_weights(classes=classes)
+
+    _truth = np.array(truth)
+    _binary_pred = np.array(binary_pred)
+    _scalar_pred = np.array(scalar_pred)
+
+    print("- AUROC and AUPRC...")
+    auroc, auprc, auroc_classes, auprc_classes = compute_auc(_truth, _scalar_pred)
+
+    print("- Accuracy...")
+    accuracy = compute_accuracy(_truth, _binary_pred)
+
+    print("- F-measure...")
+    f_measure, f_measure_classes = compute_f_measure(_truth, _binary_pred)
+
+    print("- F-beta and G-beta measures...")
+    # NOTE that F-beta and G-beta are not among metrics of CinC2021, in contrast to CinC2020
+    f_beta_measure, g_beta_measure = compute_beta_measures(_truth, _binary_pred, beta=2)
+
+    print("- Challenge metric...")
+    challenge_metric = compute_challenge_metric(weights, _truth, _binary_pred, classes, sinus_rhythm)
+
+    print("Done.")
+
+    # Return the results.
+    ret_tuple = (
+        auroc, auprc, auroc_classes, auprc_classes,
+        accuracy,
+        f_measure, f_measure_classes,
+        f_beta_measure, g_beta_measure,
+        challenge_metric,
+    )
+    return ret_tuple
+
+
+def evaluate_scores(classes:List[str],
+                    truth:Sequence,
+                    binary_pred:Sequence,
+                    scalar_pred:Sequence) -> Tuple[Union[float, ndarray]]:
+    """ finished, checked,
+
+    simplified version of `evaluate_scores_detailed`,
+    this function doesnot produce per class scores
 
     Parameters
     ----------
@@ -43,33 +117,8 @@ def evaluate_scores(classes:List[str], truth:Sequence, binary_pred:Sequence, sca
     g_beta_measure: float,
     challenge_metric: float,
     """
-    # normal_class = "426783006"
-    normal_class = "NSR"
-    # equivalent_classes = [["713427006", "59118001"], ["284470004", "63593006"], ["427172004", "17338001"]]
-    weights = load_weights(classes=classes)
-
-    _truth = np.array(truth)
-    _binary_pred = np.array(binary_pred)
-    _scalar_pred = np.array(scalar_pred)
-
-    print("- AUROC and AUPRC...")
-    auroc, auprc = compute_auc(_truth, _scalar_pred)
-
-    print("- Accuracy...")
-    accuracy = compute_accuracy(_truth, _binary_pred)
-
-    print("- F-measure...")
-    f_measure = compute_f_measure(_truth, _binary_pred)
-
-    print("- F-beta and G-beta measures...")
-    f_beta_measure, g_beta_measure = compute_beta_measures(_truth, _binary_pred, beta=2)
-
-    print("- Challenge metric...")
-    challenge_metric = compute_challenge_metric(weights, _truth, _binary_pred, classes, normal_class)
-
-    print("Done.")
-
-    # Return the results.
+    auroc, auprc, _, _, accuracy, f_measure, _, f_beta_measure, g_beta_measure, challenge_metric = \
+        evaluate_scores_detailed(classes, truth, binary_pred, scalar_pred)
     return auroc, auprc, accuracy, f_measure, f_beta_measure, g_beta_measure, challenge_metric
 
 
@@ -134,7 +183,7 @@ def compute_confusion_matrices(labels:np.ndarray, outputs:np.ndarray, normalize:
 
 
 # Compute macro F-measure.
-def compute_f_measure(labels:np.ndarray, outputs:np.ndarray) -> float:
+def compute_f_measure(labels:np.ndarray, outputs:np.ndarray) -> Tuple[float, np.ndarray]:
     """ checked,
     """
     num_recordings, num_classes = np.shape(labels)
@@ -149,9 +198,12 @@ def compute_f_measure(labels:np.ndarray, outputs:np.ndarray) -> float:
         else:
             f_measure[k] = float("nan")
 
-    macro_f_measure = np.nanmean(f_measure)
+    if np.any(np.isfinite(f_measure)):
+        macro_f_measure = np.nanmean(f_measure)
+    else:
+        macro_f_measure = float("nan")
 
-    return macro_f_measure
+    return macro_f_measure, f_measure
 
 
 # Compute F-beta and G-beta measures from the unofficial phase of the Challenge.
@@ -182,7 +234,7 @@ def compute_beta_measures(labels:np.ndarray, outputs:np.ndarray, beta:Real) -> T
 
 
 # Compute macro AUROC and macro AUPRC.
-def compute_auc(labels:np.ndarray, outputs:np.ndarray) -> Tuple[float, float]:
+def compute_auc(labels:np.ndarray, outputs:np.ndarray) -> Tuple[float, float, np.ndarray, np.ndarray]:
     """ checked,
     """
     num_recordings, num_classes = np.shape(labels)
@@ -255,10 +307,16 @@ def compute_auc(labels:np.ndarray, outputs:np.ndarray) -> Tuple[float, float]:
             auprc[k] += (tpr[j+1] - tpr[j]) * ppv[j+1]
 
     # Compute macro AUROC and macro AUPRC across classes.
-    macro_auroc = np.nanmean(auroc)
-    macro_auprc = np.nanmean(auprc)
+    if np.any(np.isfinite(auroc)):
+        macro_auroc = np.nanmean(auroc)
+    else:
+        macro_auroc = float("nan")
+    if np.any(np.isfinite(auprc)):
+        macro_auprc = np.nanmean(auprc)
+    else:
+        macro_auprc = float("nan")
 
-    return macro_auroc, macro_auprc
+    return macro_auroc, macro_auprc, auroc, auprc
 
 
 # Compute modified confusion matrix for multi-class, multi-label tasks.
@@ -282,15 +340,19 @@ def compute_modified_confusion_matrix(labels:np.ndarray, outputs:np.ndarray) -> 
                 for k in range(num_classes):
                     if outputs[i, k]:
                         A[j, k] += 1.0/normalization
+
     return A
 
 
 # Compute the evaluation metric for the Challenge.
-def compute_challenge_metric(weights:np.ndarray, labels:np.ndarray, outputs:np.ndarray, classes:List[str], normal_class:str) -> float:
+def compute_challenge_metric(weights:np.ndarray, labels:np.ndarray, outputs:np.ndarray, classes:List[str], sinus_rhythm:str) -> float:
     """ checked,
     """
     num_recordings, num_classes = np.shape(labels)
-    normal_index = classes.index(normal_class)
+    if sinus_rhythm in classes:
+        sinus_rhythm_index = classes.index(sinus_rhythm)
+    else:
+        raise ValueError("The sinus rhythm class is not available.")
 
     # Compute the observed score.
     A = compute_modified_confusion_matrix(labels, outputs)
@@ -301,9 +363,9 @@ def compute_challenge_metric(weights:np.ndarray, labels:np.ndarray, outputs:np.n
     A = compute_modified_confusion_matrix(labels, correct_outputs)
     correct_score = np.nansum(weights * A)
 
-    # Compute the score for the model that always chooses the normal class.
+    # Compute the score for the model that always chooses the sinus rhythm class.
     inactive_outputs = np.zeros((num_recordings, num_classes), dtype=np.bool)
-    inactive_outputs[:, normal_index] = 1
+    inactive_outputs[:, sinus_rhythm_index] = 1
     A = compute_modified_confusion_matrix(labels, inactive_outputs)
     inactive_score = np.nansum(weights * A)
 
