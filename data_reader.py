@@ -1541,7 +1541,7 @@ class CINC2021Reader(object):
                         dx_cooccurrence_all.loc[d[j],d[i]] += 1
                 print(f"tranche {tranche} <-- {idx+1} / {len(l_rec)}", end="\r")
             print("\n")
-        print(f"finish computing the cooccurrence matrix in {time.time()-start:.3f} minutes")
+        print(f"finish computing the cooccurrence matrix in {(time.time()-start)/60:.3f} minutes")
         if tranches is None:
             dx_cooccurrence_all.to_csv(dx_cooccurrence_all_fp)
         return dx_cooccurrence_all
