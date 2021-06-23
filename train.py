@@ -170,7 +170,7 @@ def train(model:nn.Module,
     writer = SummaryWriter(
         log_dir=config.log_dir,
         filename_suffix=f"OPT_{_model.__name__}_{config.cnn_name}_{config.train_optimizer}_LR_{lr}_BS_{batch_size}_tranche_{config.tranches_for_training or 'all'}",
-        comment=f"OPT_{——model.__name__}_{config.cnn_name}_{config.train_optimizer}_LR_{lr}_BS_{batch_size}_tranche_{config.tranches_for_training or 'all'}",
+        comment=f"OPT_{_model.__name__}_{config.cnn_name}_{config.train_optimizer}_LR_{lr}_BS_{batch_size}_tranche_{config.tranches_for_training or 'all'}",
     )
     
     # max_itr = n_epochs * n_train

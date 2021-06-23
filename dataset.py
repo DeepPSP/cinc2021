@@ -59,7 +59,7 @@ class CINC2021(Dataset):
         """
         super().__init__()
         self.config = deepcopy(config)
-        self._TRANCHES = self.config.tranche_classes.keys()  # ["A", "B", "AB", "E", "F"]
+        self._TRANCHES = self.config.tranche_classes.keys()  # ["A", "B", "AB", "E", "F", "G",]
         self.reader = CR(db_dir=config.db_dir)
         self.tranches = config.tranches_for_training
         self.training = training
@@ -175,7 +175,7 @@ class CINC2021(Dataset):
         start = time.time()
         print("\nstart performing train test split...\n")
         time.sleep(1)
-        _TRANCHES = list("ABEF")
+        _TRANCHES = list("ABEFG")
         _train_ratio = int(train_ratio*100)
         _test_ratio = 100 - _train_ratio
         assert _train_ratio * _test_ratio > 0
