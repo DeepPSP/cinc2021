@@ -34,7 +34,7 @@ References:
 [2] https://ecgwaves.com/
 [3] https://ecglibrary.com/ecghome.php
 [4] https://courses.cs.washington.edu/courses/cse466/13au/pdfs/lectures/ECG%20filtering.pdf
-[5] https://snomedbrowser.com/Codes/Details/
+[5] https://snomedbrowser.com/
 
 NOTE that wikipedia is NOT listed in the References
 """

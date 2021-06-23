@@ -157,6 +157,8 @@ class CINC2021Reader(object):
     >>> rec = "E04603"
     >>> dr.plot(rec, dr.load_data(rec, backend="scipy", units="uv"))  # currently raising error
     5. many records (headers) have duplicate labels. For example, many records in the Georgia subset has duplicate "PAC" ("284470004") label
+    6. some records in tranche G has #Dx ending with "," (at least "JS00344"), or consecutive "," (at least "JS03287") in corresponding .hea file
+    7. tranche G has 2 Dx ("251238007", "6180003") which are listed in neither of dx_mapping_scored.csv nor dx_mapping_unscored.csv
 
     References
     ----------
@@ -741,31 +743,34 @@ class CINC2021Reader(object):
             pass
         try:  # see NOTE. 1.
             ann_dict["age"] = \
-                int([l for l in header_reader.comments if "Age" in l][0].split(": ")[-1])
+                int([l for l in header_reader.comments if "Age" in l][0].split(":")[-1].strip())
         except:
             ann_dict["age"] = np.nan
         try:  # only "10726" has "NaN" sex
             ann_dict["sex"] = \
-                [l for l in header_reader.comments if "Sex" in l][0].split(": ")[-1].replace("NaN", "Unknown")
+                [l for l in header_reader.comments if "Sex" in l][0].split(":")[-1].strip().replace("NaN", "Unknown")
         except:
             ann_dict["sex"] = "Unknown"
         try:
             ann_dict["medical_prescription"] = \
-                [l for l in header_reader.comments if "Rx" in l][0].split(": ")[-1]
+                [l for l in header_reader.comments if "Rx" in l][0].split(":")[-1].strip()
         except:
             ann_dict["medical_prescription"] = "Unknown"
         try:
             ann_dict["history"] = \
-                [l for l in header_reader.comments if "Hx" in l][0].split(": ")[-1]
+                [l for l in header_reader.comments if "Hx" in l][0].split(":")[-1].strip()
         except:
             ann_dict["history"] = "Unknown"
         try:
             ann_dict["symptom_or_surgery"] = \
-                [l for l in header_reader.comments if "Sx" in l][0].split(": ")[-1]
+                [l for l in header_reader.comments if "Sx" in l][0].split(":")[-1].strip()
         except:
             ann_dict["symptom_or_surgery"] = "Unknown"
 
-        l_Dx = [l for l in header_reader.comments if "Dx" in l][0].split(": ")[-1].split(",")
+        # l_Dx = [l for l in header_reader.comments if "Dx" in l][0].split(": ")[-1].split(",")
+        # ref. ISSUE 6
+        l_Dx = [l for l in header_reader.comments if "Dx" in l][0].split(":")[-1].strip().split(",")
+        l_Dx = [d for d in l_Dx if len(d) > 0]
         ann_dict["diagnosis"], ann_dict["diagnosis_scored"] = self._parse_diagnosis(l_Dx)
 
         df_leads = pd.DataFrame()
@@ -1487,3 +1492,56 @@ class CINC2021Reader(object):
                 data = self.load_data(rec)
                 if np.isnan(data).any():
                     print(f"record {rec} from tranche {t} has nan values")
+
+
+    def _compute_cooccurrence(self, tranches:Optional[str]=None) -> pd.DataFrame:
+        """ finished, checked,
+
+        compute the coocurrence matrix (DataFrame) of all classes in the whole of the CinC2021 database
+
+        Parameters
+        ----------
+        tranches: str, optional,
+            if specified, computation will be limited to these tranches, case insensitive,
+            e.g. "AB", "ABEF", "G", etc.
+
+        Returns
+        -------
+        dx_cooccurrence_all: DataFrame,
+            the coocurrence matrix (DataFrame) desired
+        """
+        dx_cooccurrence_all_fp = os.path.join(utils._BASE_DIR, "utils", "dx_cooccurrence_all.csv")
+        if os.path.isfile(dx_cooccurrence_all_fp) and tranches is None:
+            dx_cooccurrence_all = pd.read_csv(dx_cooccurrence_all_fp)
+            return
+        dx_cooccurrence_all = pd.DataFrame(np.zeros((len(dx_mapping_all.Abbreviation), len(dx_mapping_all.Abbreviation)),dtype=int), columns=dx_mapping_all.Abbreviation.values)
+        dx_cooccurrence_all.index = dx_mapping_all.Abbreviation.values
+        start = time.time()
+        print("start computing the cooccurrence matrix...")
+        _tranches = (tranches or "").upper() or list(self.all_records.keys())
+        for tranche, l_rec in self.all_records.items():
+            if tranche not in _tranches:
+                continue
+            for idx, rec in enumerate(l_rec):
+                ann = self.load_ann(rec)
+                d = ann["diagnosis"]["diagnosis_abbr"]
+                for item in d:
+                    if item not in dx_cooccurrence_all.columns.values:
+                        # ref. ISSUE 7
+                        # print(f"{rec} has illegal Dx {item}!")
+                        continue
+                    dx_cooccurrence_all.loc[item,item] += 1
+                for i in range(len(d)-1):
+                    if d[i] not in dx_cooccurrence_all.columns.values:
+                        continue
+                    for j in range(i+1,len(d)):
+                        if d[j] not in dx_cooccurrence_all.columns.values:
+                            continue
+                        dx_cooccurrence_all.loc[d[i],d[j]] += 1
+                        dx_cooccurrence_all.loc[d[j],d[i]] += 1
+                print(f"tranche {tranche} <-- {idx+1} / {len(l_rec)}", end="\r")
+            print("\n")
+        print(f"finish computing the cooccurrence matrix in {time.time()-start:.3f} minutes")
+        if tranches is None:
+            dx_cooccurrence_all.to_csv(dx_cooccurrence_all_fp)
+        return dx_cooccurrence_all
