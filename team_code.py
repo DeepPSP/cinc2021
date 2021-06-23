@@ -117,13 +117,13 @@ def training_code(data_directory, model_directory):
 
     train_config.leads = twelve_leads
     train_config.n_leads = len(train_config.leads)
-    train_config.final_model_name = twelve_lead_model_filename
+    train_config.final_model_name = _ModelFilename[12]
     model_config = deepcopy(_ModelCfg.twelve_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    training_12_leads(train_config, model_config, logger)
+    training_n_leads(train_config, model_config, logger)
 
 
     # Train 6-lead ECG model.
@@ -131,16 +131,27 @@ def training_code(data_directory, model_directory):
 
     train_config.leads = six_leads
     train_config.n_leads = len(train_config.leads)
-    train_config.final_model_name = six_lead_model_filename
+    train_config.final_model_name = _ModelFilename[6]
     model_config = deepcopy(_ModelCfg.six_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    training_6_leads(train_config, model_config, logger)
+    training_n_leads(train_config, model_config, logger)
 
 
-    # TODO: add training 4-lead ECG model
+    # Train 4-lead ECG model.
+    print("Training 4-lead ECG model...")
+
+    train_config.leads = four_leads
+    train_config.n_leads = len(train_config.leads)
+    train_config.final_model_name = _ModelFilename[4]
+    model_config = deepcopy(_ModelCfg.four_leads)
+    model_config.cnn.name = train_config.cnn_name
+    model_config.rnn.name = train_config.rnn_name
+    model_config.attn.name = train_config.attn_name
+
+    training_n_leads(train_config, model_config, logger)
     
 
     # Train 3-lead ECG model.
@@ -148,13 +159,13 @@ def training_code(data_directory, model_directory):
 
     train_config.leads = three_leads
     train_config.n_leads = len(train_config.leads)
-    train_config.final_model_name = three_lead_model_filename
+    train_config.final_model_name = _ModelFilename[3]
     model_config = deepcopy(_ModelCfg.three_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    training_3_leads(train_config, model_config, logger)
+    training_n_leads(train_config, model_config, logger)
     
 
     # Train 2-lead ECG model.
@@ -162,19 +173,19 @@ def training_code(data_directory, model_directory):
 
     train_config.leads = two_leads
     train_config.n_leads = len(train_config.leads)
-    train_config.final_model_name = two_lead_model_filename
+    train_config.final_model_name = _ModelFilename[2]
     model_config = deepcopy(_ModelCfg.two_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    training_2_leads(train_config, model_config, logger)
+    training_n_leads(train_config, model_config, logger)
 
     print(f"Training finishes! Total time usage is {((time.time() - start_time) / 3600):.3f} hours.")
 
 
 
-def training_12_leads(train_config:ED, model_config:ED, logger:Logger) -> NoReturn:
+def training_n_leads(train_config:ED, model_config:ED, logger:Logger) -> NoReturn:
     """
     """
     tranches = train_config.tranches_for_training
@@ -188,102 +199,11 @@ def training_12_leads(train_config:ED, model_config:ED, logger:Logger) -> NoRetu
         # input_len=config.input_len,
         config=model_config,
     )
+    model.__DEBUG__ = False
 
     if torch.cuda.device_count() > 1:
         model = torch.nn.DataParallel(model)
     model.to(device=DEVICE)
-    model.__DEBUG__ = False
-
-    train(
-        model=model,
-        model_config=model_config,
-        config=train_config,
-        device=DEVICE,
-        logger=logger,
-        debug=train_config.debug,
-    )
-
-
-def training_6_leads(train_config:ED, model_config:ED, logger:Logger) -> NoReturn:
-    """
-    """
-    tranches = train_config.tranches_for_training
-    if tranches:
-        train_classes = train_config.tranche_classes[tranches]
-    else:
-        train_classes = train_config.classes
-    
-    model = ECG_CRNN_CINC2021(
-        classes=train_classes,
-        n_leads=train_config.n_leads,
-        config=model_config,
-    )
-
-    if torch.cuda.device_count() > 1:
-        model = torch.nn.DataParallel(model)
-    model.to(device=DEVICE)
-    model.__DEBUG__ = False
-
-    train(
-        model=model,
-        model_config=model_config,
-        config=train_config,
-        device=DEVICE,
-        logger=logger,
-        debug=train_config.debug,
-    )
-
-
-def training_3_leads(train_config:ED, model_config:ED, logger:Logger) -> NoReturn:
-    """
-    """
-    tranches = train_config.tranches_for_training
-    if tranches:
-        train_classes = train_config.tranche_classes[tranches]
-    else:
-        train_classes = train_config.classes
-
-    model = ECG_CRNN_CINC2021(
-        classes=train_classes,
-        n_leads=train_config.n_leads,
-        config=model_config,
-    )
-
-    if torch.cuda.device_count() > 1:
-        model = torch.nn.DataParallel(model)
-    model.to(device=DEVICE)
-    model.__DEBUG__ = False
-
-    train(
-        model=model,
-        model_config=model_config,
-        config=train_config,
-        device=DEVICE,
-        logger=logger,
-        debug=train_config.debug,
-    )
-
-
-def training_2_leads(train_config:ED, model_config:ED, logger:Logger) -> NoReturn:
-    """
-    """
-    tranches = train_config.tranches_for_training
-    if tranches:
-        train_classes = train_config.tranche_classes[tranches]
-    else:
-        train_classes = train_config.classes
-
-    model = ECG_CRNN_CINC2021(
-        classes=train_classes,
-        n_leads=train_config.n_leads,
-        config=model_config,
-    )
-
-    if torch.cuda.device_count() > 1:
-        # model = torch.nn.DataParallel(model)
-        model = torch.nn.parallel.DistributedDataParallel(model)
-    model.to(device=DEVICE)
-    model.__DEBUG__ = False
 
     train(
         model=model,
