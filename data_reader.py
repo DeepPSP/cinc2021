@@ -159,6 +159,7 @@ class CINC2021Reader(object):
     5. many records (headers) have duplicate labels. For example, many records in the Georgia subset has duplicate "PAC" ("284470004") label
     6. some records in tranche G has #Dx ending with "," (at least "JS00344"), or consecutive "," (at least "JS03287") in corresponding .hea file
     7. tranche G has 2 Dx ("251238007", "6180003") which are listed in neither of dx_mapping_scored.csv nor dx_mapping_unscored.csv
+    8. about 68 records from tranche G has `nan` values loaded via `wfdb.rdrecord`, which might be caused by motion artefact in some leads
 
     References
     ----------
@@ -247,6 +248,17 @@ class CINC2021Reader(object):
         # self.value_correction_factor.F = 4.88  # ref. ISSUES 3
 
         self.exceptional_records = ["E04603", "E06072", "E06909", "E07675", "E07941", "E08321"]  # ref. ISSUES 4
+        self.exceptional_records += [  # ref. ISSUE 8
+            "JS35065", "JS26793", "JS37176", "JS13181", "JS27985", "JS26605", "JS37173", "JS23588",
+            "JS36244", "JS15624", "JS35727", "JS25106", "JS21617", "JS25322", "JS35050", "JS35654",
+            "JS37609", "JS38252", "JS26245", "JS27460", "JS42026", "JS24016", "JS41935", "JS33280",
+            "JS14343", "JS35192", "JS14659", "JS37105", "JS34879", "JS37439", "JS27170", "JS36018",
+            "JS28075", "JS27278", "JS34788", "JS16169", "JS10765", "JS19708", "JS21853", "JS16222",
+            "JS38231", "JS27271", "JS36015", "JS11956", "JS36568", "JS34868", "JS20330", "JS37592",
+            "JS21668", "JS25458", "JS34479", "JS21881", "JS41844", "JS27034", "JS27407", "JS41908",
+            "JS26843", "JS34509", "JS16813", "JS36731", "JS23450", "JS27835", "JS10767", "JS21701",
+            "JS23786", "JS36189", "JS14627", "JS20656",
+        ]
 
 
     def get_subject_id(self, rec:str) -> int:

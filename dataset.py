@@ -26,6 +26,7 @@ from cfg_ns import (
 from data_reader import CINC2021Reader as CR
 from utils.utils_signal import ensure_siglen, butter_bandpass_filter
 from utils.misc import dict_to_str, list_sum
+from signal_processing.ecg_denoise import remove_spikes_naive
 
 
 if ModelCfg.torch_dtype.lower() == "double":
@@ -89,6 +90,7 @@ class CINC2021(Dataset):
         self.siglen = self.config.input_len
 
         self.records = self._train_test_split(config.train_ratio, force_recompute=False)
+        # TODO: consider using `remove_spikes_naive` to treat these exceptional records
         self.records = [r for r in self.records if r not in self.reader.exceptional_records]
 
         self.__data_aug = self.training
@@ -251,7 +253,7 @@ class CINC2021(Dataset):
 
         print(f"train test split finished in {(time.time()-start)/60:.2f} minutes")
 
-        _tranches = list(self.tranches or "ABEF")
+        _tranches = list(self.tranches or "ABEFG")
         if self.training:
             records = list_sum([train_set[k] for k in _tranches])
         else:
@@ -302,7 +304,7 @@ class CINC2021(Dataset):
 
         make the dataset persistent w.r.t. the tranches and the ratios in `self.config`
         """
-        _TRANCHES = "ABEF"
+        _TRANCHES = "ABEFG"
         prev_state = self.__data_aug
         self.disable_data_augmentation()
         if self.training:
@@ -343,7 +345,7 @@ class CINC2021(Dataset):
         prev_state = self.__data_aug
         self.disable_data_augmentation()
 
-        for idx, (values, labels) in self:
+        for idx, (values, labels) in enumerate(self):
             if np.isnan(values).any():
                 print(f"values of {self.records[idx]} have nan values")
             if np.isnan(labels).any():
