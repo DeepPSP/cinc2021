@@ -45,6 +45,7 @@ from torch import optim
 from torch import Tensor
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
+from torch.nn.parallel import DistributedDataParallel as DDP, DataParallel as DP
 from tensorboardX import SummaryWriter
 from easydict import EasyDict as ED
 
@@ -113,6 +114,11 @@ def train(model:nn.Module,
         logger.info(msg)
     else:
         print(msg)
+
+    if type(model).__name__ in ["DataParallel",]:  # TODO: further consider "DistributedDataParallel"
+        _model = model.module
+    else:
+        _model = model
 
     train_dataset = CINC2021(config=config, training=True)
 
