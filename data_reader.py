@@ -53,7 +53,7 @@ class CINC2021Reader(object):
     Will Two Do? Varying Dimensions in Electrocardiography:
     The PhysioNet/Computing in Cardiology Challenge 2021
 
-    ABOUT CINC2021
+    ABOUT CinC2021
     --------------
     0. goal: build an algorithm that can classify cardiac abnormalities from either
         - twelve-lead (I, II, III, aVR, aVL, aVF, V1, V2, V3, V4, V5, V6)
@@ -63,21 +63,21 @@ class CINC2021Reader(object):
         - two-lead (I, II)
     ECG recordings.
     1. tranches of data:
-        - CPSC2018 (tranches A and B of CINC2020):
+        - CPSC2018 (tranches A and B of CinC2020):
             contains 13,256 ECGs (6,877 from tranche A, 3,453 from tranche B),
             10,330 ECGs shared as training data, 1,463 retained as validation data,
             and 1,463 retained as test data.
             Each recording is between 6 and 144 seconds long with a sampling frequency of 500 Hz
-        - INCARTDB (tranche C of CINC2020):
+        - INCARTDB (tranche C of CinC2020):
             contains 75 annotated ECGs,
             all shared as training data, extracted from 32 Holter monitor recordings.
             Each recording is 30 minutes long with a sampling frequency of 257 Hz
-        - PTB (PTB and PTB-XL, tranches D and E of CINC2020):
+        - PTB (PTB and PTB-XL, tranches D and E of CinC2020):
             contains 22,353 ECGs,
             516 + 21,837, all shared as training data.
             Each recording is between 10 and 120 seconds long,
             with a sampling frequency of either 500 (PTB-XL) or 1,000 (PTB) Hz
-        - Georgia (tranche F of CINC2020):
+        - Georgia (tranche F of CinC2020):
             contains 20,678 ECGs,
             10,334 ECGs shared as training data, 5,167 retained as validation data,
             and 5,167 retained as test data.
@@ -86,7 +86,7 @@ class CINC2021Reader(object):
             contains 10,000 ECGs,
             all retained as test data,
             geographically distinct from the Georgia database.
-            Perhaps is the main part of the hidden test set of CINC2020
+            Perhaps is the main part of the hidden test set of CinC2020
         - CUSPHNFH (NEW, the Chapman University, Shaoxing People’s Hospital and Ningbo First Hospital database)
             contains 45,152 ECGS,
             all shared as training data.
@@ -101,7 +101,7 @@ class CINC2021Reader(object):
     using for example the following code:
     >>> db_dir = "/media/cfs/wenhao71/data/CinC2021/"
     >>> working_dir = "./working_dir"
-    >>> dr = CINC2020Reader(db_dir=db_dir,working_dir=working_dir)
+    >>> dr = CINC2021Reader(db_dir=db_dir,working_dir=working_dir)
     >>> set_leads = []
     >>> for tranche, l_rec in dr.all_records.items():
     ...     for rec in l_rec:
@@ -148,7 +148,7 @@ class CINC2021Reader(object):
     -----
     1. ECG arrhythmia detection
 
-    ISSUES: (all in CinC2020, left unfixed)
+    ISSUES: (all in CinC2021, left unfixed)
     -------
     1. reading the .hea files, baselines of all records are 0, however it is not the case if one plot the signal
     2. about half of the LAD records satisfy the "2-lead" criteria, but fail for the "3-lead" criteria, which means that their axis is (-30°, 0°) which is not truely LAD
@@ -187,7 +187,7 @@ class CINC2021Reader(object):
         verbose: int, default 2,
             print and log verbosity
         """
-        self.db_name = "CINC2021"
+        self.db_name = "CinC2021"
         self.working_dir = os.path.join(working_dir or os.getcwd(), "working_dir")
         os.makedirs(self.working_dir, exist_ok=True)
         self.verbose = verbose
@@ -830,31 +830,34 @@ class CINC2021Reader(object):
             pass
         try: # see NOTE. 1.
             ann_dict["age"] = \
-                int([l for l in header_data if l.startswith("#Age")][0].split(": ")[-1])
+                int([l for l in header_data if l.startswith("#Age")][0].split(":")[-1]).strip()
         except:
             ann_dict["age"] = np.nan
         try:
             ann_dict["sex"] = \
-                [l for l in header_data if l.startswith("#Sex")][0].split(": ")[-1]
+                [l for l in header_data if l.startswith("#Sex")][0].split(":")[-1].strip()
         except:
             ann_dict["sex"] = "Unknown"
         try:
             ann_dict["medical_prescription"] = \
-                [l for l in header_data if l.startswith("#Rx")][0].split(": ")[-1]
+                [l for l in header_data if l.startswith("#Rx")][0].split(":")[-1].strip()
         except:
             ann_dict["medical_prescription"] = "Unknown"
         try:
             ann_dict["history"] = \
-                [l for l in header_data if l.startswith("#Hx")][0].split(": ")[-1]
+                [l for l in header_data if l.startswith("#Hx")][0].split(":")[-1].strip()
         except:
             ann_dict["history"] = "Unknown"
         try:
             ann_dict["symptom_or_surgery"] = \
-                [l for l in header_data if l.startswith("#Sx")][0].split(": ")[-1]
+                [l for l in header_data if l.startswith("#Sx")][0].split(":")[-1].strip()
         except:
             ann_dict["symptom_or_surgery"] = "Unknown"
 
-        l_Dx = [l for l in header_data if l.startswith("#Dx")][0].split(": ")[-1].split(",")
+        # l_Dx = [l for l in header_data if l.startswith("#Dx")][0].split(": ")[-1].split(",")
+        # ref. ISSUE 6
+        l_Dx = [l for l in header_data if "Dx" in l][0].split(":")[-1].strip().split(",")
+        l_Dx = [d for d in l_Dx if len(d) > 0]
         ann_dict["diagnosis"], ann_dict["diagnosis_scored"] = self._parse_diagnosis(l_Dx)
 
         ann_dict["df_leads"] = self._parse_leads(header_data[1:13])
@@ -973,7 +976,7 @@ class CINC2021Reader(object):
         rec: str,
             name of the record
         scored_only: bool, default True,
-            only get the labels that are scored in the CINC2021 official phase
+            only get the labels that are scored in the CinC2021 official phase
         fmt: str, default "a",
             the format of labels, one of the following (case insensitive):
             - "a", abbreviations
@@ -1111,6 +1114,7 @@ class CINC2021Reader(object):
     def plot(self,
              rec:str,
              data:Optional[np.ndarray]=None,
+             ann:Optional[Dict[str, np.ndarray]]=None,
              ticks_granularity:int=0,
              leads:Optional[Union[str, List[str]]]=None,
              same_range:bool=False,
@@ -1131,8 +1135,12 @@ class CINC2021Reader(object):
             should be of the format "channel_first", and compatible with `leads`
             if given, data of `rec` will not be used,
             this is useful when plotting filtered data
+        ann: dict, optional,
+            annotations for `data`, with 2 items: "scored", "all",
+            ignored if `data` is None
         ticks_granularity: int, default 0,
-            the granularity to plot axis ticks, the higher the more
+            the granularity to plot axis ticks, the higher the more,
+            0 (no ticks) --> 1 (major ticks) --> 2 (major + minor ticks)
         leads: str or list of str, optional,
             the leads to plot
         same_range: bool, default False,
@@ -1144,13 +1152,13 @@ class CINC2021Reader(object):
             "t_onsets", "t_peaks", "t_offsets"
         kwargs: dict,
 
-        TODO:
-        -----
+        TODO
+        ----
         1. slice too long records, and plot separately for each segment
         2. plot waves using `axvspan`
 
-        NOTE:
-        -----
+        NOTE
+        ----
         `Locator` of `plt` has default `MAXTICKS` equal to 1000,
         if not modifying this number, at most 40 seconds of signal could be plotted once
 
@@ -1251,8 +1259,12 @@ class CINC2021Reader(object):
         palette = {"p_waves": "green", "qrs": "red", "t_waves": "pink",}
         plot_alpha = 0.4
 
-        diag_scored = self.get_labels(rec, scored_only=True, fmt="a")
-        diag_all = self.get_labels(rec, scored_only=False, fmt="a")
+        if ann is None or data is None:
+            diag_scored = self.get_labels(rec, scored_only=True, fmt="a")
+            diag_all = self.get_labels(rec, scored_only=False, fmt="a")
+        else:
+            diag_scored = ann["scored"]
+            diag_all = ann["all"]
 
         nb_leads = len(_leads)
 
@@ -1267,7 +1279,7 @@ class CINC2021Reader(object):
         if nb_leads == 1:
             axes = [axes]
         for idx in range(nb_leads):
-            axes[idx].plot(t, _data[idx], label=f"lead - {_leads[idx]}")
+            axes[idx].plot(t, _data[idx], color="black", label=f"lead - {_leads[idx]}")
             axes[idx].axhline(y=0, linestyle="-", linewidth="1.0", color="red")
             # NOTE that `Locator` has default `MAXTICKS` equal to 1000
             if ticks_granularity >= 1:
@@ -1331,7 +1343,7 @@ class CINC2021Reader(object):
         tranches: sequence of str,
             tranche symbols (A-F)
         scored_only: bool, default True,
-            only get class distributions that are scored in the CINC2021 official phase
+            only get class distributions that are scored in the CinC2021 official phase
         
         Returns
         -------
