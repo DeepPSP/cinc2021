@@ -168,7 +168,7 @@ TrainCfg.special_classes = deepcopy(_SPECIAL_CLASSES)
 TrainCfg.normalize_data = False  # should be False considering the existence of LQRSV
 TrainCfg.train_ratio = 0.8
 TrainCfg.min_class_weight = 0.5
-TrainCfg.tranches_for_training = ""  # one of "", "AB", "E", "F"
+TrainCfg.tranches_for_training = ""  # one of "", "AB", "E", "F", "G"
 
 TrainCfg.tranche_class_weights = ED({
     t: get_class_weight(
