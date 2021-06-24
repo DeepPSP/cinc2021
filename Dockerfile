@@ -30,6 +30,10 @@ WORKDIR /physionet
 # RUN apt update && apt upgrade -y && apt clean
 # RUN apt install -y python3.8 python3.8-dev python3.8-distutils python3-pip
 
+# https://stackoverflow.com/questions/55313610/importerror-libgl-so-1-cannot-open-shared-object-file-no-such-file-or-directo
+RUN apt update
+RUN apt install ffmpeg libsm6 libxext6  -y
+
 # RUN apt update && apt install -y --no-install-recommends \
 #         build-essential \
 #         curl \
