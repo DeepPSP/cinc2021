@@ -19,6 +19,10 @@ References: (mainly tips for faster and better training)
 2. (optim) https://www.fast.ai/2018/07/02/adam-weight-decay/
 3. (lr) https://spell.ml/blog/lr-schedulers-and-adaptive-optimizers-YHmwMhAAACYADm6F
 4. more....
+
+TODO
+----
+1. add `train_from_checkpoint`
 """
 
 import os
@@ -617,7 +621,7 @@ def get_args(**kwargs:Any):
     #     help="training optimizer",
     #     dest="train_optimizer")
     parser.add_argument(
-        "--debug", type=str2bool, default=False,
+        "-d", "--debug", action="store_true",
         help="train with more debugging information",
         dest="debug")
     
@@ -631,7 +635,6 @@ def get_args(**kwargs:Any):
 
 if __name__ == "__main__":
     config = get_args(**TrainCfg)
-    # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger = init_logger(log_dir=config.log_dir, verbose=2)
     logger.info(f"\n{'*'*20}   Start Training   {'*'*20}\n")
