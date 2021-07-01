@@ -31,8 +31,11 @@ from utils.utils_signal import ensure_siglen, butter_bandpass_filter
 from utils.scoring_aux_data import abbr_to_snomed_ct_code
 
 
-_TrainCfg = deepcopy(TrainCfg_ns)
-_ModelCfg = deepcopy(ModelCfg_ns)
+# NOTE: switch between ns and non-ns configs
+# _TrainCfg = deepcopy(TrainCfg_ns)
+# _ModelCfg = deepcopy(ModelCfg_ns)
+_TrainCfg = deepcopy(TrainCfg)
+_ModelCfg = deepcopy(ModelCfg)
 
 
 _ModelFilename = {
