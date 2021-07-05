@@ -207,7 +207,7 @@ TrainCfg.random_mask = int(TrainCfg.fs * 0.0)  # 1.0s, 0 for no masking
 TrainCfg.stretch_compress = 1.0  # stretch or compress in time axis
 
 # configs of training epochs, batch, etc.
-TrainCfg.n_epochs = 80
+TrainCfg.n_epochs = 40
 TrainCfg.batch_size = 64
 # TrainCfg.max_batches = 500500
 
@@ -230,7 +230,7 @@ TrainCfg.steps = [5000, 10000]
 
 TrainCfg.early_stopping = ED()  # early stopping according to challenge metric
 TrainCfg.early_stopping.min_delta = 0.001  # should be non-negative
-TrainCfg.early_stopping.patience = 6
+TrainCfg.early_stopping.patience = 8
 
 # configs of loss function
 # TrainCfg.loss = "BCEWithLogitsLoss"

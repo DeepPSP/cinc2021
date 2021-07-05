@@ -403,7 +403,7 @@ def train(model:nn.Module,
             elif config.early_stopping:
                 if eval_res[6] >= best_challenge_metric - config.early_stopping.min_delta:
                     pseudo_best_epoch = epoch + 1
-                elif epoch - pseudo_best_epoch > config.early_stopping.patience:
+                elif epoch - pseudo_best_epoch >= config.early_stopping.patience:
                     msg = f"early stopping is triggered at epoch {epoch + 1}"
                     if logger:
                         logger.info(msg)
