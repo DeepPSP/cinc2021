@@ -108,10 +108,6 @@ def train(model:nn.Module,
     -------
     best_state_dict: OrderedDict,
         state dict of the best model
-
-    TODO
-    ----
-    1. add early stopping
     """
     msg = f"training configurations are as follows:\n{dict_to_str(config)}"
     if logger:
@@ -273,7 +269,6 @@ def train(model:nn.Module,
     os.makedirs(config.model_dir, exist_ok=True)
 
     # monitor for training: challenge metric
-    # TODO: add early_stopping using this monitor
     best_state_dict = OrderedDict()
     best_challenge_metric = -np.inf
     best_eval_res = tuple()

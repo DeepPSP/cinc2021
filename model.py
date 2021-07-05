@@ -114,6 +114,7 @@ class ECG_CRNN_CINC2021(ECG_CRNN):
         return pred, bin_pred
 
 
+    @torch.no_grad()
     def inference_CINC2021(self,
                            input:Union[np.ndarray,Tensor],
                            class_names:bool=False,
