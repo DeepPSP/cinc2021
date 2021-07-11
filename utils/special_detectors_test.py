@@ -11,27 +11,36 @@ from cfg import (
     BaseCfg, Standard12Leads,
     twelve_leads, six_leads, four_leads, three_leads, two_leads,
 )
-from .misc import list_sum
+from .misc import list_sum, get_date_str
 from .special_detectors import special_detectors
 
 
 __all__ = ["test_sd",]
 
 
-DR = CINC2021Reader(db_dir=BaseCfg.db_dir)
+try:
+    DR = CINC2021Reader(db_dir=BaseCfg.db_dir)
+except:
+    DR = None
 
 
-def test_sd(rec:str, leads:Sequence[str]=Standard12Leads, verbose:int=0, dr:Optional[type(CINC2021Reader)]=None) -> dict:
+def test_sd(rec:str,
+            leads:Sequence[str]=Standard12Leads,
+            dr:Optional[type(CINC2021Reader)]=None,
+            verbose:int=0) -> dict:
     """
     """
     try:
-        ret_val = _test_sd(rec, leads, verbose, dr=dr)
+        ret_val = _test_sd(rec, leads, dr=dr, verbose=verbose)
     except:
         ret_val = {"rec": rec, "label": [], "pred": [], "err": "True"}
     return ret_val
 
 
-def _test_sd(rec:str, leads:Sequence[str]=Standard12Leads, verbose:int=0, dr:Optional[type(CINC2021Reader)]=None) -> dict:
+def _test_sd(rec:str,
+             leads:Sequence[str]=Standard12Leads,
+             dr:Optional[type(CINC2021Reader)]=None,
+             verbose:int=0) -> dict:
     """
     """
     _dr = dr or DR
@@ -68,6 +77,11 @@ def get_parser() -> dict:
         help=f"verbosity",
         dest="verbose",
     )
+    parser.add_argument(
+        "--log-every", type=int, default=200,
+        help="write to file per `log-every` records",
+        dest="log_every",
+    )
 
     args = vars(parser.parse_args())
 
@@ -76,9 +90,12 @@ def get_parser() -> dict:
 
 if __name__ == "main":
     args = get_parser()
-    size = args.get("proportion", 0.1)  # up to 1
+    size = args.get("proportion", 1)  # up to 1
+    log_every = args.get("log_every")
     db_dir = args.get("db_dir", None)
     _dr = CINC2021Reader(db_dir) if db_dir else DR
+    if _dr is None:
+        raise ValueError(f"data directory could not be found!")
     all_candidates = sorted(set(list_sum(
         sample(_dr.diagnoses_records_list[k], int(round(len(_dr.diagnoses_records_list[k])*size))) \
             for k in ["Brady", "STach", "SB", "LQRSV", "RAD", "LAD", "PR",]
@@ -101,9 +118,19 @@ if __name__ == "main":
     # NOTE that multiprocessing is used inside the signal preprocessing function,
     # hence test_sd could not be parallel computed
     for k, l in all_results.items():
+        save_fp = os.path.join(BaseCfg.log_dir, f"{k}_sd_res_{get_date_str()}.txt")
+        gather_res = ""
         for idx, rec in enumerate(all_candidates):
-            l.append(test_sd(rec, leads=leads[k], dr=_dr))
+            sd_res = test_sd(rec, leads=leads[k], dr=_dr)
+            gather_res += f"{json.dumps(sd_res, ensure_ascii=False)}\n"
+            if idx % log_every == 0:
+                with open(save_fp, "a") as f:
+                    f.write(gather_res)
+                gather_res = ""
+            l.append(sd_res)
             print(f"{k} --- {idx+1}/{len(all_candidates)}", end="\r")
+        with open(save_fp, "a") as f:
+            f.write(gather_res)
         print("\n")
 
     os.makedirs(BaseCfg.log_dir, exist_ok=True)
