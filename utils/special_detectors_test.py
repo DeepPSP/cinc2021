@@ -1,10 +1,33 @@
 """
 test of special detectors
 """
-import os, json
-from typing import Sequence, Optional
+import os, json, sys, importlib
+from pathlib import Path
+from typing import Sequence, Optional, NoReturn
 from random import sample
 import argparse
+
+_base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _base_dir)
+
+def import_parents(level:int=1) -> NoReturn:
+    # https://gist.github.com/vaultah/d63cb4c86be2774377aa674b009f759a
+    import sys, importlib
+    from pathlib import Path
+    global __package__
+    file = Path(__file__).resolve()
+    parent, top = file.parent, file.parents[level]
+    
+    sys.path.append(str(top))
+    try:
+        sys.path.remove(str(parent))
+    except ValueError: # already removed
+        pass
+    __package__ = '.'.join(parent.parts[len(top.parts):])
+    importlib.import_module(__package__) # won't be needed after that
+
+if __name__ == "__main__" and __package__ is None:
+    import_parents(level=1)
 
 from data_reader import CINC2021Reader
 from cfg import (
@@ -88,9 +111,10 @@ def get_parser() -> dict:
     return args
 
 
-if __name__ == "main":
+if __name__ == "__main__":
     args = get_parser()
-    size = args.get("proportion", 1)  # up to 1
+    print(f"args = {args}")
+    size = args.get("proportion") or 1  # up to 1
     log_every = args.get("log_every")
     db_dir = args.get("db_dir", None)
     _dr = CINC2021Reader(db_dir) if db_dir else DR
