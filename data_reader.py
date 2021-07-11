@@ -365,9 +365,9 @@ class CINC2021Reader(object):
                     self._stats.at[idx, k] = ann_dict[k]
                 for k in ["diagnosis", "diagnosis_scored",]:
                     self._stats.at[idx, k] = ann_dict[k]["diagnosis_abbr"]
-                for k in ["nb_leads", "fs", "nb_samples"]:
-                    self._stats[k] = self._stats[k].astype(int)
                 self.logger.debug(f"stats of {row.tranche_name} -- {row.record} --> ({idx+1} / {len(self._stats)}) gathered")
+            for k in ["nb_leads", "fs", "nb_samples"]:
+                self._stats[k] = self._stats[k].astype(int)
             _stats_to_save = self._stats.copy()
             for k in ["diagnosis", "diagnosis_scored",]:
                 _stats_to_save[k] = _stats_to_save[k].apply(lambda l: list_sep.join(l))
@@ -637,7 +637,7 @@ class CINC2021Reader(object):
             the ecg data
         """
         assert data_format.lower() in ["channel_first", "lead_first", "channel_last", "lead_last"]
-        tranche = self._get_tranche(rec)
+        # tranche = self._get_tranche(rec)
         if leads is None or leads == "all":
             _leads = self.all_leads
         elif isinstance(leads, str):
@@ -704,7 +704,7 @@ class CINC2021Reader(object):
         ann_dict, dict or str,
             the annotations with items: ref. `self.ann_items`
         """
-        tranche = self._get_tranche(rec)
+        # tranche = self._get_tranche(rec)
         ann_fp = self.get_ann_filepath(rec, with_ext=True)
         with open(ann_fp, "r") as f:
             header_data = f.read().splitlines()
@@ -1486,7 +1486,7 @@ class CINC2021Reader(object):
             raw data (d_signal) loaded from corresponding data file,
             without subtracting baseline nor dividing adc gain
         """
-        tranche = self._get_tranche(rec)
+        # tranche = self._get_tranche(rec)
         if backend.lower() == "wfdb":
             rec_fp = self.get_data_filepath(rec, with_ext=False)
             wfdb_rec = wfdb.rdrecord(rec_fp, physical=False)
