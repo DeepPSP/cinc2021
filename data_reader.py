@@ -830,7 +830,7 @@ class CINC2021Reader(object):
             pass
         try: # see NOTE. 1.
             ann_dict["age"] = \
-                int([l for l in header_data if l.startswith("#Age")][0].split(":")[-1]).strip()
+                int([l for l in header_data if l.startswith("#Age")][0].split(":")[-1].strip())
         except:
             ann_dict["age"] = np.nan
         try:
