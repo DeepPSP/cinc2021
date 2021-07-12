@@ -5,7 +5,7 @@ import sys
 from copy import deepcopy
 from math import sqrt
 from itertools import repeat
-from typing import Union, Sequence, Tuple, List, Optional, NoReturn
+from typing import Union, Sequence, Tuple, List, Optional, NoReturn, Any
 from numbers import Real
 
 from packaging import version
@@ -30,7 +30,7 @@ from ..utils.misc import dict_to_str
 
 
 __all__ = [
-    "Mish", "Swish",
+    "Mish", "Swish", "Hardswish",
     "Initializers", "Activations",
     "Bn_Activation", "Conv_Bn_Activation", "CBA",
     "MultiConv", "BranchedConv",
@@ -42,7 +42,7 @@ __all__ = [
     "MultiHeadAttention", "SelfAttention",
     "AttentivePooling",
     "ZeroPadding",
-    "SeqLin",
+    "SeqLin", "MLP",
     "NonLocalBlock", "SEBlock", "GlobalContextBlock",
     "CRF", "ExtendedCRF",
     "WeightedBCELoss", "BCEWithLogitsWithClassWeightLoss",
@@ -59,32 +59,68 @@ else:
 
 # ---------------------------------------------
 # activations
-class Mish(nn.Module):
-    """ The Mish activation """
-    __name__ = "Mish"
-    def __init__(self):
-        """
-        """
-        super().__init__()
+try:
+    Mish = nn.Mish  # pytorch added in version 1.9
+    Mish.__name__ = "Mish"
+except:
+    class Mish(nn.Module):
+        """ The Mish activation """
+        __name__ = "Mish"
+        def __init__(self):
+            """
+            """
+            super().__init__()
 
-    def forward(self, input:Tensor) -> Tensor:
-        """
-        """
-        return input * (torch.tanh(F.softplus(input)))
+        def forward(self, input:Tensor) -> Tensor:
+            """
+            """
+            return input * (torch.tanh(F.softplus(input)))
 
 
-class Swish(nn.Module):
-    """ The Swish activation """
-    __name__ = "Swish"
-    def __init__(self):
-        """
-        """
-        super().__init__()
+try:
+    Swish = nn.SiLU  # pytorch added in version 1.7
+    Swish.__name__ = "Swish"
+except:
+    class Swish(nn.Module):
+        """ The Swish activation """
+        __name__ = "Swish"
+        def __init__(self):
+            """
+            """
+            super().__init__()
 
-    def forward(self, input:Tensor) -> Tensor:
+        def forward(self, input:Tensor) -> Tensor:
+            """
+            """
+            return input * F.sigmoid(input)
+
+
+try:
+    Hardswish = nn.Hardswish  # pytorch added in version 1.6
+    Swish.__name__ = "Hardswish"
+except:
+    class Hardswish(nn.Module):
+        r"""Applies the hardswish function, element-wise, as described in the paper:
+        `Searching for MobileNetV3`_.
+        .. math::
+            \text{Hardswish}(x) = \begin{cases}
+                0 & \text{if~} x \le -3, \\
+                x & \text{if~} x \ge +3, \\
+                x \cdot (x + 3) /6 & \text{otherwise}
+            \end{cases}
+        .. _`Searching for MobileNetV3`:
+            https://arxiv.org/abs/1905.02244
         """
-        """
-        return input * F.sigmoid(input)
+        __name__ = "Hardswish"
+        def __init__(self):
+            """
+            """
+            super().__init__()
+
+        def forward(self, input:Tensor) -> Tensor:
+            """
+            """
+            return torch.clamp(input * (3 + input) / 6, min=0, max=input)
 
 
 # ---------------------------------------------
@@ -111,12 +147,14 @@ Initializers.constant = nn.init.constant_
 Activations = ED()
 Activations.mish = Mish
 Activations.swish = Swish
+Activations.hardswish = Hardswish
 Activations.relu = nn.ReLU
 Activations.leaky = nn.LeakyReLU
 Activations.leaky_relu = Activations.leaky
 Activations.tanh = nn.Tanh
 Activations.sigmoid = nn.Sigmoid
 Activations.softmax = nn.Softmax
+Activations.relu6 = nn.ReLU6
 # Activations.linear = None
 
 
@@ -154,6 +192,7 @@ _DEFAULT_CONV_CONFIGS = ED(
     kw_initializer={},
     ordering="cba",
     conv_type=None,
+    width_multiplier=1.0,
 )
 
 
@@ -250,6 +289,7 @@ class Conv_Bn_Activation(nn.Sequential):
     """ finished, checked,
 
     1d convolution --> batch normalization (optional) -- > activation (optional),
+    orderings can be adjusted,
     with "same" padding as default padding
     """
     __name__ = "Conv_Bn_Activation"
@@ -267,7 +307,7 @@ class Conv_Bn_Activation(nn.Sequential):
                  kernel_initializer:Optional[Union[str,callable]]=None,
                  bias:bool=True,
                  ordering:str="cba",
-                 **kwargs) -> NoReturn:
+                 **kwargs:Any) -> NoReturn:
         """ finished, checked,
 
         Parameters
@@ -292,7 +332,7 @@ class Conv_Bn_Activation(nn.Sequential):
         activation: str or Module, optional,
             name or Module of the activation,
             if is str, can be one of
-            "mish", "swish", "relu", "leaky", "leaky_relu", "linear",
+            "mish", "swish", "relu", "leaky", "leaky_relu", "linear", "hardswish", "relu6"
             "linear" is equivalent to `activation=None`
         kernel_initializer: str or callable (function), optional,
             a function to initialize kernel weights of the convolution,
@@ -303,7 +343,8 @@ class Conv_Bn_Activation(nn.Sequential):
             ordering of the layers, case insensitive
         kwargs: dict, optional,
             other key word arguments, including
-            conv_type, kw_activation, kw_initializer, kw_bn, etc.
+            `conv_type`, `kw_activation`, `kw_initializer`, `kw_bn`,
+            `alpha` (alias `width_multiplier`), etc.
 
         NOTE that if `padding` is not specified (default None),
         then the actual padding used for the convolutional layer is automatically computed
@@ -334,6 +375,10 @@ class Conv_Bn_Activation(nn.Sequential):
         self.__conv_type = kwargs.get("conv_type", None)
         if isinstance(self.__conv_type, str):
             self.__conv_type = self.__conv_type.lower()
+        self.__width_multiplier = kwargs.get("width_multiplier", None) or kwargs.get("alpha", None) or 1.0
+        self.__out_channels = int(self.__width_multiplier * self.__out_channels)
+        assert self.__out_channels % self.__groups == 0, \
+            f"width_multiplier (input is {self.__width_multiplier}) makes `out_channels` (= {self.__out_channels}) not divisible by `groups` (= {self.__groups})"
 
         if self.__conv_type is None:
             conv_layer = nn.Conv1d(
@@ -351,7 +396,8 @@ class Conv_Bn_Activation(nn.Sequential):
         elif self.__conv_type == "separable":
             conv_layer = SeparableConv(
                 in_channels=self.__in_channels,
-                out_channels=self.__out_channels,
+                # out_channels=self.__out_channels,
+                out_channels=out_channels,  # note the existence of `width_multiplier` in `kwargs`
                 kernel_size=self.__kernel_size,
                 stride=self.__stride,
                 padding=self.__padding,
@@ -365,9 +411,9 @@ class Conv_Bn_Activation(nn.Sequential):
             raise NotImplementedError(f"convolution of type {self.__conv_type} not implemented yet!")
         
         if "b" in self.__ordering and self.__ordering.index("c") < self.__ordering.index("b"):
-            bn_in_channels = out_channels
+            bn_in_channels = self.__out_channels
         else:
-            bn_in_channels = in_channels
+            bn_in_channels = self.__in_channels
         if batch_norm:
             if isinstance(batch_norm, bool):
                 bn_layer = nn.BatchNorm1d(bn_in_channels, **kw_bn)
@@ -408,6 +454,10 @@ class Conv_Bn_Activation(nn.Sequential):
                 self.add_module("batch_norm", bn_layer)
             if act_layer:
                 self.add_module(act_name, act_layer)
+        elif self.__ordering in ["cab"]:
+            self.add_module("conv1d", conv_layer)
+            self.add_module(act_name, act_layer)
+            self.add_module("batch_norm", bn_layer)
         elif self.__ordering in ["bac", "bc"]:
             if bn_layer:
                 self.add_module("batch_norm", bn_layer)
@@ -522,7 +572,7 @@ class MultiConv(nn.Sequential):
             then `out_activation` refers to the first activation
         config: dict,
             other parameters, including
-            type (separable or normal, etc.),
+            type (separable or normal, etc.), width multipliers,
             activation choices, weight initializer, batch normalization choices, etc.
             for the convolutional layers
             and ordering of convolutions and batch normalizations, activations if applicable
@@ -591,9 +641,10 @@ class MultiConv(nn.Sequential):
                     kw_initializer=self.config.kw_initializer,
                     ordering=self.config.ordering,
                     conv_type=self.config.conv_type,
+                    width_multiplier=self.config.width_multiplier,
                 ),
             )
-            conv_in_channels = oc
+            conv_in_channels = int(oc * self.config.width_multiplier)
             if dp > 0:
                 self.add_module(
                     f"dropout_{idx}",
@@ -796,8 +847,8 @@ class SeparableConv(nn.Sequential):
                  groups:int=1,
                  kernel_initializer:Optional[Union[str,callable]]=None,
                  bias:bool=True,
-                 **kwargs) -> NoReturn:
-        """ finished, NOT checked,
+                 **kwargs:Any) -> NoReturn:
+        """ finished, checked,
 
         Parameters
         ----------
@@ -820,6 +871,8 @@ class SeparableConv(nn.Sequential):
             or name or the initialzer, can be one of the keys of `Initializers`
         bias: bool, default True,
             if True, adds a learnable bias to the output
+        kwargs: dict, optional,
+            extra parameters, including `depth_multiplier`, `width_multiplier` (alias `alpha`), etc.
         """
         super().__init__()
         self.__in_channels = in_channels
@@ -835,12 +888,20 @@ class SeparableConv(nn.Sequential):
         self.__groups = groups
         self.__bias = bias
         kw_initializer = kwargs.get("kw_initializer", {})
+        self.__depth_multiplier = kwargs.get("depth_multiplier", 1)
+        dc_out_channels = int(self.__in_channels * self.__depth_multiplier)
+        assert dc_out_channels % self.__in_channels == 0, \
+            f"depth_multiplier (input is {self.__depth_multiplier}) should be positive integers"
+        self.__width_multiplier = kwargs.get("width_multiplier", None) or kwargs.get("alpha", None) or 1
+        self.__out_channels = int(self.__width_multiplier * self.__out_channels)
+        assert self.__out_channels % self.__groups == 0, \
+            f"width_multiplier (input is {self.__width_multiplier}) makes `out_channels` not divisible by `groups` (= {self.__groups})"
 
         self.add_module(
             "depthwise_conv",
             nn.Conv1d(
                 in_channels=self.__in_channels,
-                out_channels=self.__in_channels,
+                out_channels=dc_out_channels,
                 kernel_size=self.__kernel_size,
                 stride=self.__stride,
                 padding=self.__padding,
@@ -852,7 +913,7 @@ class SeparableConv(nn.Sequential):
         self.add_module(
             "pointwise_conv",
             nn.Conv1d(
-                in_channels=self.__in_channels,
+                in_channels=dc_out_channels,
                 out_channels=self.__out_channels,
                 groups=self.__groups,
                 bias=self.__bias,
@@ -917,6 +978,53 @@ class SeparableConv(nn.Sequential):
             kernel_size=1, stride=1, padding=0, dilation=1,
         )
         return output_shape
+
+    @property
+    def module_size(self) -> int:
+        """
+        """
+        return compute_module_size(self)
+
+
+class DeformConv(nn.Module):
+    """
+    
+    Deformable Convolution
+
+    References
+    ----------
+    [1] Dai, J., Qi, H., Xiong, Y., Li, Y., Zhang, G., Hu, H., & Wei, Y. (2017). Deformable convolutional networks. In Proceedings of the IEEE international conference on computer vision (pp. 764-773).
+    [2] Zhu, X., Hu, H., Lin, S., & Dai, J. (2019). Deformable convnets v2: More deformable, better results. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (pp. 9308-9316).
+    [3] https://github.com/open-mmlab/mmcv/blob/master/mmcv/ops/deform_conv.py
+    """
+    __name__ = "DeformConv"
+
+    def __init__(self,
+                 in_channels:int,
+                 out_channels:int,
+                 kernel_size:Union[int, Tuple[int, ...]],
+                 stride:Union[int, Tuple[int, ...]] = 1,
+                 padding:Union[int, Tuple[int, ...]] = 0,
+                 dilation:Union[int, Tuple[int, ...]] = 1,
+                 groups:int=1,
+                 deform_groups:int = 1,
+                 bias:bool=False) -> NoReturn:
+        """
+        docstring, to write
+        """
+        raise NotImplementedError
+
+    def forward(self, input:Tensor, offset:Tensor) -> Tensor:
+        """
+        docstring, to write
+        """
+        raise NotImplementedError
+
+    def compute_output_shape(self,) -> Sequence[Union[int, None]]:
+        """
+        docstring, to write
+        """
+        raise NotImplementedError
 
     @property
     def module_size(self) -> int:
@@ -1120,7 +1228,7 @@ class BidirectionalLSTM(nn.Module):
                  bias:bool=True,
                  dropout:float=0.0,
                  return_sequences:bool=True,
-                 **kwargs) -> NoReturn:
+                 **kwargs:Any) -> NoReturn:
         """ finished, checked,
 
         Parameters
@@ -1213,7 +1321,7 @@ class StackedLSTM(nn.Sequential):
                  dropouts:Union[float,Sequence[float]]=0.0,
                  bidirectional:bool=True,
                  return_sequences:bool=True,
-                 **kwargs) -> NoReturn:
+                 **kwargs:Any) -> NoReturn:
         """ finished, checked,
 
         Parameters
@@ -1584,7 +1692,7 @@ class MultiHeadAttention(nn.Module):
                  head_num:int,
                  bias:bool=True,
                  activation:Optional[Union[str,nn.Module]]="relu",
-                 **kwargs):
+                 **kwargs:Any):
         """ finished, checked,
 
         Parameters
@@ -1706,7 +1814,7 @@ class SelfAttention(nn.Module):
                  dropout:float=0.0,
                  bias:bool=True,
                  activation:Optional[Union[str,nn.Module]]="relu",
-                 **kwargs):
+                 **kwargs:Any):
         """ finished, checked,
 
         Parameters
@@ -1779,7 +1887,7 @@ class AttentivePooling(nn.Module):
                  mid_channels:Optional[int]=None,
                  activation:Optional[Union[str,nn.Module]]="tanh",
                  dropout:float=0.2,
-                 **kwargs) -> NoReturn:
+                 **kwargs:Any) -> NoReturn:
         """ finished, checked,
 
         Parameters
@@ -1939,7 +2047,7 @@ class SeqLin(nn.Sequential):
                  kernel_initializer:Optional[str]=None,
                  bias:bool=True,
                  dropouts:Union[float,Sequence[float]]=0.0,
-                 **kwargs) -> NoReturn:
+                 **kwargs:Any) -> NoReturn:
         """ finished, checked,
 
         Parameters
@@ -2055,6 +2163,42 @@ class SeqLin(nn.Sequential):
         return compute_module_size(self)
 
 
+class MLP(SeqLin):
+    """
+    multi-layer perceptron,
+    alias for sequential linear block
+    """
+    __DEBUG__ = False
+    __name__ = "MLP"
+
+    def __init__(self,
+                 in_channels:int,
+                 out_channels:Sequence[int],
+                 activation:str="relu",
+                 kernel_initializer:Optional[str]=None,
+                 bias:bool=True,
+                 dropouts:Union[float,Sequence[float]]=0.0,
+                 **kwargs:Any) -> NoReturn:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        in_channels: int,
+            number of channels in the input
+        out_channels: sequence of int,
+            number of ouput channels for each linear layer
+        activation: str, default "relu",
+            name of activation after each linear layer
+        kernel_initializer: str, optional,
+            name of kernel initializer for `weight` of each linear layer
+        bias: bool, default True,
+            if True, each linear layer will have a learnable bias vector
+        dropouts: float or sequence of float, default 0,
+            dropout ratio(s) (if > 0) after each (activation after each) linear layer
+        """
+        super().__init__(in_channels, out_channels, activation, kernel_initializer, bias, dropouts, **kwargs)
+
+
 class NonLocalBlock(nn.Module):
     """
 
@@ -2077,7 +2221,7 @@ class NonLocalBlock(nn.Module):
                  **config) -> NoReturn:
         """ finished, checked,
 
-        Paramters:
+        Parameters
         ----------
         in_channels: int,
             number of channels in the input
@@ -2409,7 +2553,7 @@ class GlobalContextBlock(nn.Module):
     def spatial_pool(self, x:Tensor) -> Tensor:
         """ finished, checked,
 
-        Paramters:
+        Parameters
         ----------
         x: Tensor,
             of shape (batch_size, n_channels, seq_len)
@@ -2434,7 +2578,7 @@ class GlobalContextBlock(nn.Module):
     def forward(self, input:Tensor) -> Tensor:
         """ finished, checked,
         
-        Paramters:
+        Parameters
         ----------
         input: Tensor,
             of shape (batch_size, n_channels, seq_len)

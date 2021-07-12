@@ -7,8 +7,8 @@ divided by the length (counted by the number of basic blocks) of each branch
 pipeline:
 multi-scopic cnn --> (bidi-lstm -->) "attention" (se block) --> seq linear
 
-References:
------------
+References
+----------
 [1] Cai, Wenjie, and Danqin Hu. "QRS complex detection using novel deep learning neural networks." IEEE Access (2020).
 """
 from copy import deepcopy
@@ -30,7 +30,7 @@ from ..cfg import Cfg
 from ..utils.utils_nn import compute_conv_output_shape, compute_module_size
 from ..utils.misc import dict_to_str
 from ..model_configs.ecg_seq_lab_net import ECG_SEQ_LAB_NET_CONFIG
-from .nets import (
+from ._nets import (
     Mish, Swish, Activations,
     Bn_Activation, Conv_Bn_Activation,
     SEBlock,
@@ -55,7 +55,8 @@ class ECG_SEQ_LAB_NET(nn.Module):
 
     SOTA model from CPSC2019 challenge (entry 0416)
 
-    pipeline:
+    pipeline
+    --------
     multi-scopic cnn --> (bidi-lstm -->) "attention" --> seq linear
 
     References
@@ -96,7 +97,7 @@ class ECG_SEQ_LAB_NET(nn.Module):
         __debug_seq_len = self.input_len or 4000
         
         # currently, the CNN part only uses `MultiScopicCNN`
-        # can be 'multi_scopic' or 'multi_scopic_leadwise'
+        # can be "multi_scopic" or "multi_scopic_leadwise"
         cnn_choice = self.config.cnn.name.lower()
         self.cnn = MultiScopicCNN(self.n_leads, **(self.config.cnn[cnn_choice]))
         rnn_input_size = self.cnn.compute_output_shape(self.input_len, batch_size=None)[1]
@@ -106,10 +107,10 @@ class ECG_SEQ_LAB_NET(nn.Module):
             print(f"cnn output shape (batch_size, features, seq_len) = {cnn_output_shape}, given input seq_len = {__debug_seq_len}")
             __debug_seq_len = cnn_output_shape[-1]
 
-        if self.config.rnn.name.lower() == 'none':
+        if self.config.rnn.name.lower() == "none":
             self.rnn = None
             attn_input_size = rnn_input_size
-        elif self.config.rnn.name.lower() == 'lstm':
+        elif self.config.rnn.name.lower() == "lstm":
             self.rnn = StackedLSTM(
                 input_size=rnn_input_size,
                 hidden_sizes=self.config.rnn.lstm.hidden_sizes,
@@ -164,13 +165,20 @@ class ECG_SEQ_LAB_NET(nn.Module):
         self.softmax = nn.Softmax(-1)
         self.sigmoid = nn.Sigmoid()
 
-    def forward(self, input:Tensor) -> Tensor:
+    def extract_features(self, input:Tensor) -> Tensor:
         """ finished, checked,
+
+        extract feature map before the dense (linear) classifying layer(s)
 
         Parameters
         ----------
         input: Tensor,
             of shape (batch_size, channels, seq_len)
+        
+        Returns
+        -------
+        features: Tensor,
+            of shape (batch_size, seq_len, channels)
         """
         # cnn
         cnn_output = self.cnn(input)  # (batch_size, channels, seq_len)
@@ -184,13 +192,29 @@ class ECG_SEQ_LAB_NET(nn.Module):
             rnn_output = cnn_output
 
         # attention
-        x = self.attn(rnn_output)  # (batch_size, channels, seq_len)
-        x = x.permute(0,2,1)  # (batch_size, seq_len, channels)
+        features = self.attn(rnn_output)  # (batch_size, channels, seq_len)
+        features = features.permute(0,2,1)  # (batch_size, seq_len, channels)
+        return features
+
+    def forward(self, input:Tensor) -> Tensor:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        input: Tensor,
+            of shape (batch_size, channels, seq_len)
+        
+        Returns
+        -------
+        pred: Tensor,
+            of shape (batch_size, seq_len)
+        """
+        features = self.extract_features(input)
 
         # classify
-        output = self.clf(x)
+        pred = self.clf(features)
 
-        return output
+        return pred
 
     # inference will not be included in the model itself
     # as it is strongly related to the usage scenario

@@ -349,8 +349,8 @@ def detect_peaks(x:Sequence,
     ind : 1D array_like
         indeces of the peaks in `x`.
 
-    Notes
-    -----
+    NOTE
+    ----
     The detection of valleys instead of peaks is performed internally by simply
     negating the data: `ind_valleys = detect_peaks(-x)`
     

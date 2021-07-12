@@ -1,8 +1,8 @@
 """
 darknet, backbone for the famous image object detector,
 
-References:
------------
+References
+----------
 [1] Redmon, J., Divvala, S., Girshick, R., & Farhadi, A. (2016). You only look once: Unified, real-time object detection. In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 779-788).
 [2] Redmon, J., & Farhadi, A. (2017). YOLO9000: better, faster, stronger. In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 7263-7271).
 [3] Redmon, J., & Farhadi, A. (2018). Yolov3: An incremental improvement. arXiv preprint arXiv:1804.02767.
@@ -24,7 +24,7 @@ from easydict import EasyDict as ED
 from ...cfg import Cfg
 from ...utils.utils_nn import compute_module_size
 from ...utils.misc import dict_to_str, list_sum
-from ...models.nets import (
+from ...models._nets import (
     Conv_Bn_Activation,
     DownSample,
     NonLocalBlock, SEBlock, GlobalContextBlock,
