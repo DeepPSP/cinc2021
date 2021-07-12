@@ -53,12 +53,12 @@ from torch.nn.parallel import DistributedDataParallel as DDP, DataParallel as DP
 from tensorboardX import SummaryWriter
 from easydict import EasyDict as ED
 
-# from torch_ecg.torch_ecg.models.nets import BCEWithLogitsWithClassWeightLoss
+# from torch_ecg.torch_ecg.models._nets import BCEWithLogitsWithClassWeightLoss
 # from torch_ecg.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
 # from torch_ecg.torch_ecg.utils.misc import (
 #     init_logger, get_date_str, dict_to_str, str2bool,
 # )
-from torch_ecg_bak.torch_ecg.models.nets import BCEWithLogitsWithClassWeightLoss
+from torch_ecg_bak.torch_ecg.models._nets import BCEWithLogitsWithClassWeightLoss
 from torch_ecg_bak.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
 from torch_ecg_bak.torch_ecg.utils.misc import (
     init_logger, get_date_str, dict_to_str, str2bool,
