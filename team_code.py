@@ -20,7 +20,7 @@ from easydict import EasyDict as ED
 from scipy.signal import resample, resample_poly
 
 from train import train
-from helper_code import twelve_leads, six_leads, four_leads, three_leads, two_leads, lead_sets
+# from helper_code import twelve_leads, six_leads, four_leads, three_leads, two_leads, lead_sets
 from cfg import TrainCfg, ModelCfg, SpecialDetectorCfg
 from cfg_ns import TrainCfg as TrainCfg_ns, ModelCfg as ModelCfg_ns
 from model import ECG_CRNN_CINC2021
@@ -29,6 +29,15 @@ from utils.utils_nn import extend_predictions
 from utils.misc import get_date_str, dict_to_str, init_logger, rdheader
 from utils.utils_signal import ensure_siglen, butter_bandpass_filter
 from utils.scoring_aux_data import abbr_to_snomed_ct_code
+
+
+# Define the Challenge lead sets. These variables are not required. You can change or remove them.
+twelve_leads = ('I', 'II', 'III', 'aVR', 'aVL', 'aVF', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6')
+six_leads = ('I', 'II', 'III', 'aVR', 'aVL', 'aVF')
+four_leads = ('I', 'II', 'III', 'V2')
+three_leads = ('I', 'II', 'V2')
+two_leads = ('I', 'II')
+lead_sets = (twelve_leads, six_leads, four_leads, three_leads, two_leads)
 
 
 # NOTE: switch between ns and non-ns configs
