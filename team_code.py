@@ -101,12 +101,12 @@ def training_code(data_directory, model_directory):
     num_classes = len(classes)
 
 
-    # configs and logger
+    # general configs and logger
     train_config = deepcopy(_TrainCfg)
     train_config.db_dir = data_directory
     train_config.model_dir = model_directory
     train_config.debug = False
-    train_config.n_epochs = 45
+    train_config.n_epochs = 20
     train_config.batch_size = 32  # training 12-lead model sometimes requires GPU memory more than 16G (Tesla T4)
 
     tranches = train_config.tranches_for_training
@@ -158,6 +158,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = four_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = _ModelFilename[4]
+    # train_config.batch_size = 64
     model_config = deepcopy(_ModelCfg.four_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
@@ -172,6 +173,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = three_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = _ModelFilename[3]
+    train_config.batch_size = 64
     model_config = deepcopy(_ModelCfg.three_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
@@ -186,6 +188,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = two_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = _ModelFilename[2]
+    train_config.batch_size = 64
     model_config = deepcopy(_ModelCfg.two_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
