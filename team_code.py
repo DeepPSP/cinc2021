@@ -106,7 +106,7 @@ def training_code(data_directory, model_directory):
     train_config.db_dir = data_directory
     train_config.model_dir = model_directory
     train_config.debug = False
-    train_config.n_epochs = 20
+    train_config.n_epochs = 30
     train_config.batch_size = 32  # training 12-lead model sometimes requires GPU memory more than 16G (Tesla T4)
 
     tranches = train_config.tranches_for_training
