@@ -191,6 +191,8 @@ class CINC2021(Dataset):
             train_file = os.path.join(_BASE_DIR, "utils", f"train_ratio_{_train_ratio}{file_suffix}")
             test_file = os.path.join(_BASE_DIR, "utils", f"test_ratio_{_test_ratio}{file_suffix}")
 
+        # TODO: use self.reader.df_stats (precomputed and stored in utils/stats.csv)
+        # to accelerate the validity examinations
         if force_recompute or not all([os.path.isfile(train_file), os.path.isfile(test_file)]):
             tranche_records = {t: [] for t in _TRANCHES}
             train_set = {t: [] for t in _TRANCHES}
