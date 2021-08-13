@@ -39,6 +39,7 @@ from utils.scoring_aux_data import (
 from utils import ecg_arrhythmia_knowledge as EAK
 from cfg import (
     PlotCfg, Standard12Leads,
+    six_leads, four_leads, three_leads, two_leads,
 )
 
 
@@ -1526,6 +1527,10 @@ class CINC2021Reader(object):
             list of exceptional records
         """
         exceptional_records = []
+        _two_leads = set(two_leads)
+        _three_leads = set(three_leads)
+        _four_leads = set(four_leads)
+        _six_leads = set(six_leads)
         for t in (tranches or self.db_tranches):
             for rec in self.all_records[t]:
                 data = self.load_data(rec)
@@ -1533,10 +1538,19 @@ class CINC2021Reader(object):
                     print(f"record {rec} from tranche {t} has nan values")
                 elif np.std(data) == 0:
                     print(f"record {rec} from tranche {t} is flat")
-                elif flat_granularity.lower() == "lead" and (np.std(data, axis=1) == 0).any():
-                    exceptional_leads = np.array(self.all_leads)[np.where(np.std(data, axis=1) == 0)[0]].tolist()
-                    print(f"leads {exceptional_leads} of record {rec} from tranche {t} is flat")
-                else:
+                elif (np.std(data, axis=1) == 0).any():
+                    exceptional_leads = set(np.array(self.all_leads)[np.where(np.std(data, axis=1) == 0)[0]].tolist())
+                    cond =  any([
+                        _two_leads.issubset(exceptional_leads),
+                        _three_leads.issubset(exceptional_leads),
+                        _four_leads.issubset(exceptional_leads),
+                        _six_leads.issubset(exceptional_leads),
+                    ])
+                    if cond or flat_granularity.lower() == "lead":
+                        print(f"leads {exceptional_leads} of record {rec} from tranche {t} is flat")
+                    else:
+                        continue
+                else: 
                     continue
                 exceptional_records.append(rec)
         return exceptional_records
