@@ -41,10 +41,10 @@ lead_sets = (twelve_leads, six_leads, four_leads, three_leads, two_leads)
 
 
 # NOTE: switch between ns and non-ns configs
-_TrainCfg = deepcopy(TrainCfg_ns)
-_ModelCfg = deepcopy(ModelCfg_ns)
-# _TrainCfg = deepcopy(TrainCfg)
-# _ModelCfg = deepcopy(ModelCfg)
+# _TrainCfg = deepcopy(TrainCfg_ns)
+# _ModelCfg = deepcopy(ModelCfg_ns)
+_TrainCfg = deepcopy(TrainCfg)
+_ModelCfg = deepcopy(ModelCfg)
 
 
 _ModelFilename = {
@@ -106,8 +106,10 @@ def training_code(data_directory, model_directory):
     train_config.db_dir = data_directory
     train_config.model_dir = model_directory
     train_config.debug = False
-    train_config.n_epochs = 30
-    train_config.batch_size = 32  # training 12-lead model sometimes requires GPU memory more than 16G (Tesla T4)
+
+    train_config.cnn_name = "multi_scopic"
+    train_config.n_epochs = 27
+    train_config.batch_size = 24  # training 12-lead model sometimes requires GPU memory more than 16G (Tesla T4)
 
     tranches = train_config.tranches_for_training
     if tranches:
@@ -158,7 +160,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = four_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = _ModelFilename[4]
-    # train_config.batch_size = 64
+    # train_config.batch_size = 32
     model_config = deepcopy(_ModelCfg.four_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
@@ -173,7 +175,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = three_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = _ModelFilename[3]
-    train_config.batch_size = 64
+    train_config.batch_size = 32
     model_config = deepcopy(_ModelCfg.three_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
@@ -188,7 +190,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = two_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = _ModelFilename[2]
-    train_config.batch_size = 64
+    train_config.batch_size = 32
     model_config = deepcopy(_ModelCfg.two_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
