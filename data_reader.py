@@ -260,6 +260,9 @@ class CINC2021Reader(object):
             "JS36731", "JS37105", "JS37173", "JS37176", "JS37439", "JS37592", "JS37609", "JS37781", "JS38231",
             "JS38252", "JS41844", "JS41908", "JS41935", "JS42026", "JS42330",
         ]
+        # TODO: exceptional records can be resolved via reading using `scipy` backend,
+        # with noise removal using `remove_spikes_naive` from `signal_processing` module
+        # currently for simplicity, exceptional records would be ignored
 
 
     def get_subject_id(self, rec:str) -> int:
