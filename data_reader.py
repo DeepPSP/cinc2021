@@ -247,17 +247,18 @@ class CINC2021Reader(object):
         # self.value_correction_factor = ED({tranche:1 for tranche in self.db_tranches})
         # self.value_correction_factor.F = 4.88  # ref. ISSUES 3
 
-        self.exceptional_records = ["E04603", "E06072", "E06909", "E07675", "E07941", "E08321"]  # ref. ISSUES 4
+        self.exceptional_records = ["I0002", "I0069", "E04603", "E06072", "E06909", "E07675", "E07941", "E08321",]  # ref. ISSUES 4
         self.exceptional_records += [  # ref. ISSUE 8
-            "JS35065", "JS26793", "JS37176", "JS13181", "JS27985", "JS26605", "JS37173", "JS23588",
-            "JS36244", "JS15624", "JS35727", "JS25106", "JS21617", "JS25322", "JS35050", "JS35654",
-            "JS37609", "JS38252", "JS26245", "JS27460", "JS42026", "JS24016", "JS41935", "JS33280",
-            "JS14343", "JS35192", "JS14659", "JS37105", "JS34879", "JS37439", "JS27170", "JS36018",
-            "JS28075", "JS27278", "JS34788", "JS16169", "JS10765", "JS19708", "JS21853", "JS16222",
-            "JS38231", "JS27271", "JS36015", "JS11956", "JS36568", "JS34868", "JS20330", "JS37592",
-            "JS21668", "JS25458", "JS34479", "JS21881", "JS41844", "JS27034", "JS27407", "JS41908",
-            "JS26843", "JS34509", "JS16813", "JS36731", "JS23450", "JS27835", "JS10767", "JS21701",
-            "JS23786", "JS36189", "JS14627", "JS20656",
+            "JS10765", "JS10767", "JS10890", "JS10951", "JS11887", "JS11897", "JS11956", "JS12751", "JS13181",
+            "JS14161", "JS14343", "JS14627", "JS14659", "JS15624", "JS16169", "JS16222", "JS16813", "JS19309",
+            "JS19708", "JS20330", "JS20656", "JS21144", "JS21617", "JS21668", "JS21701", "JS21853", "JS21881",
+            "JS23116", "JS23450", "JS23482", "JS23588", "JS23786", "JS23950", "JS24016", "JS25106", "JS25322",
+            "JS25458", "JS26009", "JS26130", "JS26145", "JS26245", "JS26605", "JS26793", "JS26843", "JS26977",
+            "JS27034", "JS27170", "JS27271", "JS27278", "JS27407", "JS27460", "JS27835", "JS27985", "JS28075",
+            "JS28648", "JS28757", "JS33280", "JS34479", "JS34509", "JS34788", "JS34868", "JS34879", "JS35050",
+            "JS35065", "JS35192", "JS35654", "JS35727", "JS36015", "JS36018", "JS36189", "JS36244", "JS36568",
+            "JS36731", "JS37105", "JS37173", "JS37176", "JS37439", "JS37592", "JS37609", "JS37781", "JS38231",
+            "JS38252", "JS41844", "JS41908", "JS41935", "JS42026", "JS42330",
         ]
 
 
@@ -1497,7 +1498,7 @@ class CINC2021Reader(object):
         return raw_data
 
 
-    def _check_nan(self, tranches:Union[str, Sequence[str]]) -> NoReturn:
+    def _check_nan(self, tranches:Optional[Union[str, Sequence[str]]]=None) -> NoReturn:
         """ finished, checked,
 
         check if records from `tranches` has nan values
@@ -1508,10 +1509,10 @@ class CINC2021Reader(object):
 
         Parameters
         ----------
-        tranches: str or sequence of str,
-            tranches to check
+        tranches: str or sequence of str, optional,
+            tranches to check, defaults to all tranches, i.e. `self.db_tranches`
         """
-        for t in tranches:
+        for t in (tranches or self.db_tranches):
             for rec in self.all_records[t]:
                 data = self.load_data(rec)
                 if np.isnan(data).any():
@@ -1569,3 +1570,21 @@ class CINC2021Reader(object):
         if tranches is None:
             dx_cooccurrence_all.to_csv(dx_cooccurrence_all_fp)
         return dx_cooccurrence_all
+
+
+_exceptional_records = [
+    "I0002", "I0069", "E04603", "E06072", "E06909", "E07675", "E07941", "E08321",
+    "JS10765", "JS10767", "JS10890", "JS10951", "JS11887", "JS11897", "JS11956",
+    "JS12751", "JS13181", "JS14161", "JS14343", "JS14627", "JS14659", "JS15624",
+    "JS16169", "JS16222", "JS16813", "JS19309", "JS19708", "JS20330", "JS20656",
+    "JS21144", "JS21617", "JS21668", "JS21701", "JS21853", "JS21881", "JS23116",
+    "JS23450", "JS23482", "JS23588", "JS23786", "JS23950", "JS24016", "JS25106",
+    "JS25322", "JS25458", "JS26009", "JS26130", "JS26145", "JS26245", "JS26605",
+    "JS26793", "JS26843", "JS26977", "JS27034", "JS27170", "JS27271", "JS27278",
+    "JS27407", "JS27460", "JS27835", "JS27985", "JS28075", "JS28648", "JS28757",
+    "JS33280", "JS34479", "JS34509", "JS34788", "JS34868", "JS34879", "JS35050",
+    "JS35065", "JS35192", "JS35654", "JS35727", "JS36015", "JS36018", "JS36189",
+    "JS36244", "JS36568", "JS36731", "JS37105", "JS37173", "JS37176", "JS37439",
+    "JS37592", "JS37609", "JS37781", "JS38231", "JS38252", "JS41844", "JS41908",
+    "JS41935", "JS42026", "JS42330",
+]
