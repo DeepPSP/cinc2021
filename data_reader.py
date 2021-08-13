@@ -1501,10 +1501,10 @@ class CINC2021Reader(object):
         return raw_data
 
 
-    def _check_nan(self, tranches:Optional[Union[str, Sequence[str]]]=None) -> NoReturn:
+    def _check_exceptions(self, tranches:Optional[Union[str, Sequence[str]]]=None) -> NoReturn:
         """ finished, checked,
 
-        check if records from `tranches` has nan values
+        check if records from `tranches` has nan values, or contains flat values in any lead
 
         accessing data using `p_signal` of `wfdb` would produce nan values,
         if exceptionally large values are encountered,
@@ -1520,6 +1520,11 @@ class CINC2021Reader(object):
                 data = self.load_data(rec)
                 if np.isnan(data).any():
                     print(f"record {rec} from tranche {t} has nan values")
+                elif np.std(data) == 0:
+                    print(f"record {rec} from tranche {t} is flat")
+                elif (np.std(data, axis=1) == 0).any():
+                    exceptional_leads = np.array(self.all_leads)[np.where(np.std(data, axis=1) == 0)[0]].tolist()
+                    print(f"leads {exceptional_leads} of record {rec} from tranche {t} is flat")
 
 
     def _compute_cooccurrence(self, tranches:Optional[str]=None) -> pd.DataFrame:
