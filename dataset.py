@@ -118,6 +118,8 @@ class CINC2021(Dataset):
         values = ensure_siglen(values, siglen=self.siglen, fmt="channel_first")
         if self.config.normalize_data:
             values = (values - np.mean(values)) / (np.std(values) + self._epsilon)
+            # or the following `per lead` normalization of values?
+            # values = (values - np.mean(values, axis=1, keepdims=True)) / (np.std(values, axis=1, keepdims=True) + self._epsilon)
         labels = self.reader.get_labels(
             rec, scored_only=True, fmt="a", normalize=True
         )
