@@ -160,6 +160,7 @@ class CINC2021Reader(object):
     6. some records in tranche G has #Dx ending with "," (at least "JS00344"), or consecutive "," (at least "JS03287") in corresponding .hea file
     7. tranche G has 2 Dx ("251238007", "6180003") which are listed in neither of dx_mapping_scored.csv nor dx_mapping_unscored.csv
     8. about 68 records from tranche G has `nan` values loaded via `wfdb.rdrecord`, which might be caused by motion artefact in some leads
+    9. "Q0400", "Q2961" are completely flat, while many other records have flat leads, especially V1-V6 leads
 
     References
     ----------
@@ -260,6 +261,7 @@ class CINC2021Reader(object):
             "JS36731", "JS37105", "JS37173", "JS37176", "JS37439", "JS37592", "JS37609", "JS37781", "JS38231",
             "JS38252", "JS41844", "JS41908", "JS41935", "JS42026", "JS42330",
         ]
+        self.exceptional_records += ["Q0400", "Q2961",]  # ref. ISSUE 9
         # TODO: exceptional records can be resolved via reading using `scipy` backend,
         # with noise removal using `remove_spikes_naive` from `signal_processing` module
         # currently for simplicity, exceptional records would be ignored
@@ -1501,7 +1503,7 @@ class CINC2021Reader(object):
         return raw_data
 
 
-    def _check_exceptions(self, tranches:Optional[Union[str, Sequence[str]]]=None) -> NoReturn:
+    def _check_exceptions(self, tranches:Optional[Union[str, Sequence[str]]]=None, flat_granularity:str="record") -> List[str]:
         """ finished, checked,
 
         check if records from `tranches` has nan values, or contains flat values in any lead
@@ -1514,7 +1516,16 @@ class CINC2021Reader(object):
         ----------
         tranches: str or sequence of str, optional,
             tranches to check, defaults to all tranches, i.e. `self.db_tranches`
+        flat_granularity: str, default "record",
+            if is "record", flat checking will only be carried out at record level,
+            if is "lead", flat checking will be carried out at lead level
+
+        Returns
+        -------
+        exceptional_records: list of str,
+            list of exceptional records
         """
+        exceptional_records = []
         for t in (tranches or self.db_tranches):
             for rec in self.all_records[t]:
                 data = self.load_data(rec)
@@ -1522,9 +1533,13 @@ class CINC2021Reader(object):
                     print(f"record {rec} from tranche {t} has nan values")
                 elif np.std(data) == 0:
                     print(f"record {rec} from tranche {t} is flat")
-                elif (np.std(data, axis=1) == 0).any():
+                elif flat_granularity.lower() == "lead" and (np.std(data, axis=1) == 0).any():
                     exceptional_leads = np.array(self.all_leads)[np.where(np.std(data, axis=1) == 0)[0]].tolist()
                     print(f"leads {exceptional_leads} of record {rec} from tranche {t} is flat")
+                else:
+                    continue
+                exceptional_records.append(rec)
+        return exceptional_records
 
 
     def _compute_cooccurrence(self, tranches:Optional[str]=None) -> pd.DataFrame:
@@ -1580,7 +1595,7 @@ class CINC2021Reader(object):
         return dx_cooccurrence_all
 
 
-_exceptional_records = [
+_exceptional_records = [ # with nan values (p_signal) read by wfdb
     "I0002", "I0069", "E04603", "E06072", "E06909", "E07675", "E07941", "E08321",
     "JS10765", "JS10767", "JS10890", "JS10951", "JS11887", "JS11897", "JS11956",
     "JS12751", "JS13181", "JS14161", "JS14343", "JS14627", "JS14659", "JS15624",
@@ -1595,4 +1610,6 @@ _exceptional_records = [
     "JS36244", "JS36568", "JS36731", "JS37105", "JS37173", "JS37176", "JS37439",
     "JS37592", "JS37609", "JS37781", "JS38231", "JS38252", "JS41844", "JS41908",
     "JS41935", "JS42026", "JS42330",
+    # with totally flat values
+    "Q0400", "Q2961",
 ]
