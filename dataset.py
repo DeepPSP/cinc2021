@@ -88,6 +88,7 @@ class CINC2021(Dataset):
         #     self.siglen = None
         # validation also goes in batches, hence length has to be fixed
         self.siglen = self.config.input_len
+        self._epsilon = 1e-7  # to avoid nan values caused by dividing zero
 
         self.records = self._train_test_split(config.train_ratio, force_recompute=False)
         # TODO: consider using `remove_spikes_naive` to treat these exceptional records
@@ -116,7 +117,7 @@ class CINC2021(Dataset):
             )
         values = ensure_siglen(values, siglen=self.siglen, fmt="channel_first")
         if self.config.normalize_data:
-            values = (values - np.mean(values)) / np.std(values)
+            values = (values - np.mean(values)) / (np.std(values) + self._epsilon)
         labels = self.reader.get_labels(
             rec, scored_only=True, fmt="a", normalize=True
         )
