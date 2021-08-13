@@ -41,10 +41,10 @@ lead_sets = (twelve_leads, six_leads, four_leads, three_leads, two_leads)
 
 
 # NOTE: switch between ns and non-ns configs
-# _TrainCfg = deepcopy(TrainCfg_ns)
-# _ModelCfg = deepcopy(ModelCfg_ns)
-_TrainCfg = deepcopy(TrainCfg)
-_ModelCfg = deepcopy(ModelCfg)
+_TrainCfg = deepcopy(TrainCfg_ns)
+_ModelCfg = deepcopy(ModelCfg_ns)
+# _TrainCfg = deepcopy(TrainCfg)
+# _ModelCfg = deepcopy(ModelCfg)
 
 
 _ModelFilename = {
