@@ -356,9 +356,7 @@ class CINC2021Reader(object):
             self._stats = pd.read_csv(stats_file_fp, keep_default_na=False)
         elif os.path.isfile(stats_file_fp_aux):
             self._stats = pd.read_csv(stats_file_fp_aux, keep_default_na=False)
-        if fast:
-            return
-        if self._stats.empty or self._stats_columns != set(self._stats.columns):
+        if not fast and (self._stats.empty or self._stats_columns != set(self._stats.columns)):
             print("Please wait patiently to let the reader collect statistics on the whole dataset...")
             start = time.time()
             self._stats = pd.DataFrame(list_sum(self._all_records.values()), columns=["record"])
@@ -382,9 +380,10 @@ class CINC2021Reader(object):
             _stats_to_save.to_csv(stats_file_fp_aux, index=False)
             print(f"Done in {time.time() - start:.5f} seconds!")
         else:
+            print("converting dtypes of columns `diagnosis` and `diagnosis_scored`...")
             for k in ["diagnosis", "diagnosis_scored",]:
                 for idx, row in self._stats.iterrows():
-                    self._stats.at[idx, k] = row[k].split(list_sep)
+                    self._stats.at[idx, k] = list(filter(lambda v:len(v)>0, row[k].split(list_sep)))
 
 
     def _find_dir(self, root:str, tranche:str, level:int=0) -> str:
