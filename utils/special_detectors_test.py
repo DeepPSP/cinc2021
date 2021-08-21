@@ -126,12 +126,14 @@ if __name__ == "__main__":
     if _dr is None:
         raise ValueError(f"data directory could not be found!")
     if args.get("full", False):
+        print("full dataset")
+        all_candidates = _dr.df_stats[_dr.df_stats.diagnosis_scored.apply(lambda v:len(v))!=0].record.tolist()
+    else:
+        print("partial dataset")
         all_candidates = sorted(set(list_sum(
             sample(_dr.diagnoses_records_list[k], int(round(len(_dr.diagnoses_records_list[k])*size))) \
                 for k in ["Brady", "STach", "SB", "LQRSV", "RAD", "LAD", "PR",]
         )))
-    else:
-        all_candidates = _dr.df_stats[_dr.df_stats.diagnosis_scored.apply(lambda v:len(v))!=0].record.tolist()
     print(f"number of candidate records: {len(all_candidates)}")
     all_results = {
         "twelve_leads": [],
