@@ -96,6 +96,11 @@ def get_parser() -> dict:
         dest="proportion",
     )
     parser.add_argument(
+        "-f", "--full", action="store_true",
+        help=f"run over the full dataset, overrides proportion",
+        dest="full",
+    )
+    parser.add_argument(
         "-v", "--verbose", action="store_true",
         help=f"verbosity",
         dest="verbose",
@@ -120,10 +125,13 @@ if __name__ == "__main__":
     _dr = CINC2021Reader(db_dir) if db_dir else DR
     if _dr is None:
         raise ValueError(f"data directory could not be found!")
-    all_candidates = sorted(set(list_sum(
-        sample(_dr.diagnoses_records_list[k], int(round(len(_dr.diagnoses_records_list[k])*size))) \
-            for k in ["Brady", "STach", "SB", "LQRSV", "RAD", "LAD", "PR",]
-    )))
+    if args.get("full", False):
+        all_candidates = sorted(set(list_sum(
+            sample(_dr.diagnoses_records_list[k], int(round(len(_dr.diagnoses_records_list[k])*size))) \
+                for k in ["Brady", "STach", "SB", "LQRSV", "RAD", "LAD", "PR",]
+        )))
+    else:
+        all_candidates = _dr.df_stats[_dr.df_stats.diagnosis_scored.apply(lambda v:len(v))!=0].record.tolist()
     print(f"number of candidate records: {len(all_candidates)}")
     all_results = {
         "twelve_leads": [],
