@@ -217,8 +217,11 @@ PRWP = ED({  # voltage
     "fullname": "poor R wave progression",
     "url": [
         "https://litfl.com/poor-r-wave-progression-prwp-ecg-library/",
+        "https://www.healio.com/cardiology/learn-the-heart/ecg-review/ecg-topic-reviews-and-criteria/poor-r-wave-progression",
     ],
-    "knowledge": [],
+    "knowledge": [
+        "absence of the normal increase in size of the R wave in the precordial leads when advancing from lead V1 to V6",
+    ],
 })
 
 NSIVCB = ED({  # mophology
@@ -480,7 +483,7 @@ try:
     for ea_str in __all__:
         ea = eval(ea_str)
         try:
-            ea["url"].insert(0, f"{_snomedbrowser_url}{dx_mapping_all[dx_mapping_all.Abbreviation==ea_str]['SNOMED CT Code'].values[0]}")
+            ea["url"].insert(0, f"{_snomedbrowser_url}{dx_mapping_all[dx_mapping_all.Abbreviation==ea_str]['SNOMEDCTCode'].values[0]}")
         except:
             pass
 except:
