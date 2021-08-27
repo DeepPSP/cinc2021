@@ -15,4 +15,4 @@ TO add....
 
 
 ## Misc
-[Link](https://github.com/DeepPSP/cinc2020) to the unsuccessful attemps for CinC2020
+[Link](https://github.com/DeepPSP/cinc2020) to the unsuccessful attemps for CinC2020 of the previous year.
