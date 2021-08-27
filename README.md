@@ -12,3 +12,7 @@ Deep learning models are constructed using [torch_ecg](https://github.com/DeepPS
 
 ## References:
 TO add....
+
+
+## Misc
+[Link](https://github.com/DeepPSP/cinc2020) to the unsuccessful attemps for CinC2020
