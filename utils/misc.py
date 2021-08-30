@@ -41,6 +41,7 @@ __all__ = [
     "mask_to_intervals",
     "nildent",
     "list_sum",
+    "read_log_txt",
 ]
 
 
