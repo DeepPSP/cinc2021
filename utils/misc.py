@@ -41,7 +41,7 @@ __all__ = [
     "mask_to_intervals",
     "nildent",
     "list_sum",
-    "read_log_txt",
+    "read_log_txt", "read_event_scalars",
 ]
 
 
@@ -798,7 +798,8 @@ def list_sum(l:Sequence[list]) -> list:
 def read_log_txt(fp:str,
                  epoch_startswith:str="Train epoch_",
                  scalar_startswith:Union[str,Iterable[str]]="train/|test/") -> pd.DataFrame:
-    """
+    """ finished, checked,
+
     read from log txt file, in case tensorboard not working
 
     Parameters
@@ -838,4 +839,45 @@ def read_log_txt(fp:str,
             new_line[field] = val
     summary.append(new_line)
     summary = pd.DataFrame(summary)
+    return summary
+
+
+def read_event_scalars(fp:str, keys:Optional[Union[str,Iterable[str]]]=None) -> Union[pd.DataFrame,Dict[str,pd.DataFrame]]:
+    """ finished, checked,
+
+    read scalars from event file, in case tensorboard not working
+
+    Parameters
+    ----------
+    fp: str,
+        path to the event file
+    keys: str or iterable of str, optional,
+        field names of the scalars to read,
+        if is None, scalars of all fields will be read
+
+    Returns
+    -------
+    summary: DataFrame or dict of DataFrame
+        the wall_time, step, value of the scalars
+    """
+    try:
+        from tensorflow.python.summary.event_accumulator import EventAccumulator
+    except:
+        from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+    event_acc = EventAccumulator(fp)
+    event_acc.Reload()
+    if keys:
+        if isinstance(keys, str):
+            _keys = [keys]
+        else:
+            _keys = keys
+    else:
+        _keys = event_acc.scalars.Keys()
+    summary = {}
+    for k in _keys:
+        df = pd.DataFrame([[item.wall_time, item.step, item.value] for item in event_acc.scalars.Items(k)])
+        df.columns = ["wall_time", "step", "value"]
+        summary[k] = df
+    if isinstance(keys, str):
+        summary = summary[k]
     return summary
