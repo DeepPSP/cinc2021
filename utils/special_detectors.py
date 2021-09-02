@@ -34,9 +34,6 @@ from cfg import (
 from signal_processing import (
     preprocess_multi_lead_signal,
     rpeaks_detect_multi_leads,
-    # seq_lab_net_detect,
-    xqrs_detect, gqrs_detect, pantompkins_detect,
-    hamilton_detect, ssf_detect, christov_detect, engzee_detect, gamboa_detect,
 )
 from utils.utils_signal import detect_peaks, get_ampl
 from utils.misc import ms2samples, samples2ms, get_mask
