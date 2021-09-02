@@ -161,7 +161,7 @@ class CINC2021Reader(object):
     6. some records in tranche G has #Dx ending with "," (at least "JS00344"), or consecutive "," (at least "JS03287") in corresponding .hea file
     7. tranche G has 2 Dx ("251238007", "6180003") which are listed in neither of dx_mapping_scored.csv nor dx_mapping_unscored.csv
     8. about 68 records from tranche G has `nan` values loaded via `wfdb.rdrecord`, which might be caused by motion artefact in some leads
-    9. "Q0400", "Q2961" are completely flat, while many other records have flat leads, especially V1-V6 leads
+    9. "Q0400", "Q2961" are completely flat (constant), while many other records have flat leads, especially V1-V6 leads
 
     References
     ----------
