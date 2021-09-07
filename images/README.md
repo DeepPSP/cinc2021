@@ -1,5 +1,7 @@
 # Images to illustrate data distributions, challenge results, etc.
 
+Many of the images are created using data from [Results](/results/).
+
 code are executed in the root directory of the challenge repository, say in `/home/wenh06/Jupyter/workspace/cinc2021/`
 
 the [scored_classes_distribution.png](/images/scored_classes_distribution.png) is generated using the following code
@@ -67,3 +69,10 @@ ax2.text(rect_x+rect_width-5000, rect_y+rect_height-0.01, "early stopping", font
 fig.savefig("./images/train.svg", format="svg", dpi=1200, bbox_inches="tight")
 fig.savefig("./images/train.pdf", format="pdf", dpi=1200, bbox_inches="tight")
 ```
+
+Matrix plot of the mean value of scalar predictions of a model on the train-validation set
+![matrix_mean_scalar](/images/mean-scalar-prediction-matrix-multi-scopic-ncr.svg)
+Each column is the mean value of scalar (probability) predictions of the label to corresponding classes (on the left vertical axis).
+
+Matrix plot of the standard deviation of scalar predictions of a model on the train-validation set
+![matrix_std_scalar](/images/std-scalar-prediction-matrix-multi-scopic-ncr.svg)
