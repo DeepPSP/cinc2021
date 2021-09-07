@@ -21,7 +21,7 @@ Deep learning models are constructed using [torch_ecg](https://github.com/DeepPS
 
 ![2 typical training processes](/images/train.svg)
 
-- "Confusion Matrix" of a typical model
+- "Confusion Matrix" of a typical model on the train-validation set
 
 ![cm_bin](/images/confusion-matrix-multi-scopic-ncr.svg)
 
