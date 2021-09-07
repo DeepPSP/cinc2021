@@ -31,12 +31,12 @@ def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
     if not title:
         if normalize:
             title = "Normalized Confusion Matrix"
-            save_name = f"normalized_cm_{int(time.time())}.pdf"
+            save_name = f"normalized_cm_{int(time.time())}.{fmt}"
         else:
             title = "Confusion Matrix"
-            save_name = f"not_normalized_cm_{int(time.time())}.pdf"
+            save_name = f"not_normalized_cm_{int(time.time())}.{fmt}"
     else:
-        save_name = re.sub("[\s_-]+", "-", title.lower().replace(" ", "-")) + ".pdf"
+        save_name = re.sub("[\s_-]+", "-", title.lower().replace(" ", "-")) + f".{fmt}"
 
     if normalize:
         cm = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
@@ -71,12 +71,12 @@ def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
                     fontsize=12)
     fig.tight_layout()
     # plt.show()
-    plt.savefig(os.path.join(BaseCfg.log_dir, save_name), format="pdf", dpi=1200, bbox_inches="tight")
+    plt.savefig(os.path.join(BaseCfg.log_dir, save_name), format=fmt, dpi=1200, bbox_inches="tight")
     
     return ax
 
 
-def gather_from_checkpoint(path:str) -> NoReturn:
+def gather_from_checkpoint(path:str, fmt:str="svg") -> NoReturn:
     """
     """
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
