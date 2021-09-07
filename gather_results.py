@@ -154,7 +154,7 @@ def gather_from_checkpoint(path:str) -> NoReturn:
     for idx, v in scalar_std.items():
         cm_scalar_std[idx,...] = v
     
-    title = "Mean Scalar Prediction Matrix"
+    title = f"""Mean Scalar Prediction Matrix - {ckpt["train_config"]["cnn_name"].replace("_", "-")}"""
     if len(ckpt["train_config"]["special_classes"]) == 0:
         title += " - NCR"
     plot_confusion_matrix(
@@ -163,7 +163,7 @@ def gather_from_checkpoint(path:str) -> NoReturn:
         title=title,
     )
 
-    title = "STD Scalar Prediction Matrix"
+    title = f"""STD Scalar Prediction Matrix - {ckpt["train_config"]["cnn_name"].replace("_", "-")}"""
     if len(ckpt["train_config"]["special_classes"]) == 0:
         title += " - NCR"
     plot_confusion_matrix(
