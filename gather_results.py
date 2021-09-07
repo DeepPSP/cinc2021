@@ -71,7 +71,7 @@ def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
                     fontsize=12)
     fig.tight_layout()
     # plt.show()
-    fig.savefig(os.path.join(BaseCfg.log_dir, save_name), format="pdf", dpi=1200, bbox_inches="tight")
+    plt.savefig(os.path.join(BaseCfg.log_dir, save_name), format="pdf", dpi=1200, bbox_inches="tight")
     
     return ax
 
@@ -129,7 +129,7 @@ def gather_from_checkpoint(path:str) -> NoReturn:
             for j in lb:
                 cm_bin[j,i] += 1
         print(f"{idx+1} / {len(all_labels)}", end="\r")
-    title = f"""Confusion Matrix - {ckpt["train_config"]["cnn_name"]}"""
+    title = f"""Confusion Matrix - {ckpt["train_config"]["cnn_name"].replace("_", "-")}"""
     if len(ckpt["train_config"]["special_classes"]) == 0:
         title += " - NCR"
     plot_confusion_matrix(
