@@ -23,13 +23,9 @@ Deep learning models are constructed using [torch_ecg](https://github.com/DeepPS
 
 - "Confusion Matrix" of a typical model
 
-<object data="/images/confusion-matrix-multi-scopic-ncr.pdf" type="application/pdf" width="700px" height="700px">
-    <embed src="/images/confusion-matrix-multi-scopic-ncr.pdf">
-        <p>This browser does not support PDFs. Please download the PDF to view it: <a href="/images/confusion-matrix-multi-scopic-ncr.pdf">Download PDF</a>.</p>
-    </embed>
-</object>
+![cm_bin](/images/confusion-matrix-multi-scopic-ncr.svg)
 
-The "Confusion Matrix" is quoted since it is not really a confusion matrix (the classification is multi-label classification). Its computation can be found [here](https://github.com/DeepPSP/cinc2021/blob/master/gather_results.py#L122). The diagonal are "true positives", the off-diagonal are "false positives". The "false negatives" are not reflected on this figure.
+The "Confusion Matrix" is quoted since it is not really a confusion matrix (the classification is multi-label classification). Its computation can be found [here](https://github.com/DeepPSP/cinc2021/blob/master/gather_results.py#L122). The diagonal are "true positives", the off-diagonal are "false positives". The "false negatives" are not reflected on this figure. For more matrix plot, ref. [Images](/images/)
 
 
 ## Digest of Top Models
