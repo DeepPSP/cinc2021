@@ -19,7 +19,7 @@ import torch
 from easydict import EasyDict as ED
 from scipy.signal import resample, resample_poly
 
-from train import train
+from trainer import train
 # from helper_code import twelve_leads, six_leads, four_leads, three_leads, two_leads, lead_sets
 from cfg import TrainCfg, ModelCfg, SpecialDetectorCfg
 from cfg_ns import TrainCfg as TrainCfg_ns, ModelCfg as ModelCfg_ns

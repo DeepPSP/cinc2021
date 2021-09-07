@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from torch_ecg.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
 from model import ECG_CRNN_CINC2021
 from dataset import CINC2021
-from train import evaluate
+from trainer import evaluate
 from cfg import BaseCfg
 
 
