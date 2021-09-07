@@ -170,7 +170,7 @@ def gather_from_checkpoint(path:str, fmt:str="svg") -> NoReturn:
     if len(ckpt["train_config"]["special_classes"]) == 0:
         title += " - NCR"
     plot_confusion_matrix(
-        cm=cm_scalar_mean,
+        cm=cm_scalar_std,
         classes=classes,
         title=title,
         fmt=fmt,
