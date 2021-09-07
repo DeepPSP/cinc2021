@@ -508,6 +508,7 @@ def evaluate(model:nn.Module,
         auroc, auprc, accuracy, f_measure, f_beta_measure, g_beta_measure, challenge_metric
     """
     model.eval()
+    prev_aug_status = data_loader.dataset.use_augmentation
     data_loader.dataset.disable_data_augmentation()
 
     if type(model).__name__ in ["DataParallel",]:  # TODO: further consider "DistributedDataParallel"
@@ -572,6 +573,9 @@ def evaluate(model:nn.Module,
     eval_res = auroc, auprc, accuracy, f_measure, f_beta_measure, g_beta_measure, challenge_metric
 
     model.train()
+
+    if prev_aug_status:
+        data_loader.dataset.enable_data_augmentation()
 
     return eval_res
 

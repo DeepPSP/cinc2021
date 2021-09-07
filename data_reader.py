@@ -230,10 +230,10 @@ class CINC2021Reader(object):
         self._diagnoses_records_list = None
         # self._ls_diagnoses_records()
 
-        self.fs = {
+        self.fs = ED({
             "A": 500, "B": 500, "C": 257, "D": 1000, "E": 500, "F": 500, "G": 500,
-        }
-        self.spacing = {t: 1000 / f for t,f in self.fs.items()}
+        })
+        self.spacing = ED({t: 1000 / f for t,f in self.fs.items()})
 
         self.all_leads = deepcopy(Standard12Leads)
         self._all_leads_set = set(self.all_leads)

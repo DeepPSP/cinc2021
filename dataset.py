@@ -154,6 +154,12 @@ class CINC2021(Dataset):
         """
         self.__data_aug = False
 
+
+    def enable_data_augmentation(self) -> NoReturn:
+        """
+        """
+        self.__data_aug = True
+
     
     def _train_test_split(self,
                           train_ratio:float=0.8,
@@ -357,3 +363,8 @@ class CINC2021(Dataset):
                 print(f"labels of {self.records[idx]} have nan values")
 
         self.__data_aug = prev_state
+
+
+    @property
+    def use_augmentation(self) -> bool:
+        return self.__data_aug
