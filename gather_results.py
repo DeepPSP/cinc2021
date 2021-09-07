@@ -23,7 +23,8 @@ __all__ = ["gather_from_checkpoint", "plot_confusion_matrix"]
 def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
                           normalize:bool=False,
                           title:Optional[str]=None,
-                          cmap:mpl.colors.Colormap=plt.cm.Blues) -> Any:
+                          cmap:mpl.colors.Colormap=plt.cm.Blues,
+                          fmt:str="svg") -> Any:
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
@@ -61,11 +62,11 @@ def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
              rotation_mode="anchor")
 
     # Loop over data dimensions and create text annotations.
-    fmt = ".2f" if (normalize or cm.dtype=="float") else "d"
+    text_fmt = ".2f" if (normalize or cm.dtype=="float") else "d"
     thresh = cm.max() / 2.
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
-            ax.text(j, i, format(cm[i, j], fmt),
+            ax.text(j, i, format(cm[i, j], text_fmt),
                     ha="center", va="center",
                     color="white" if cm[i, j] > thresh else "black",
                     fontsize=12)
@@ -136,6 +137,7 @@ def gather_from_checkpoint(path:str, fmt:str="svg") -> NoReturn:
         cm=cm_bin,
         classes=classes,
         title=title,
+        fmt=fmt,
     )
 
     print("start computing the ``confusion`` matrix from the scalar predictions")
@@ -161,6 +163,7 @@ def gather_from_checkpoint(path:str, fmt:str="svg") -> NoReturn:
         cm=cm_scalar_mean,
         classes=classes,
         title=title,
+        fmt=fmt,
     )
 
     title = f"""STD Scalar Prediction Matrix - {ckpt["train_config"]["cnn_name"].replace("_", "-")}"""
@@ -170,4 +173,5 @@ def gather_from_checkpoint(path:str, fmt:str="svg") -> NoReturn:
         cm=cm_scalar_mean,
         classes=classes,
         title=title,
+        fmt=fmt,
     )        
