@@ -28,6 +28,13 @@ Deep learning models are constructed using [torch_ecg](https://github.com/DeepPS
 The "Confusion Matrix" is quoted since it is not really a confusion matrix (the classification is multi-label classification). Its computation can be found [here](https://github.com/DeepPSP/cinc2021/blob/master/gather_results.py#L122). The diagonal are "true positives", the off-diagonal are "false positives". The "false negatives" are not reflected on this figure. For more matrix plot, ref. [Images](/images/)
 
 
+## Final Results
+
+Final results are on the [leaderboard page of the challenge official website](https://physionetchallenges.org/2021/leaderboard/).
+
+The last entry failed on the 12-lead UMich test data. It is probably because this last entry used the "no clinical rules" setting, hence normalizations were performed. When the signal has constant value, then dividing by zero (STD) would result in nan values, crashing the whole deep learning pipeline. Actually the last two entries have such constant value records, and normalization is corrected in the [data generator](https://github.com/DeepPSP/cinc2021/blob/3448a106cf6bc1c884375bac560891fe367966c8/dataset.py#L119). However, corresponding correction was not made in the [team_code](https://github.com/DeepPSP/cinc2021/blob/3448a106cf6bc1c884375bac560891fe367966c8/team_code.py#L415)!
+
+
 ## Digest of Top Models
 to be updated after the conference
 
