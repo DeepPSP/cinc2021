@@ -717,45 +717,6 @@ def ensure_siglen(values:Sequence[Real], siglen:int, fmt:str="lead_first") -> np
     return out_values
 
 
-def signal_normalize(sig:np.ndarray, sig_fmt:str="channel_first", mean:float=0.06, std:float=0.2) -> np.ndarray:
-    """ finished, checked,
-
-    Parameters
-    ----------
-    sig: array,
-        1d (single-lead) or 2d (multi-lead) ECG signal, with units in mV,
-    sig_fmt: str, default "channel_first",
-        format of the input signal, used only for 2d (multi-lead) signal,
-        case in-sensitive, can be one of
-        "channel_last" (alias "lead_last"), or
-        "channel_first" (alias "lead_first")
-    mean: float, default 0.06,
-        mean value of the normalized signal
-    std: float, default 0.2,
-        standard deviation of the normalized signal
-
-    Returns
-    -------
-    normalized_sig: array,
-        the normalized signal, of the same shape as the input `sig`
-
-    Usage
-    -----
-    1. data augmentation for training models
-    2. enhancement (preprocessing) for rpeak detection
-
-    CAUTION!!! CAUTION!!! CAUTION!!!
-    be careful when the objective is related to signal amplitude (e.g. detection of LQRSV)
-    """
-    _sig = np.array(sig)
-    if _sig.ndim == 1 or sig_fmt.lower() in ["channel_last", "lead_last"]:
-        axis = 0
-    elif _sig.ndim == 2:
-        axis = 1
-    normalized_sig = (_sig - np.mean(_sig,axis=axis,keepdims=True) + mean) / np.std(_sig,axis=axis,keepdims=True) * std
-    return normalized_sig
-
-
 def get_ampl(sig:np.ndarray,
              fs:Real,
              fmt:str="lead_first",
