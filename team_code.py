@@ -27,7 +27,7 @@ from model import ECG_CRNN_CINC2021
 from utils.special_detectors import special_detectors
 from utils.utils_nn import extend_predictions
 from utils.misc import get_date_str, dict_to_str, init_logger, rdheader
-from utils.utils_signal import ensure_siglen, butter_bandpass_filter
+from utils.utils_signal import ensure_siglen, butter_bandpass_filter, normalize
 from utils.scoring_aux_data import abbr_to_snomed_ct_code
 
 
@@ -414,7 +414,14 @@ def run_model(model, header, recording, verbose=0):
     #     dl_data = ensure_siglen(dl_data, siglen=_ModelCfg.dl_siglen, fmt="lead_first")
     if _TrainCfg.normalize_data:
         # normalize
-        dl_data = ((dl_data - np.mean(dl_data)) / np.std(dl_data)).astype(DTYPE)
+        # dl_data = ((dl_data - np.mean(dl_data)) / np.std(dl_data)).astype(DTYPE)
+        dl_data = normalize(
+            sig=dl_data,
+            mean=0.0,
+            std=1.0,
+            sig_fmt="lead_first",
+            per_channel=False,
+        )
     else: # to resolve the negative stride error of torch with numpy array after `butter_bandpass_filter` 
         dl_data = dl_data.copy().astype(DTYPE)
     # unsqueeze to add a batch dimention

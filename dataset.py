@@ -24,7 +24,7 @@ from cfg_ns import (
     TrainCfg, ModelCfg,
 )
 from data_reader import CINC2021Reader as CR
-from utils.utils_signal import ensure_siglen, butter_bandpass_filter
+from utils.utils_signal import ensure_siglen, butter_bandpass_filter, normalize
 from utils.misc import dict_to_str, list_sum
 from signal_processing.ecg_denoise import remove_spikes_naive
 
@@ -117,9 +117,16 @@ class CINC2021(Dataset):
             )
         values = ensure_siglen(values, siglen=self.siglen, fmt="channel_first")
         if self.config.normalize_data:
-            values = (values - np.mean(values)) / (np.std(values) + self._epsilon)
+            # values = (values - np.mean(values)) / (np.std(values) + self._epsilon)
             # or the following `per lead` normalization of values?
             # values = (values - np.mean(values, axis=1, keepdims=True)) / (np.std(values, axis=1, keepdims=True) + self._epsilon)
+            values = normalize(
+                sig=values,
+                mean=0.0,
+                std=1.0,
+                sig_fmt="lead_first",
+                per_channel=False,
+            )
         labels = self.reader.get_labels(
             rec, scored_only=True, fmt="a", normalize=True
         )
