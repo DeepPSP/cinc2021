@@ -35,6 +35,7 @@ __all__ = [
     "Bn_Activation", "Conv_Bn_Activation", "CBA",
     "MultiConv", "BranchedConv",
     "SeparableConv",
+    "DeformConv",
     "DownSample",
     "BidirectionalLSTM", "StackedLSTM",
     # "AML_Attention", "AML_GatedAttention",
@@ -44,8 +45,8 @@ __all__ = [
     "ZeroPadding",
     "SeqLin", "MLP",
     "NonLocalBlock", "SEBlock", "GlobalContextBlock",
+    "CBAMBlock", "BAMBlock", "CoordAttention",
     "CRF", "ExtendedCRF",
-    "WeightedBCELoss", "BCEWithLogitsWithClassWeightLoss",
 ]
 
 
@@ -183,6 +184,27 @@ Normalizations.local_response_normalization = Normalizations.local_response_norm
 # and ref. Zhou, Xiao-Yun, et al. "Batch Group Normalization." arXiv preprint arXiv:2012.02782 (2020).
 # problem: parameters of different normalizations are different
 
+def _get_normalization(normalization:str, in_channels:Optional[int]=None, **kwargs:Any) -> nn.Module:
+    """ NOT finished, NOT checked,
+    """
+    # if normalization.lower() in Normalizations:
+    #     norm_layer = Normalizations.get(normalization.lower())
+    if normalization.lower() in ["batch_norm", "batch_normalization",]:
+        norm_layer = nn.BatchNorm1d(in_channels, **kwargs)
+    elif normalization.lower() in ["instance_norm", "instance_normalization",]:
+        norm_layer = nn.InstanceNorm1d(in_channels, **kwargs)
+    elif normalization.lower() in ["group_norm", "group_normalization",]:
+        if "groups" not in kwargs:
+            raise ValueError(f"One has to specify `groups` (number of groups) to use `GroupNorm`!")
+        norm_layer = nn.GroupNorm(num_channels=in_channels, **kwargs)
+    elif normalization.lower() in ["layer_norm", "layer_normalization",]:
+        norm_layer = nn.LayerNorm(**kwargs)
+    else:
+        raise ValueError(f"normalization method {normalization} not supported yet!")
+    return norm_layer
+
+
+# ---------------------------------------------
 
 _DEFAULT_CONV_CONFIGS = ED(
     batch_norm=True,
@@ -207,6 +229,7 @@ class Bn_Activation(nn.Sequential):
 
     def __init__(self, 
                  num_features:int,
+                 batch_norm:Union[bool,str,nn.Module],
                  activation:Union[str,nn.Module],
                  kw_activation:Optional[dict]=None, 
                  dropout:float=0.0) -> NoReturn:
@@ -216,6 +239,9 @@ class Bn_Activation(nn.Sequential):
         ----------
         num_features: int,
             number of features (channels) of the input (and output)
+        batch_norm: bool or str or Module, default True,
+            (batch) normalization, or other normalizations, e.g. group normalization
+            (the name of) the Module itself or (if is bool) whether or not to use `nn.BatchNorm1d`
         activation: str or Module,
             name of the activation or an activation `Module`
         kw_activation: dict, optional,
@@ -234,7 +260,7 @@ class Bn_Activation(nn.Sequential):
             act_layer = Activations[activation.lower()](**self.__kw_activation)
             act_name = f"activation_{activation.lower()}"
 
-        self.add_module(
+        self.add_module(  # TODO: add other normalizations
             "batch_norm",
             nn.BatchNorm1d(num_features),
         )
@@ -418,7 +444,9 @@ class Conv_Bn_Activation(nn.Sequential):
             if isinstance(batch_norm, bool):
                 bn_layer = nn.BatchNorm1d(bn_in_channels, **kw_bn)
             elif isinstance(batch_norm, str):
-                if batch_norm.lower() in ["instance_norm", "instance_normalization",]:
+                if batch_norm.lower() in ["batch_norm", "batch_normalization",]:
+                    bn_layer = nn.BatchNorm1d(bn_in_channels, **kw_bn)
+                elif batch_norm.lower() in ["instance_norm", "instance_normalization",]:
                     bn_layer = nn.InstanceNorm1d(bn_in_channels, **kw_bn)
                 elif batch_norm.lower() in ["group_norm", "group_normalization",]:
                     bn_layer = nn.GroupNorm(self.__groups, bn_in_channels, **kw_bn)
@@ -1042,7 +1070,7 @@ class DownSample(nn.Sequential):
     the "conv" mode is not simply down "sampling" if `group` != `in_channels`
     """
     __name__ = "DownSample"
-    __MODES__ = ["max", "avg", "conv", "nearest", "area", "linear",]
+    __MODES__ = ["max", "avg", "lp", "lse", "conv", "nearest", "area", "linear", "blur",]
 
     def __init__(self,
                  down_scale:int,
@@ -1135,6 +1163,14 @@ class DownSample(nn.Sequential):
                 bias=False,
                 stride=self.__down_scale,
             )
+        elif self.__mode == "nearest":
+            raise NotImplementedError
+        elif self.__mode == "area":
+            raise NotImplementedError
+        elif self.__mode == "linear":
+            raise NotImplementedError
+        elif self.__mode == "blur":
+            raise NotImplementedError
         else:
             down_layer = None
         if down_layer:
@@ -1215,6 +1251,31 @@ class DownSample(nn.Sequential):
         return compute_module_size(self)
 
 
+class BlurPool(nn.Module):
+    """
+
+    References
+    ----------
+    1. Zhang, Richard. "Making convolutional networks shift-invariant again." International conference on machine learning. PMLR, 2019.
+    2. https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/layers/blur_pool.py
+    3. https://github.com/kornia/kornia/blob/master/kornia/filters/blur_pool.py
+    """
+    __DEBUG__ = True
+    __name__ = "BlurPool"
+
+    def __init__(self,
+                 down_scale:int,
+                 in_channels:int,
+                 filt_size:int=3,) -> NoReturn:
+        """ NOT finished, NOT checked,
+        """
+        super().__init__()
+        self.__down_scale = down_scale
+        self.__in_channels = in_channels
+        self.__filt_size = filt_size
+        raise NotImplementedError
+
+
 class BidirectionalLSTM(nn.Module):
     """
     from crnn_torch of references.ati_cnn
@@ -1247,8 +1308,8 @@ class BidirectionalLSTM(nn.Module):
         return_sequences: bool, default True,
             if True, returns the the full output sequence,
             otherwise the last output in the output sequence
-        kwargs: dict,
-            other parameters,
+        kwargs: dict, optional,
+            extra parameters
         """
         super().__init__()
         self.__output_size = 2 * hidden_size
@@ -1341,8 +1402,8 @@ class StackedLSTM(nn.Sequential):
         return_sequences: bool, default True,
             if True, returns the the full output sequence,
             otherwise the last output in the output sequence
-        kwargs: dict,
-            other parameters,
+        kwargs: dict, optional,
+            extra parameters
         """
         super().__init__()
         self.__hidden_sizes = hidden_sizes
@@ -1703,8 +1764,10 @@ class MultiHeadAttention(nn.Module):
             Number of heads.
         bias: bool, default True,
             Whether to use the bias term.
-        activation: str or Module,
+        activation: str or Module, default "relu",
             The activation after each linear transformation.
+        kwargs: dict, optional,
+            extra parameters
         """
         super().__init__()
         if in_features % head_num != 0:
@@ -1826,7 +1889,11 @@ class SelfAttention(nn.Module):
         dropout: float, default 0,
             dropout factor for out projection weight of MHA
         bias: bool, default True,
-            whether to use the bias term.
+            whether to use the bias term
+        activation: str or Module, default "relu",
+            The activation after each linear transformation.
+        kwargs: dict, optional,
+            extra parameters
         """
         super().__init__()
         if in_features % head_num != 0:
@@ -1900,6 +1967,8 @@ class AttentivePooling(nn.Module):
             name of the activation or an activation `Module`
         dropout: float, default 0.2,
             dropout ratio before computing attention scores
+        kwargs: dict, optional,
+            extra parameters
         """
         super().__init__()
         self.__in_channels = in_channels
@@ -1986,7 +2055,7 @@ class ZeroPadding(nn.Module):
         assert self.__increase_channels >= 0
         self.__loc = loc.lower()
         assert self.__loc in self.__LOC__
-        self.__device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # self.__device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def forward(self, input:Tensor) -> Tensor:
         """
@@ -1996,9 +2065,10 @@ class ZeroPadding(nn.Module):
             of shape (batch_size, n_channels, seq_len)
         """
         batch_size, _, seq_len = input.shape
+        _device = input.device
         if self.__increase_channels > 0:
             output = torch.zeros((batch_size, self.__increase_channels, seq_len))
-            output = output.to(device=self.__device)
+            output = output.to(device=_device)
             if self.__loc == "head":
                 output = torch.cat((output, input), dim=1)
             elif self.__loc == "tail":
@@ -2064,6 +2134,12 @@ class SeqLin(nn.Sequential):
             if True, each linear layer will have a learnable bias vector
         dropouts: float or sequence of float, default 0,
             dropout ratio(s) (if > 0) after each (activation after each) linear layer
+        kwargs: dict, optional,
+            extra parameters
+
+        TODO
+        ----
+        Can one have grouped linear layers?
         """
         super().__init__()
         self.__in_channels = in_channels
@@ -2195,6 +2271,8 @@ class MLP(SeqLin):
             if True, each linear layer will have a learnable bias vector
         dropouts: float or sequence of float, default 0,
             dropout ratio(s) (if > 0) after each (activation after each) linear layer
+        kwargs: dict, optional,
+            extra parameters
         """
         super().__init__(in_channels, out_channels, activation, kernel_initializer, bias, dropouts, **kwargs)
 
@@ -2440,6 +2518,7 @@ class GEBlock(nn.Module):
     [1] Hu, J., Shen, L., Albanie, S., Sun, G., & Vedaldi, A. (2018). Gather-excite: Exploiting feature context in convolutional neural networks. Advances in neural information processing systems, 31, 9401-9411.
     [2] https://github.com/hujie-frank/GENet
     [3] https://github.com/BayesWatch/pytorch-GENet
+    [4] https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/layers/gather_excite.py
     """
     __DEBUG__ = True
     __name__ = "GEBlock"
@@ -2625,6 +2704,267 @@ class GlobalContextBlock(nn.Module):
         return compute_module_size(self)
 
 
+class BAMBlock(nn.Module):
+    """
+
+    Bottleneck Attention Module (BMVC2018)
+
+    References
+    ----------
+    1. Park, Jongchan, et al. "Bam: Bottleneck attention module." arXiv preprint arXiv:1807.06514 (2018).
+    2. https://github.com/Jongchan/attention-module/blob/master/MODELS/bam.py
+    """
+    __DEBUG__ = True
+    __name__ = "BAMBlock"
+
+    def __init__(self,):
+        """
+        """
+        raise NotImplementedError
+
+
+class CBAMBlock(nn.Module):
+    """
+
+    Convolutional Block Attention Module (ECCV2018)
+
+    References
+    ----------
+    1. Woo, Sanghyun, et al. "Cbam: Convolutional block attention module." Proceedings of the European conference on computer vision (ECCV). 2018.
+    2. https://github.com/Jongchan/attention-module/blob/master/MODELS/cbam.py
+    """
+    __DEBUG__ = False
+    __name__ = "CBAMBlock"
+    __POOL_TYPES__ = ["avg", "max", "lp", "lse",]
+
+    def __init__(self,
+                 gate_channels:int,
+                 reduction:int=16,
+                 groups:int=1,
+                 activation:Union[str,nn.Module]="relu",
+                 gate:Union[str,nn.Module]="sigmoid",
+                 pool_types:Sequence[str]=["avg", "max",],
+                 no_spatial:bool=False,
+                 **kwargs:Any) -> NoReturn:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        gate_channels: int,
+            number of input channels of the gates
+        reduction: int, default 16,
+            reduction ratio of the channel gate
+        groups: int, default 1,
+            not used currently, might be used later, for some possible ``grouped channel gate``
+        activation: str or Module, default "relu",
+            activation after the convolutions in the channel gate
+        gate: str or Module, default "sigmoid",
+            activation gate of the channel gate
+        pool_types: sequence of str, default ["avg", "max",],
+            pooling types of the channel gate
+        no_spatial: bool, default False,
+            if True, spatial gate would be skipped
+        kwargs: dict, optional,
+            extra parameters, including
+            lp_norm_type: float, default 2.0,
+                norm type for the possible lp norm pooling in the channel gate
+            spatial_conv_kernel_size: int, default 7,
+                kernel size of the convolution in the spatial gate
+            spatial_conv_bn: bool or str or Module, default "batch_norm",
+                normalization of the convolution in the spatial gate
+        """
+        super().__init__()
+        self.__gate_channels = gate_channels
+        self.__reduction = reduction
+        self.__groups = groups
+        self.__pool_types = pool_types
+        self.__pool_funcs = {
+            "avg": nn.AdaptiveAvgPool1d(1),
+            "max": nn.AdaptiveMaxPool1d(1),
+            "lp": self._lp_pool,
+            "lse": self._lse_pool,
+        }
+        self.__lp_norm_type = kwargs.get("lp_norm_type", 2.0)
+        self.__spatial_conv_kernel_size = kwargs.get("spatial_conv_kernel_size", 7)
+        self.__spatial_conv_bn = kwargs.get("spatial_conv_bn", "batch_norm")
+
+        # channel gate
+        self.channel_gate_mlp = MLP(
+            in_channels=self.__gate_channels,
+            out_channels=[self.__gate_channels//reduction, self.__gate_channels,],
+            activation=activation,
+            skip_last_activation=True,
+        )
+        # self.channel_gate_act = nn.Sigmoid()
+        if isinstance(gate, str):
+            self.channel_gate_act = Activations[gate.lower()]()
+        elif isinstance(gate, nn.Module):
+            self.channel_gate_act = gate
+        else:
+            raise ValueError(f"Unsupported gate activation {gate}!")
+
+        # spatial gate
+        if no_spatial:
+            self.spatial_gate_conv = None
+        else:
+            self.spatial_gate_conv = Conv_Bn_Activation(
+                in_channels=2,
+                out_channels=1,
+                kernel_size=self.__spatial_conv_kernel_size,
+                stride=1,
+                # groups=self.__groups,
+                batch_norm=self.__spatial_conv_bn,
+                activation="sigmoid",
+            )
+
+    def _fwd_channel_gate(self, input:Tensor) -> Tensor:
+        """ finished, checked,
+
+        forward function of the channel gate
+
+        Parameters
+        ----------
+        input: Tensor,
+            of shape (batch_size, n_channels, seq_len)
+
+        Returns
+        -------
+        output: Tensor,
+            of shape (batch_size, n_channels, seq_len)
+        """
+        channel_att_sum = None
+        for pool_type in self.__pool_types:
+            pool_func = self.__pool_funcs[pool_type]
+            channel_att_raw = self.channel_gate_mlp(pool_func(input).flatten(1, -1))
+            if channel_att_sum is None:
+                channel_att_sum = channel_att_raw
+            else:
+                channel_att_sum = channel_att_sum + channel_att_raw
+        # scale = torch.sigmoid(channel_att_sum)
+        scale = self.channel_gate_act(channel_att_sum)
+        output = scale.unsqueeze(-1) * input
+        return output
+
+    def _fwd_spatial_gate(self, input:Tensor) -> Tensor:
+        """ finished, checked,
+
+        forward function of the spatial gate
+
+        Parameters
+        ----------
+        input: Tensor,
+            of shape (batch_size, n_channels, seq_len)
+
+        Returns
+        -------
+        output: Tensor,
+            of shape (batch_size, n_channels, seq_len)
+        """
+        if self.spatial_gate_conv is None:
+            return input
+        # channel pool, `scale` has n_channels = 2
+        scale = torch.cat( (input.max(dim=1,keepdim=True)[0], input.mean(dim=1,keepdim=True) ), dim=1)
+        scale = self.spatial_gate_conv(scale)
+        output = scale * input
+        return output
+
+    def _lp_pool(self, input:Tensor) -> Tensor:
+        """ finished, checked,
+
+        global power-average pooling over `input`
+
+        Parameters
+        ----------
+        input: Tensor,
+            of shape (batch_size, n_channels, seq_len)
+
+        Returns
+        -------
+        Tensor,
+            of shape (batch_size, n_channels, 1)
+        """
+        return F.lp_pool1d(input, norm_type=self.__lp_norm_type, kernel_size=x.shape[-1])
+
+    def _lse_pool(self, input:Tensor) -> Tensor:
+        """ finished, checked,
+
+        global logsumexp pooling over `input`
+
+        Parameters
+        ----------
+        input: Tensor,
+            of shape (batch_size, n_channels, seq_len)
+
+        Returns
+        -------
+        Tensor,
+            of shape (batch_size, n_channels, 1)
+        """
+        return torch.logsumexp(input, dim=-1)
+
+    def forward(self, input:Tensor) -> Tensor:
+        """ finished, checked,
+
+        forward function of the `CBAMBlock`,
+        first channel gate, then (optional) spatial gate
+
+        Parameters
+        ----------
+        input: Tensor,
+            of shape (batch_size, n_channels, seq_len)
+
+        Returns
+        -------
+        output: Tensor,
+            of shape (batch_size, n_channels, seq_len)
+        """
+        output = self._fwd_spatial_gate(self._fwd_channel_gate(input))
+        return output
+
+    def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        seq_len: int, optional,
+            length of the 1d sequence,
+            if is None, then the input is composed of single feature vectors for each batch
+        batch_size: int, optional,
+            the batch size, can be None
+
+        Returns
+        -------
+        output_shape: sequence,
+            the output shape of this layer, given `seq_len` and `batch_size`
+        """
+        return (batch_size, self.__gate_channels, seq_len)
+
+    @property
+    def module_size(self) -> int:
+        """
+        """
+        return compute_module_size(self)
+
+
+class CoordAttention(nn.Module):
+    """
+
+    Coordinate attention
+
+    References
+    ----------
+    1. Hou, Qibin, Daquan Zhou, and Jiashi Feng. "Coordinate attention for efficient mobile network design." Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. 2021.
+    2. https://github.com/Andrew-Qibin/CoordAttention
+    """
+    __DEBUG__ = True
+    __name__ = "CoordAttention"
+
+    def __init__(self,):
+        """
+        """
+        raise NotImplementedError
+
+
 class CRF(nn.Module):
     """Conditional random field, modified from [1]
 
@@ -2680,7 +3020,7 @@ class CRF(nn.Module):
         self.end_transitions = nn.Parameter(torch.empty(num_tags))
         self.transitions = nn.Parameter(torch.empty(num_tags, num_tags))
         self.reset_parameters()
-        self.__device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # self.__device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def reset_parameters(self) -> NoReturn:
         """
@@ -2725,11 +3065,12 @@ class CRF(nn.Module):
             otherwise ``()``.
         """
         self._validate(emissions, tags=tags, mask=mask)
+        _device = next(self.parameters()).device
         _reduction = reduction.lower()
         if _reduction not in ("none", "sum", "mean", "token_mean"):
             raise ValueError(f"invalid reduction: {_reduction}")
         if mask is None:
-            mask = torch.ones_like(tags, dtype=torch.uint8, device=self.__device)
+            mask = torch.ones_like(tags, dtype=torch.uint8, device=_device)
 
         if self.batch_first:
             emissions = emissions.transpose(0, 1)
@@ -2772,13 +3113,14 @@ class CRF(nn.Module):
             one hot encoding Tensor of the most likely tag sequence
         """
         self._validate(emissions, mask=mask)
+        _device = next(self.parameters()).device
         if mask is None:
-            mask = emissions.new_ones(emissions.shape[:2], dtype=torch.uint8, device=self.__device)
+            mask = emissions.new_ones(emissions.shape[:2], dtype=torch.uint8, device=_device)
         if self.batch_first:
-            emmissions = emmissions.transpose(0, 1)
+            emissions = emissions.transpose(0, 1)
             mask = mask.transpose(0, 1)
         best_tags = Tensor(self._viterbi_decode(emissions, mask)).to(torch.int64)
-        output = F.one_hot(best_tags.to(self.__device), num_classes=self.num_tags).permute(1,0,2)
+        output = F.one_hot(best_tags.to(_device), num_classes=self.num_tags).permute(1,0,2)
         return output
 
     def _validate(self, emissions:Tensor, tags:Optional[torch.LongTensor]=None, mask:Optional[torch.ByteTensor]=None) -> NoReturn:
@@ -3067,7 +3409,12 @@ class ExtendedCRF(nn.Sequential):
         output: Tensor,
             of shape (batch_size, seq_len, n_channels)
         """
-        output = super().forward(input)
+        if self.__in_channels != self.__num_tags:
+            output = self.proj(input)
+        else:
+            output = input
+        output = output.permute(1,0,2)  # (batch_size, seq_len, n_channels) --> (seq_len, batch_size, n_channels)
+        output = self.crf(output)
         return output
 
     def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
@@ -3093,122 +3440,3 @@ class ExtendedCRF(nn.Sequential):
         """
         """
         return compute_module_size(self)
-
-
-# custom losses
-def weighted_binary_cross_entropy(sigmoid_x:Tensor,
-                                  targets:Tensor,
-                                  pos_weight:Tensor,
-                                  weight:Optional[Tensor]=None,
-                                  size_average:bool=True,
-                                  reduce:bool=True) -> Tensor:
-    """ finished, checked,
-
-    Parameters
-    ----------
-    sigmoid_x: Tensor,
-        predicted probability of size [N,C], N sample and C Class.
-        Eg. Must be in range of [0,1], i.e. Output from Sigmoid.
-    targets: Tensor,
-        true value, one-hot-like vector of size [N,C]
-    pos_weight: Tensor,
-        Weight for postive sample
-    weight: Tensor, optional,
-    size_average: bool, default True,
-    reduce: bool, default True,
-
-    Reference (original source):
-    https://github.com/pytorch/pytorch/issues/5660#issuecomment-403770305
-    """
-    if not (targets.size() == sigmoid_x.size()):
-        raise ValueError("Target size ({}) must be the same as input size ({})".format(targets.size(), sigmoid_x.size()))
-
-    loss = -pos_weight * targets * sigmoid_x.log() - (1-targets) * (1-sigmoid_x).log()
-
-    if weight is not None:
-        loss = loss * weight
-
-    if not reduce:
-        return loss
-    elif size_average:
-        return loss.mean()
-    else:
-        return loss.sum()
-
-class WeightedBCELoss(nn.Module):
-    """ finished, checked,
-
-    Reference (original source):
-    https://github.com/pytorch/pytorch/issues/5660#issuecomment-403770305
-    """
-    __name__ = "WeightedBCELoss"
-
-    def __init__(self,
-                 pos_weight:Tensor=1,
-                 weight:Optional[Tensor]=None,
-                 PosWeightIsDynamic:bool=False,
-                 WeightIsDynamic:bool=False,
-                 size_average:bool=True,
-                 reduce:bool=True) -> NoReturn:
-        """ checked,
-
-        Parameters
-        ----------
-        pos_weight: Tensor, default 1,
-            Weight for postive samples. Size [1,C]
-        weight: Tensor, optional,
-            Weight for Each class. Size [1,C]
-        PosWeightIsDynamic: bool, default False,
-            If True, the pos_weight is computed on each batch.
-            If `pos_weight` is None, then it remains None.
-        WeightIsDynamic: bool, default False,
-            If True, the weight is computed on each batch.
-            If `weight` is None, then it remains None.
-        size_average: bool, default True,
-        reduce: bool, default True,
-        """
-        super().__init__()
-
-        self.register_buffer("weight", weight)
-        self.register_buffer("pos_weight", pos_weight)
-        self.size_average = size_average
-        self.reduce = reduce
-        self.PosWeightIsDynamic = PosWeightIsDynamic
-
-    def forward(self, input:Tensor, target:Tensor) -> Tensor:
-        """
-        """
-        if self.PosWeightIsDynamic:
-            positive_counts = target.sum(dim=0)
-            nBatch = len(target)
-            self.pos_weight = (nBatch - positive_counts) / (positive_counts + 1e-5)
-
-        return weighted_binary_cross_entropy(input, target,
-                                             pos_weight=self.pos_weight,
-                                             weight=self.weight,
-                                             size_average=self.size_average,
-                                             reduce=self.reduce)
-
-
-class BCEWithLogitsWithClassWeightLoss(nn.BCEWithLogitsLoss):
-    """ finished, checked,
-    """
-    __name__ = "BCEWithLogitsWithClassWeightsLoss"
-
-    def __init__(self, class_weight:Tensor) -> NoReturn:
-        """ finished, checked,
-
-        Parameters
-        ----------
-        class_weight: Tensor,
-            class weight, of shape (1, n_classes)
-        """
-        super().__init__(reduction="none")
-        self.class_weight = class_weight
-
-    def forward(self, input:Tensor, target:Tensor) -> Tensor:
-        """
-        """
-        loss = super().forward(input, target)
-        loss = torch.mean(loss * self.class_weight)
-        return loss

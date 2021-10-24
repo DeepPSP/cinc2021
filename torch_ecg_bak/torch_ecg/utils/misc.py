@@ -8,11 +8,12 @@ from functools import reduce
 from collections import namedtuple
 from glob import glob
 from copy import deepcopy
-from typing import Union, Optional, List, Dict, Tuple, Sequence, NoReturn, Any
+from typing import Union, Optional, List, Dict, Tuple, Sequence, Iterable, NoReturn, Any
 from numbers import Real, Number
 
 import numpy as np
 np.set_printoptions(precision=5, suppress=True)
+import pandas as pd
 from scipy import interpolate
 from sklearn.utils import compute_class_weight
 from wfdb.io import _header
@@ -38,7 +39,10 @@ __all__ = [
     "rdheader",
     "ensure_lead_fmt", "ensure_siglen",
     "ECGWaveForm", "masks_to_waveforms",
+    "mask_to_intervals",
     "list_sum",
+    "read_log_txt", "read_event_scalars",
+    "dicts_equal",
 ]
 
 
@@ -498,7 +502,7 @@ def init_logger(log_dir:str, log_file:Optional[str]=None, log_name:Optional[str]
     log_file = os.path.join(log_dir, log_file)
     print(f"log file path: {log_file}")
 
-    logger = logging.getLogger(log_name or "ECG")  # "ECG" to prevent from using the root logger
+    logger = logging.getLogger(log_name or "torch_ecg")  # "ECG" to prevent from using the root logger
 
     c_handler = logging.StreamHandler(sys.stdout)
     f_handler = logging.FileHandler(log_file)
@@ -793,6 +797,56 @@ def masks_to_waveforms(masks:np.ndarray,
     return waves
 
 
+def mask_to_intervals(mask:np.ndarray,
+                      vals:Optional[Union[int,Sequence[int]]]=None,
+                      right_inclusive:bool=False) -> Union[list, dict]:
+    """ finished, checked,
+
+    Parameters
+    ----------
+    mask: ndarray,
+        1d mask
+    vals: int or sequence of int, optional,
+        values in `mask` to obtain intervals
+    right_inclusive: bool, default False,
+        if True, the intervals will be right inclusive
+        otherwise, right exclusive
+
+    Returns
+    -------
+    intervals: dict or list,
+        the intervals corr. to each value in `vals` if `vals` is `None` or `Sequence`;
+        or the intervals corr. to `vals` if `vals` is int.
+        each interval is of the form `[a,b]`
+    """
+    if vals is None:
+        _vals = list(set(mask))
+    elif isinstance(vals, int):
+        _vals = [vals]
+    else:
+        _vals = vals
+    # assert set(_vals) & set(mask) == set(_vals)
+    bias = 0 if right_inclusive else 1
+
+    intervals = {v:[] for v in _vals}
+    for v in _vals:
+        valid_inds = np.where(np.array(mask)==v)[0]
+        if len(valid_inds) == 0:
+            continue
+        split_indices = np.where(np.diff(valid_inds)>1)[0]
+        split_indices = split_indices.tolist() + (split_indices+1).tolist()
+        split_indices = sorted([0] + split_indices + [len(valid_inds)-1])
+        for idx in range(len(split_indices)//2):
+            intervals[v].append(
+                [valid_inds[split_indices[2*idx]], valid_inds[split_indices[2*idx+1]]+bias]
+            )
+    
+    if isinstance(vals, int):
+        intervals = intervals[vals]
+
+    return intervals
+
+
 def list_sum(l:Sequence[list]) -> list:
     """ finished, checked,
 
@@ -809,3 +863,155 @@ def list_sum(l:Sequence[list]) -> list:
     """
     l_sum = reduce(lambda a,b: a+b, l, [])
     return l_sum
+
+
+def read_log_txt(fp:str,
+                 epoch_startswith:str="Train epoch_",
+                 scalar_startswith:Union[str,Iterable[str]]="train/|test/") -> pd.DataFrame:
+    """ finished, checked,
+
+    read from log txt file, in case tensorboard not working
+
+    Parameters
+    ----------
+    fp: str,
+        path to the log txt file
+    epoch_startswith: str,
+        indicator of the start of the start of an epoch
+    scalar_startswith: str or iterable of str,
+        indicators of the scalar recordings,
+        if is str, should be indicators separated by "|"
+    
+
+    Returns
+    -------
+    summary: DataFrame,
+        scalars summary, in the format of a pandas DataFrame
+    """
+    with open(fp, "r") as f:
+        content = f.read().splitlines()
+    if isinstance(scalar_startswith, str):
+        field_pattern = f"^({scalar_startswith})"
+    else:
+        field_pattern = f"""^({"|".join(scalar_startswith)})"""
+    summary = []
+    new_line = None
+    for l in content:
+        if l.startswith(epoch_startswith):
+            if new_line:
+                summary.append(new_line)
+            epoch = re.findall("[\d]+", l)[0]
+            new_line = {"epoch": epoch}
+        if re.findall(field_pattern, l):
+            field, val = l.split(":")
+            field = field.strip()
+            val = float(val.strip())
+            new_line[field] = val
+    summary.append(new_line)
+    summary = pd.DataFrame(summary)
+    return summary
+
+
+def read_event_scalars(fp:str, keys:Optional[Union[str,Iterable[str]]]=None) -> Union[pd.DataFrame,Dict[str,pd.DataFrame]]:
+    """ finished, checked,
+
+    read scalars from event file, in case tensorboard not working
+
+    Parameters
+    ----------
+    fp: str,
+        path to the event file
+    keys: str or iterable of str, optional,
+        field names of the scalars to read,
+        if is None, scalars of all fields will be read
+
+    Returns
+    -------
+    summary: DataFrame or dict of DataFrame
+        the wall_time, step, value of the scalars
+    """
+    try:
+        from tensorflow.python.summary.event_accumulator import EventAccumulator
+    except:
+        from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+    event_acc = EventAccumulator(fp)
+    event_acc.Reload()
+    if keys:
+        if isinstance(keys, str):
+            _keys = [keys]
+        else:
+            _keys = keys
+    else:
+        _keys = event_acc.scalars.Keys()
+    summary = {}
+    for k in _keys:
+        df = pd.DataFrame([[item.wall_time, item.step, item.value] for item in event_acc.scalars.Items(k)])
+        df.columns = ["wall_time", "step", "value"]
+        summary[k] = df
+    if isinstance(keys, str):
+        summary = summary[k]
+    return summary
+
+
+def dicts_equal(d1:dict, d2:dict) -> bool:
+    """ finished, checked,
+
+    Parameters
+    ----------
+    d1, d2: dict,
+        the two dicts to compare equality
+
+    Returns
+    -------
+    bool, True if `d1` equals `d2`
+
+    NOTE
+    ----
+    the existence of numpy array, torch Tensor, pandas DataFrame and Series would probably
+    cause errors when directly use the default `__eq__` method of dict,
+    for example `{"a": np.array([1,2])} == {"a": np.array([1,2])}` would raise the following
+    ```python
+    ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
+    ```
+
+    Example
+    -------
+    >>> d1 = {"a": pd.DataFrame([{"hehe":1,"haha":2}])[["haha","hehe"]]}
+    >>> d2 = {"a": pd.DataFrame([{"hehe":1,"haha":2}])[["hehe","haha"]]}
+    >>> dicts_equal(d1, d2)
+    ... True
+    """
+    import torch
+    if len(d1) != len(d2):
+        return False
+    for k,v in d1.items():
+        if k not in d2 or not isinstance(d2[k], type(v)):
+            return False
+        if isinstance(v, dict):
+            if not dicts_equal(v, d2[k]):
+                return False
+        elif isinstance(v, np.ndarray):
+            if v.shape != d2[k].shape or not (v==d2[k]).all():
+                return False
+        elif isinstance(v, torch.Tensor):
+            if v.shape != d2[k].shape or not (v==d2[k]).all().item():
+                return False
+        elif isinstance(v, pd.DataFrame):
+            if v.shape != d2[k].shape or set(v.columns) != set(d2[k].columns):
+                # consider: should one check index be equal?
+                return False
+            # for c in v.columns:
+            #     if not (v[c] == d2[k][c]).all():
+            #         return False
+            if not (v.values == d2[k][v.columns].values).all():
+                return False
+        elif isinstance(v, pd.Series):
+            if v.shape != d2[k].shape or v.name != d2[k].name:
+                return False
+            if not (v==d2[k]).all():
+                return False
+        # TODO: consider whether there are any other dtypes that should be treated similarly
+        else:  # other dtypes whose equality can be directly checked
+            if v != d2[k]:
+                return False
+    return True

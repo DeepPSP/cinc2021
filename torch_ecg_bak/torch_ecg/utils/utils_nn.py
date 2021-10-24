@@ -388,7 +388,7 @@ def compute_deconv_output_shape(input_shape:Sequence[Union[int, None]],
     return output_shape
 
 
-def compute_module_size(module:nn.Module) -> int:
+def compute_module_size(module:nn.Module, human:bool=False, dtype:str="float32") -> Union[int, str]:
     """ finished, checked,
 
     compute the size (number of parameters) of a module
@@ -397,6 +397,11 @@ def compute_module_size(module:nn.Module) -> int:
     ----------
     module: Module,
         a torch Module
+    human: bool, default False,
+        return size in a way that is easy to read by a human,
+        by appending a suffix corresponding to the unit (K, M, G, T, P)
+    dtype: str, default "float32",
+        data type of the module parameters, one of "float16", "float32", "float64"
     
     Returns
     -------
@@ -405,6 +410,15 @@ def compute_module_size(module:nn.Module) -> int:
     """
     module_parameters = filter(lambda p: p.requires_grad, module.parameters())
     n_params = sum([np.prod(p.size()) for p in module_parameters])
+    if human:
+        n_params = n_params * {"float16":2, "float32":4, "float64":8}[dtype.lower()] / 1024
+        div_count = 0
+        while n_params >= 1024:
+            n_params /= 1024
+            div_count += 1
+        # cvt_dict = {0:"K", 1:"M", 2:"G", 3:"T", 4:"P"}
+        cvt_dict = {c:u for c,u in enumerate(list("KMGTP"))}
+        n_params = f"""{n_params:.1f}{cvt_dict[div_count]}"""
     return n_params
 
 
@@ -478,33 +492,35 @@ def compute_receptive_field(kernel_sizes:Union[Sequence[int], int]=1,
     return receptive_field
 
 
-def default_collate_fn(batch:Sequence[Tuple[np.ndarray, np.ndarray]]) -> Tuple[Tensor, Tensor]:
+def default_collate_fn(batch:Sequence[Tuple[np.ndarray, ...]]) -> Tuple[Tensor, ...]:
     """ finished, checked,
 
     collate functions for model training
 
-    the data generator (`Dataset`) should generate (`__getitem__`) 2-tuples `signals, labels`
+    the data generator (`Dataset`) should generate (`__getitem__`) n-tuples `signals, labels, ...`
 
     Parameters
     ----------
     batch: sequence,
-        sequence of 2-tuples,
-        in which the first element is the signal, the second is the label
+        sequence of n-tuples,
+        in which the first element is the signal, the second is the label, ...
     
     Returns
     -------
-    values: Tensor,
-        the concatenated values as input for training
-    labels: Tensor,
-        the concatenated labels as ground truth for training
+    tuple of Tensor,
+        the concatenated values to feed into neural networks
     """
-    values = [[item[0]] for item in batch]
-    labels = [[item[1]] for item in batch]
-    values = np.concatenate(values, axis=0).astype(_DTYPE)
-    values = torch.from_numpy(values)
-    labels = np.concatenate(labels, axis=0).astype(_DTYPE)
-    labels = torch.from_numpy(labels)
-    return values, labels
+    try:
+        n_fields = len(batch[0])
+    except:
+        raise ValueError("No data")
+    ret = []
+    for i in range(n_fields):
+        values = [[item[i]] for item in batch]
+        values = np.concatenate(values, axis=0).astype(_DTYPE)
+        values = torch.from_numpy(values)
+        ret.append(values)
+    return tuple(ret)
 
 
 def intervals_iou(itv_a:Tensor, itv_b:Tensor, iou_type="iou") -> Tensor:

@@ -14,7 +14,7 @@ References
 from copy import deepcopy
 from itertools import repeat
 from collections import OrderedDict
-from typing import Union, Optional, Tuple, List, Sequence, NoReturn
+from typing import Union, Optional, Tuple, List, Sequence, NoReturn, Any
 from numbers import Real, Number
 
 import numpy as np
@@ -57,7 +57,11 @@ class ECG_SEQ_LAB_NET(nn.Module):
 
     pipeline
     --------
-    multi-scopic cnn --> (bidi-lstm -->) "attention" --> seq linear
+    (multi-scopic, etc.) cnn --> head ((bidi-lstm -->) "attention" --> seq linear) -> output
+
+    TODO
+    ----
+    add optional upsampling (e.g. `F.interpolate`) to make output size the same as input size
 
     References
     ----------
@@ -66,7 +70,7 @@ class ECG_SEQ_LAB_NET(nn.Module):
     __DEBUG__ = False
     __name__ = "ECG_SEQ_LAB_NET"
 
-    def __init__(self, classes:Sequence[str], n_leads:int, input_len:Optional[int]=None, config:Optional[ED]=None) -> NoReturn:
+    def __init__(self, classes:Sequence[str], n_leads:int, config:Optional[ED]=None, **kwargs:Any) -> NoReturn:
         """ finished, checked,
 
         Parameters
@@ -75,9 +79,6 @@ class ECG_SEQ_LAB_NET(nn.Module):
             list of the classes for sequence labeling
         n_leads: int,
             number of leads (number of input channels)
-        input_len: int, optional,
-            sequence length (last dim.) of the input,
-            will not be used in the inference mode
         config: dict, optional,
             other hyper-parameters, including kernel sizes, etc.
             ref. the corresponding config file
@@ -88,19 +89,18 @@ class ECG_SEQ_LAB_NET(nn.Module):
         self.__out_channels = self.n_classes
         # self.__out_channels = self.n_classes if self.n_classes > 2 else 1
         self.n_leads = n_leads
-        self.input_len = input_len
         self.config = ED(deepcopy(ECG_SEQ_LAB_NET_CONFIG))
         self.config.update(deepcopy(config) or {})
         if self.__DEBUG__:
             print(f"classes (totally {self.n_classes}) for prediction:{self.classes}")
             print(f"configuration of {self.__name__} is as follows\n{dict_to_str(self.config)}")
-        __debug_seq_len = self.input_len or 4000
+        __debug_seq_len = 4000
         
         # currently, the CNN part only uses `MultiScopicCNN`
         # can be "multi_scopic" or "multi_scopic_leadwise"
         cnn_choice = self.config.cnn.name.lower()
         self.cnn = MultiScopicCNN(self.n_leads, **(self.config.cnn[cnn_choice]))
-        rnn_input_size = self.cnn.compute_output_shape(self.input_len, batch_size=None)[1]
+        rnn_input_size = self.cnn.compute_output_shape(seq_len=None, batch_size=None)[1]
 
         if self.__DEBUG__:
             cnn_output_shape = self.cnn.compute_output_shape(__debug_seq_len, batch_size=None)
@@ -251,7 +251,39 @@ class ECG_SEQ_LAB_NET(nn.Module):
         return output_shape
 
     @property
-    def module_size(self):
+    def module_size(self) -> int:
         """
         """
         return compute_module_size(self)
+
+
+    @staticmethod
+    def from_checkpoint(path:str, device:Optional[torch.device]=None) -> Tuple[nn.Module, dict]:
+        """
+
+        Parameters
+        ----------
+        path: str,
+            path of the checkpoint
+        device: torch.device, optional,
+            map location of the model parameters,
+            defaults "cuda" if available, otherwise "cpu"
+
+        Returns
+        -------
+        model: Module,
+            the model loaded from a checkpoint
+        aux_config: dict,
+            auxiliary configs that are needed for data preprocessing, etc.
+        """
+        _device = device or (torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"))
+        ckpt = torch.load(path, map_location=_device)
+        aux_config = ckpt.get("train_config", None) or ckpt.get("config", None)
+        assert aux_config is not None, "input checkpoint has no sufficient data to recover a model"
+        model = ECG_SEQ_LAB_NET(
+            classes=aux_config["classes"],
+            n_leads=aux_config["n_leads"],
+            config=ckpt["model_config"],
+        )
+        model.load_state_dict(ckpt["model_state_dict"])
+        return model, aux_config

@@ -4,7 +4,7 @@ including spatial, temporal, spatio-temporal domains
 """
 import os
 from copy import deepcopy
-from typing import Union, Optional, List, Tuple, Sequence, NoReturn
+from typing import Union, Optional, List, Tuple, Sequence, Iterable, NoReturn
 from numbers import Real
 
 import numpy as np
@@ -19,7 +19,10 @@ __all__ = [
     "MovingAverage",
     "resample_irregular_timeseries",
     "detect_peaks",
+    "remove_spikes_naive",
     "butter_bandpass_filter",
+    "get_ampl",
+    "normalize",
 ]
 
 
@@ -542,6 +545,33 @@ def _plot(x, mph, mpd, threshold, edge, valley, ax, ind):
     plt.show()
 
 
+def remove_spikes_naive(sig:np.ndarray, threshold:Real=20) -> np.ndarray:
+    """ finished, checked,
+
+    remove `spikes` from `sig` using a naive method proposed in entry 0416 of CPSC2019
+
+    `spikes` here refers to abrupt large bumps with (abs) value larger than the given threshold,
+    do NOT confuse with `spikes` in paced rhythm
+
+    Parameters
+    ----------
+    sig: ndarray,
+        1d signal with potential spikes
+    threshold: real number,
+        values of `sig` that are larger than `threshold` will be removed
+    
+    Returns
+    -------
+    filtered_sig: ndarray,
+        signal with `spikes` removed
+    """
+    b = list(filter(lambda k: k > 0, np.argwhere(np.abs(sig)>threshold).squeeze(-1)))
+    filtered_sig = sig.copy()
+    for k in b:
+        filtered_sig[k] = filtered_sig[k-1]
+    return filtered_sig
+
+
 def butter_bandpass(lowcut:Real, highcut:Real, fs:Real, order:int, verbose:int=0) -> Tuple[np.ndarray, np.ndarray]:
     """
     Butterworth Bandpass Filter Design
@@ -633,3 +663,164 @@ def butter_bandpass_filter(data:np.ndarray, lowcut:Real, highcut:Real, fs:Real, 
     b, a = butter_bandpass(lowcut, highcut, fs, order=order)
     y = filtfilt(b, a, data)
     return y
+
+
+def get_ampl(sig:np.ndarray,
+             fs:Real,
+             fmt:str="lead_first",
+             window:Real=0.2,
+             critical_points:Optional[Sequence]=None) -> Union[float, np.ndarray]:
+    """ finished, checked,
+
+    get amplitude of a signal (near critical points if given)
+
+    Parameters
+    ----------
+    sig: ndarray,
+        (ecg) signal
+    fs: real number,
+        sampling frequency of the signal
+    fmt: str, default "lead_first",
+        format of the signal,
+        "channel_last" (alias "lead_last"), or
+        "channel_first" (alias "lead_first"),
+        ignored if sig is 1d array (single-lead)
+    window: int, default 0.2s,
+        window length of a window for computing amplitude, with units in seconds
+    critical_points: ndarray, optional,
+        positions of critical points near which to compute amplitude,
+        e.g. can be rpeaks, t peaks, etc.
+
+    Returns
+    -------
+    ampl: float, or ndarray,
+        amplitude of the signal
+    """
+    if fmt.lower() in ["channel_last", "lead_last"]:
+        _sig = sig.T
+    else:
+        _sig = sig.copy()
+    _window = int(round(window * fs))
+    half_window = _window // 2
+    _window = half_window * 2
+    if _sig.ndim == 1:
+        ampl = 0
+    else:
+        ampl = np.zeros((_sig.shape[0],))
+    if critical_points is not None:
+        s = np.stack(
+            [
+                ensure_siglen(
+                    _sig[...,max(0,p-half_window):min(_sig.shape[-1],p+half_window)],
+                    siglen=_window,
+                    fmt="lead_first") \
+                for p in critical_points
+            ],
+            axis=-1
+        )
+        # the following is much slower
+        # for p in critical_points:
+        #     s = _sig[...,max(0,p-half_window):min(_sig.shape[-1],p+half_window)]
+        #     ampl = np.max(np.array([ampl, np.max(s,axis=-1) - np.min(s,axis=-1)]), axis=0)
+    else:
+        s = np.stack(
+            [_sig[..., idx*half_window: idx*half_window+_window] for idx in range(_sig.shape[-1]//half_window-1)],
+            axis=-1
+        )
+        # the following is much slower
+        # for idx in range(_sig.shape[-1]//half_window-1):
+        #     s = _sig[..., idx*half_window: idx*half_window+_window]
+        #     ampl = np.max(np.array([ampl, np.max(s,axis=-1) - np.min(s,axis=-1)]), axis=0)
+    ampl = np.max(np.max(s,axis=-2) - np.min(s,axis=-2), axis=-1)
+    return ampl
+
+
+def normalize(sig:np.ndarray,
+              mean:Union[Real,Iterable[Real]]=0.0,
+              std:Union[Real,Iterable[Real]]=1.0,
+              sig_fmt:str="channel_first",
+              per_channel:bool=False,
+              fixed:bool=True,) -> np.ndarray:
+    """ finished, checked,
+    
+    perform normalization on `sig`, to make it has fixed mean and standard deviation,
+    or normalize `sig` using `mean` and `std` via (sig - mean) / std
+
+    Parameters
+    ----------
+    sig: ndarray,
+        signal to be normalized
+    mean: real number or array_like, default 0.0,
+        mean value of the normalized signal,
+        or mean values for each lead of the normalized signal
+    std: real number or array_like, default 1.0,
+        standard deviation of the normalized signal,
+        or standard deviations for each lead of the normalized signal
+    sig_fmt: str, default "channel_first",
+        format of the signal, can be of one of
+        "channel_last" (alias "lead_last"), or
+        "channel_first" (alias "lead_first")
+    per_channel: bool, default False,
+        if True, normalization will be done per channel
+    fixed: bool, default True,
+        if True, the normalized signal will have fixed mean (equals to `mean`)
+        and fixed standard deviation (equals to `std`),
+        otherwise, the signal will be normalized as (sig - mean) / std
+        
+    Returns
+    -------
+    nm_sig: ndarray,
+        the normalized signal
+        
+    NOTE
+    ----
+    in cases where normalization is infeasible (std = 0),
+    only the mean value will be shifted
+    """
+    if isinstance(std, Real):
+        assert std > 0, "standard deviation should be positive"
+    else:
+        assert (np.array(std) > 0).all(), "standard deviations should all be positive"
+    if not per_channel:
+        assert isinstance(mean, Real) and isinstance(std, Real), \
+            f"mean and std should be real numbers in the non per-channel setting"
+    assert sig_fmt.lower() in ["channel_first", "lead_first", "channel_last", "lead_last",], \
+        f"format {sig_fmt} of the signal not supported!"
+
+    if isinstance(mean, Iterable):
+        if sig_fmt.lower() in ["channel_first", "lead_first",]:
+            _mean = np.array(mean)[..., np.newaxis]
+        else:
+            _mean = np.array(mean)[np.newaxis, ...]
+    else:
+        _mean = mean
+    if isinstance(std, Iterable):
+        if sig_fmt.lower() in ["channel_first", "lead_first",]:
+            _std = np.array(std)[..., np.newaxis]
+        else:
+            _std = np.array(std)[np.newaxis, ...]
+    else:
+        _std = std 
+
+    eps = 1e-7  # to avoid dividing by zero
+
+    if fixed:
+        if sig.ndim == 3:  # the first dimension is the batch dimension
+            if not per_channel:
+                options = dict(axis=(1,2), keepdims=True)
+            elif sig_fmt.lower() in ["channel_first", "lead_first",]:
+                options = dict(axis=2, keepdims=True)
+            else:
+                options = dict(axis=1, keepdims=True)
+        else:
+            if not per_channel:
+                options = dict(axis=None)
+            elif sig_fmt.lower() in ["channel_first", "lead_first",]:
+                options = dict(axis=1, keepdims=True)
+            else:
+                options = dict(axis=0, keepdims=True)   
+
+        nm_sig = ( (sig - np.mean(sig, **options)) / (np.std(sig, **options) + eps) ) * _std + _mean
+    else:
+        nm_sig = (sig - _mean) / _std
+    return nm_sig
