@@ -1,4 +1,4 @@
-# [PhysioNet/CinC Challenge 2021](https://physionetchallenges.github.io/2021/)
+# [PhysioNet/CinC Challenge 2021](https://physionetchallenges.github.io/2021/){:target="_blank"}
 Will Two Do? Varying Dimensions in Electrocardiography: The PhysioNet/Computing in Cardiology Challenge 2021
 
 
