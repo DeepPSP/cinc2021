@@ -94,14 +94,7 @@ class CINC2021(Dataset):
         # TODO: consider using `remove_spikes_naive` to treat these exceptional records
         self.records = [r for r in self.records if r not in self.reader.exceptional_records]
 
-        self.train_x, self.train_y, self.test_x, self.test_y = None, None, None, None
-        self._load_all_data()
-
-
-    def _load_all_data(self) -> NoReturn:
-        """
-        """
-        raise NotImplementedError
+        self.__data_aug = self.training
 
 
     def __getitem__(self, index:int) -> Tuple[np.ndarray, np.ndarray]:
@@ -161,6 +154,18 @@ class CINC2021(Dataset):
         """
         """
         return len(self.records)
+
+
+    def disable_data_augmentation(self) -> NoReturn:
+        """
+        """
+        self.__data_aug = False
+
+
+    def enable_data_augmentation(self) -> NoReturn:
+        """
+        """
+        self.__data_aug = True
 
     
     def _train_test_split(self,
@@ -365,3 +370,8 @@ class CINC2021(Dataset):
                 print(f"labels of {self.records[idx]} have nan values")
 
         self.__data_aug = prev_state
+
+
+    @property
+    def use_augmentation(self) -> bool:
+        return self.__data_aug

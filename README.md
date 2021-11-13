@@ -2,6 +2,9 @@
 Will Two Do? Varying Dimensions in Electrocardiography: The PhysioNet/Computing in Cardiology Challenge 2021
 
 
+NOTE that a part of the code for the official phase have been moved to the folder [official_phase_legacy](/official_phase_legacy/).
+
+
 ## Digest of Top Solutions (ranked by [final challenge score](https://docs.google.com/spreadsheets/d/1cTLRmSLS1_TOwx-XnY-QVoUyO2rFyPUGTHRzNm3u8EM/edit?usp=sharing))
 1. [ISIBrno-AIMT](https://www.cinc.org/2021/Program/accepted/14_Preprint.pdf): Custom ResNet + MultiHeadAttention + Custom Loss
 2. [DSAIL_SNU](https://www.cinc.org/2021/Program/accepted/80_Preprint.pdf): SE-ResNet + Custom Loss (from Asymmetric Loss)

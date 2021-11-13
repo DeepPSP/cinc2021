@@ -4,7 +4,7 @@
 # Some functions are *required*, but you can edit most parts of required functions, remove non-required functions, and add your own function.
 
 from helper_code import *
-import os, sys
+import numpy as np, os, sys, joblib
 import time
 from datetime import datetime
 from copy import deepcopy
@@ -19,8 +19,7 @@ import torch
 from easydict import EasyDict as ED
 from scipy.signal import resample, resample_poly
 
-from trainer import CINC2021Trainer
-from dataset import CINC2021
+from trainer import train
 # from helper_code import twelve_leads, six_leads, four_leads, three_leads, two_leads, lead_sets
 from cfg import TrainCfg, ModelCfg, SpecialDetectorCfg
 from cfg_ns import TrainCfg as TrainCfg_ns, ModelCfg as ModelCfg_ns
@@ -119,7 +118,14 @@ def training_code(data_directory, model_directory):
     else:
         train_classes = train_config.classes
 
+    logger = init_logger(log_dir=train_config.log_dir, verbose=2)
+    logger.info(f"\n{'*'*20}   Start Training   {'*'*20}\n")
+    logger.info(f"Using device {DEVICE}")
+    logger.info(f"Using torch of version {torch.__version__}")
+    # logger.info(f"with configuration\n{dict_to_str(train_config)}")
+
     start_time = time.time()
+
 
     # Train 12-lead ECG model.
     print("Training 12-lead ECG model...")
@@ -132,7 +138,7 @@ def training_code(data_directory, model_directory):
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    training_n_leads(train_config, model_config)
+    training_n_leads(train_config, model_config, logger)
 
 
     # Train 6-lead ECG model.
@@ -146,7 +152,7 @@ def training_code(data_directory, model_directory):
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    training_n_leads(train_config, model_config)
+    training_n_leads(train_config, model_config, logger)
 
 
     # Train 4-lead ECG model.
@@ -161,7 +167,7 @@ def training_code(data_directory, model_directory):
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    training_n_leads(train_config, model_config)
+    training_n_leads(train_config, model_config, logger)
     
 
     # Train 3-lead ECG model.
@@ -176,7 +182,7 @@ def training_code(data_directory, model_directory):
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    training_n_leads(train_config, model_config)
+    training_n_leads(train_config, model_config, logger)
     
 
     # Train 2-lead ECG model.
@@ -191,13 +197,13 @@ def training_code(data_directory, model_directory):
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    training_n_leads(train_config, model_config)
+    training_n_leads(train_config, model_config, logger)
 
     print(f"Training finishes! Total time usage is {((time.time() - start_time) / 3600):.3f} hours.")
 
 
 
-def training_n_leads(train_config:ED, model_config:ED) -> NoReturn:
+def training_n_leads(train_config:ED, model_config:ED, logger:Logger) -> NoReturn:
     """
     """
     tranches = train_config.tranches_for_training
@@ -217,17 +223,14 @@ def training_n_leads(train_config:ED, model_config:ED) -> NoReturn:
         model = torch.nn.DataParallel(model)
     model.to(device=DEVICE)
 
-    trainer = CINC2021Trainer(
+    train(
         model=model,
-        dataset_cls=CINC2021,
         model_config=model_config,
-        train_config=train_config,
+        config=train_config,
         device=DEVICE,
+        logger=logger,
+        debug=train_config.debug,
     )
-
-    trainer.train()
-
-    del trainer
 
 
 
@@ -250,12 +253,16 @@ def load_model(model_directory, leads):
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
-    model = ECG_CRNN_CINC2021.from_checkpoint(
-        path=os.path.join(model_directory, model_filename),
+    ckpt = torch.load(os.path.join(model_directory, model_filename), map_location=device)
+    model = ECG_CRNN_CINC2021(
+        classes=ckpt["train_config"].classes,
+        n_leads=n_leads,  # ckpt["train_config"].n_leads
+        config=ckpt["model_config"],
     )
     model.eval()
-    if len(model.train_config.classes) != len(_TrainCfg.classes):
-        warnings.warn(f"""checkpoint model has {len(model.train_config.classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
+    model.load_state_dict(ckpt["model_state_dict"])
+    if len(ckpt["train_config"].classes) != len(_TrainCfg.classes):
+        warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
     return model
 
 # # Load your trained 12-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
@@ -338,9 +345,6 @@ def load_model(model_directory, leads):
 
 # Run your trained model. This function is *required*. You should edit this function to add your code, but do *not* change the arguments of this function.
 def run_model(model, header, recording, verbose=0):
-    """
-    TODO: update this function
-    """
     raw_data, ann_dict = preprocess_data(header, recording)
 
     for lead in range(raw_data.shape[0]):
@@ -466,6 +470,7 @@ def run_model(model, header, recording, verbose=0):
     # TODO:
     # filter contradictory conclusions from dl model and from special detector
 
+
     classes = _ModelCfg.full_classes
     # class abbr name to snomed ct code
     classes = [abbr_to_snomed_ct_code[c] for c in classes]
@@ -490,6 +495,34 @@ def preprocess_data(header:str, recording:np.ndarray):
     ann_dict["datetime"] = datetime.strptime(
         " ".join([ann_dict["datetime"], daytime]), "%d-%b-%Y %H:%M:%S"
     )
+    # try:
+    #     ann_dict["age"] = \
+    #         int([l for l in header_reader.comments if "Age" in l][0].split(": ")[-1])
+    # except:
+    #     ann_dict["age"] = np.nan
+    # try:
+    #     ann_dict["sex"] = \
+    #         [l for l in header_reader.comments if "Sex" in l][0].split(": ")[-1]
+    # except:
+    #     ann_dict["sex"] = "Unknown"
+    # try:
+    #     ann_dict["medical_prescription"] = \
+    #         [l for l in header_reader.comments if "Rx" in l][0].split(": ")[-1]
+    # except:
+    #     ann_dict["medical_prescription"] = "Unknown"
+    # try:
+    #     ann_dict["history"] = \
+    #         [l for l in header_reader.comments if "Hx" in l][0].split(": ")[-1]
+    # except:
+    #     ann_dict["history"] = "Unknown"
+    # try:
+    #     ann_dict["symptom_or_surgery"] = \
+    #         [l for l in header_reader.comments if "Sx" in l][0].split(": ")[-1]
+    # except:
+    #     ann_dict["symptom_or_surgery"] = "Unknown"
+
+    # l_Dx = [l for l in header_reader.comments if "Dx" in l][0].split(": ")[-1].split(",")
+    # ann_dict["diagnosis"], ann_dict["diagnosis_scored"] = self._parse_diagnosis(l_Dx)
 
     df_leads = pd.DataFrame()
     cols = [
