@@ -21,9 +21,8 @@ References: (mainly tips for faster and better training)
 4. more....
 """
 
-import os
-import sys
-import time
+import os, sys, time
+from typing import Tuple, Dict, Any
 
 import numpy as np
 np.set_printoptions(precision=5, suppress=True)
@@ -32,6 +31,7 @@ from torch import nn
 from torch import Tensor
 import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel as DDP, DataParallel as DP
+from torch.utils.data import DataLoader
 from easydict import EasyDict as ED
 
 
@@ -53,7 +53,7 @@ class CINC2021Trainer(BaseTrainer):
     """
     __name__ = "CINC2021Trainer"
 
-    def run_one_step(self, *data:Tuple[torch.Tensor, ...]) -> Tuple[torch.Tensor, ...]:
+    def run_one_step(self, *data:Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Parameters
@@ -65,21 +65,84 @@ class CINC2021Trainer(BaseTrainer):
 
         Returns
         -------
-        tuple of Tensors,
-            the output of the model for one step (batch) data,
-            along with labels and extra tensors,
-            should be of the following order:
-            preds, labels, *extra_tensors,
-            preds usually are NOT the logits,
-            but tensors before fed into `sigmoid` or `softmax` to get the logits
+        preds: Tensor,
+            the predictions of the model for the given data
+        labels: Tensor,
+            the labels of the given data
         """
-        raise NotImplementedError
+        signals, labels = data
+        signals = signals.to(self.device)
+        labels = labels.to(self.device)
+        preds = model(signals)
+        return preds, labels
 
     @torch.no_grad()
-    def evaluate(self, dl:DataLoader) -> dict:
+    def evaluate(self, data_loader:DataLoader) -> Dict[str, float]:
         """
         """
-        raise NotImplementedError
+        model.eval()
+
+        all_scalar_preds = []
+        all_bin_preds = []
+        all_labels = []
+
+        for signals, labels in data_loader:
+            signals = signals.to(device=self.device, dtype=self.dtype)
+            labels = labels.numpy()
+            all_labels.append(labels)
+
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+            preds, bin_preds = self._model.inference(signals)
+            all_scalar_preds.append(preds)
+            all_bin_preds.append(bin_preds)
+        
+        all_scalar_preds = np.concatenate(all_scalar_preds, axis=0)
+        all_bin_preds = np.concatenate(all_bin_preds, axis=0)
+        all_labels = np.concatenate(all_labels, axis=0)
+        classes = data_loader.dataset.all_classes
+
+        if debug:
+            msg = f"all_scalar_preds.shape = {all_scalar_preds.shape}, all_labels.shape = {all_labels.shape}"
+            self.log_manager.log_message(msg)
+            head_num = 5
+            head_scalar_preds = all_scalar_preds[:head_num,...]
+            head_bin_preds = all_bin_preds[:head_num,...]
+            head_preds_classes = [np.array(classes)[np.where(row)] for row in head_bin_preds]
+            head_labels = all_labels[:head_num,...]
+            head_labels_classes = [np.array(classes)[np.where(row)] for row in head_labels]
+            for n in range(head_num):
+                msg = textwrap.dedent(f"""
+                ----------------------------------------------
+                scalar prediction:    {[round(n, 3) for n in head_scalar_preds[n].tolist()]}
+                binary prediction:    {head_bin_preds[n].tolist()}
+                labels:               {head_labels[n].astype(int).tolist()}
+                predicted classes:    {head_preds_classes[n].tolist()}
+                label classes:        {head_labels_classes[n].tolist()}
+                ----------------------------------------------
+                """)
+                self.log_manager.log_message(msg)
+
+        auroc, auprc, accuracy, f_measure, f_beta_measure, g_beta_measure, challenge_metric = \
+            evaluate_scores(
+                classes=classes,
+                truth=all_labels,
+                scalar_pred=all_scalar_preds,
+                binary_pred=all_bin_preds,
+            )
+        eval_res = dict(
+            auroc=auroc,
+            auprc=auprc,
+            accuracy=accuracy,
+            f_measure=f_measure,
+            f_beta_measure=f_beta_measure,
+            g_beta_measure=g_beta_measure,
+            challenge_metric=challenge_metric,
+        )
+
+        self.model.train()
+
+        return eval_res
 
     @property
     def batch_dim(self) -> int:
@@ -170,12 +233,12 @@ if __name__ == "__main__":
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
+    ECG_CRNN_CINC2021.__DEBUG__ = False
     model = ECG_CRNN_CINC2021(
         classes=classes,
         n_leads=train_config.n_leads,
         config=model_config,
     )
-    model.__DEBUG__ = False
 
     if torch.cuda.device_count() > 1:
         model = DP(model)

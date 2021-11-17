@@ -19,6 +19,8 @@ from utils.scoring_aux_data import (
 )
 from cfg_models import ModelArchCfg
 
+from torch_ecg.torch_ecg.utils.utils_nn import adjust_cnn_filter_lengths
+
 __all__ = [
     "BaseCfg",
     "PlotCfg",
@@ -282,6 +284,7 @@ ModelCfg.attn_name = TrainCfg.attn_name
 # model architectures configs
 ModelCfg.update(ModelArchCfg)
 for l in ["twelve_leads", "six_leads", "four_leads", "three_leads", "two_leads"]:
+    adjust_cnn_filter_lengths(ModelCfg[l], ModelCfg.fs)
     ModelCfg[l].cnn.name = ModelCfg.cnn_name
     ModelCfg[l].rnn.name = ModelCfg.rnn_name
     ModelCfg[l].attn.name = ModelCfg.attn_name
