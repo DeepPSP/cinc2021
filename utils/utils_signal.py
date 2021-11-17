@@ -727,7 +727,6 @@ def ensure_siglen(values:Sequence[Real],
         return out_values
 
     forward_len = int(round(siglen * tolerance))
-    print(f"forward_len = {forward_len}")
     out_values = np.array([
         _values[..., idx*forward_len: idx*forward_len+siglen] \
             for idx in range((original_siglen-siglen) // forward_len + 1)
@@ -808,7 +807,7 @@ def get_ampl(sig:np.ndarray,
 
 
 def normalize(sig:np.ndarray,
-              method:str,
+              method:str="z-score",
               mean:Union[Real,Iterable[Real]]=0.0,
               std:Union[Real,Iterable[Real]]=1.0,
               sig_fmt:str="channel_first",
@@ -832,7 +831,7 @@ def normalize(sig:np.ndarray,
     ----------
     sig: ndarray,
         signal to be normalized
-    method: str,
+    method: str, default "z-score",
         normalization method, case insensitive, can be one of
         "naive", "min-max", "z-score",
     mean: real number or array_like, default 0.0,
