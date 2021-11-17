@@ -15,50 +15,33 @@ from utils.scoring_aux_data import (
     equiv_class_dict,
     get_class_weight,
 )
-from torch_ecg.torch_ecg.model_configs.ecg_crnn import ECG_CRNN_CONFIG
-from torch_ecg.torch_ecg.model_configs.cnn import (
+from torch_ecg.torch_ecg.model_configs import (
+    # cnn bankbone
     vgg_block_basic, vgg_block_mish, vgg_block_swish,
     vgg16, vgg16_leadwise,
-    resnet_block_stanford, resnet_stanford,
-    resnet_block_basic, resnet_bottle_neck,
-    resnet, resnet_leadwise,
+    resnet_block_basic, resnet_bottle_neck_B, resnet_bottle_neck_D,
+    resnet_block_basic_se, resnet_block_basic_gc,
+    resnet_bottle_neck_se, resnet_bottle_neck_gc,
+    resnet_nature_comm, resnet_nature_comm_se, resnet_nature_comm_gc,
+    resnet_nature_comm_bottle_neck, resnet_nature_comm_bottle_neck_se,
+    resnetN, resnetNB, resnetNS, resnetNBS,
+    tresnetF, tresnetP, tresnetN, tresnetS, tresnetM,
     multi_scopic_block,
     multi_scopic, multi_scopic_leadwise,
-    dense_net_leadwise,
+    densenet_leadwise,
     xception_leadwise,
-)
-from torch_ecg.torch_ecg.model_configs.rnn import (
+    # lstm
     lstm,
     attention,
+    # mlp
     linear,
-)
-from torch_ecg.torch_ecg.model_configs.attn import (
+    # attn
     non_local,
     squeeze_excitation,
     global_context,
+    # the whole model config
+    ECG_CRNN_CONFIG,
 )
-# from torch_ecg_bak.torch_ecg.model_configs.ecg_crnn import ECG_CRNN_CONFIG
-# from torch_ecg_bak.torch_ecg.model_configs.cnn import (
-#     vgg_block_basic, vgg_block_mish, vgg_block_swish,
-#     vgg16, vgg16_leadwise,
-#     resnet_block_stanford, resnet_stanford,
-#     resnet_block_basic, resnet_bottle_neck,
-#     resnet, resnet_leadwise,
-#     multi_scopic_block,
-#     multi_scopic, multi_scopic_leadwise,
-#     dense_net_leadwise,
-#     xception_leadwise,
-# )
-# from torch_ecg_bak.torch_ecg.model_configs.rnn import (
-#     lstm,
-#     attention,
-#     linear,
-# )
-# from torch_ecg_bak.torch_ecg.model_configs.attn import (
-#     non_local,
-#     squeeze_excitation,
-#     global_context,
-# )
 
 
 __all__ = [
@@ -337,8 +320,8 @@ ModelCfg.six_leads.cnn.multi_scopic_leadwise.num_filters = [
         _base_num_filters*16,
     ],
 ]
-ModelCfg.six_leads.cnn.dense_net_leadwise.groups = 6
-ModelCfg.six_leads.cnn.dense_net_leadwise.init_num_filters = 6 * 8  # 12 * 8
+ModelCfg.six_leads.cnn.densenet_leadwise.groups = 6
+ModelCfg.six_leads.cnn.densenet_leadwise.init_num_filters = 6 * 8  # 12 * 8
 ModelCfg.six_leads.cnn.xception_leadwise.groups = 6
 _base_num_filters = 6 * 2  # 12 * 2
 ModelCfg.six_leads.cnn.xception_vanilla.entry_flow = ED(
@@ -397,8 +380,8 @@ ModelCfg.four_leads.cnn.multi_scopic_leadwise.num_filters = [
         _base_num_filters*16,
     ],
 ]
-ModelCfg.four_leads.cnn.dense_net_leadwise.groups = 4
-ModelCfg.four_leads.cnn.dense_net_leadwise.init_num_filters = 6 * 6  # 12 * 8
+ModelCfg.four_leads.cnn.densenet_leadwise.groups = 4
+ModelCfg.four_leads.cnn.densenet_leadwise.init_num_filters = 6 * 6  # 12 * 8
 ModelCfg.four_leads.cnn.xception_leadwise.groups = 4
 _base_num_filters = 6 * 2  # 12 * 2
 ModelCfg.four_leads.cnn.xception_vanilla.entry_flow = ED(
@@ -457,8 +440,8 @@ ModelCfg.three_leads.cnn.multi_scopic_leadwise.num_filters = [
         _base_num_filters*16,
     ],
 ]
-ModelCfg.three_leads.cnn.dense_net_leadwise.groups = 3
-ModelCfg.three_leads.cnn.dense_net_leadwise.init_num_filters = 3 * 12  # 12 * 8
+ModelCfg.three_leads.cnn.densenet_leadwise.groups = 3
+ModelCfg.three_leads.cnn.densenet_leadwise.init_num_filters = 3 * 12  # 12 * 8
 ModelCfg.three_leads.cnn.xception_leadwise.groups = 3
 _base_num_filters = 3 * 4  # 12 * 2
 ModelCfg.three_leads.cnn.xception_vanilla.entry_flow = ED(
@@ -517,8 +500,8 @@ ModelCfg.two_leads.cnn.multi_scopic_leadwise.num_filters = [
         _base_num_filters*16,
     ],
 ]
-ModelCfg.two_leads.cnn.dense_net_leadwise.groups = 2
-ModelCfg.two_leads.cnn.dense_net_leadwise.init_num_filters = 2 * 12  # 12 * 8
+ModelCfg.two_leads.cnn.densenet_leadwise.groups = 2
+ModelCfg.two_leads.cnn.densenet_leadwise.init_num_filters = 2 * 12  # 12 * 8
 ModelCfg.two_leads.cnn.xception_leadwise.groups = 3
 _base_num_filters = 2 * 6  # 12 * 2
 ModelCfg.two_leads.cnn.xception_vanilla.entry_flow = ED(
