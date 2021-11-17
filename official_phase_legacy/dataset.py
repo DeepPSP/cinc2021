@@ -17,12 +17,12 @@ import torch
 from torch.utils.data.dataset import Dataset
 from sklearn.preprocessing import StandardScaler
 
-# from cfg import (
-#     TrainCfg, ModelCfg,
-# )
-from cfg_ns import (
+from .cfg import (
     TrainCfg, ModelCfg,
 )
+# from .cfg_ns import (
+#     TrainCfg, ModelCfg,
+# )
 from data_reader import CINC2021Reader as CR
 from utils.utils_signal import ensure_siglen, butter_bandpass_filter, normalize
 from utils.misc import dict_to_str, list_sum
@@ -38,7 +38,7 @@ __all__ = [
 ]
 
 
-_BASE_DIR = os.path.dirname(__file__)
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class CINC2021(Dataset):
@@ -202,6 +202,7 @@ class CINC2021(Dataset):
         file_suffix = f"_siglen_{self.siglen}{ns}.json"
         train_file = os.path.join(self.reader.db_dir_base, f"train_ratio_{_train_ratio}{file_suffix}")
         test_file = os.path.join(self.reader.db_dir_base, f"test_ratio_{_test_ratio}{file_suffix}")
+        print(test_file)
 
         if not all([os.path.isfile(train_file), os.path.isfile(test_file)]):
             train_file = os.path.join(_BASE_DIR, "utils", f"train_ratio_{_train_ratio}{file_suffix}")
