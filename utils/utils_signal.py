@@ -4,7 +4,7 @@ including spatial, temporal, spatio-temporal domains
 """
 import os
 from copy import deepcopy
-from typing import Union, Optional, List, Tuple, Sequence, NoReturn
+from typing import Union, Optional, List, Tuple, Sequence, NoReturn, Iterable
 from numbers import Real
 
 import numpy as np
@@ -670,14 +670,20 @@ def ensure_lead_fmt(values:Sequence[Real], n_leads:int=12, fmt:str="lead_first")
     return out_values
 
 
-def ensure_siglen(values:Sequence[Real], siglen:int, fmt:str="lead_first") -> np.ndarray:
+def ensure_siglen(values:Sequence[Real],
+                  siglen:int,
+                  fmt:str="lead_first",
+                  tolerance:Optional[float]=None,) -> np.ndarray:
     """ finished, checked,
 
     ensure the (ECG) signal to be of length `siglen`,
     strategy:
-        if `values` has length greater than `siglen`,
+        If `values` has length greater than `siglen`,
         the central `siglen` samples will be adopted;
-        otherwise, zero padding will be added to both sides
+        otherwise, zero padding will be added to both sides.
+        If `tolerance` is given,
+        then if the length of `values` is longer than `siglen` by more than `tolerance`,
+        the `values` will be sliced to have multiple of `siglen` samples.
 
     Parameters
     ----------
@@ -692,7 +698,8 @@ def ensure_siglen(values:Sequence[Real], siglen:int, fmt:str="lead_first") -> np
     Returns
     -------
     out_values: ndarray,
-        ECG signal in the format of `fmt` and of fixed length `siglen`
+        ECG signal in the format of `fmt` and of fixed length `siglen`,
+        of ndim=3 if `tolerence` is given, otherwise ndim=2
     """
     if fmt.lower() in ["channel_last", "lead_last"]:
         _values = np.array(values).T
@@ -701,19 +708,32 @@ def ensure_siglen(values:Sequence[Real], siglen:int, fmt:str="lead_first") -> np
     original_siglen = _values.shape[1]
     n_leads = _values.shape[0]
 
-    if original_siglen >= siglen:
-        start = (original_siglen - siglen) // 2
-        end = start + siglen
-        out_values = _values[..., start:end]
-    else:
-        pad_len = siglen - original_siglen
-        pad_left = pad_len // 2
-        pad_right = pad_len - pad_left
-        out_values = np.concatenate([np.zeros((n_leads, pad_left)), _values, np.zeros((n_leads, pad_right))], axis=1)
+    if tolerance is None or original_siglen <= siglen * (1+tolerance):
+        if original_siglen >= siglen:
+            start = (original_siglen - siglen) // 2
+            end = start + siglen
+            out_values = _values[..., start:end]
+        else:
+            pad_len = siglen - original_siglen
+            pad_left = pad_len // 2
+            pad_right = pad_len - pad_left
+            out_values = np.concatenate([np.zeros((n_leads, pad_left)), _values, np.zeros((n_leads, pad_right))], axis=1)
 
+        if fmt.lower() in ["channel_last", "lead_last"]:
+            out_values = out_values.T
+        if tolerance is not None:
+            out_values = out_values[np.newaxis, ...]
+        
+        return out_values
+
+    forward_len = int(round(siglen * tolerance))
+    print(f"forward_len = {forward_len}")
+    out_values = np.array([
+        _values[..., idx*forward_len: idx*forward_len+siglen] \
+            for idx in range((original_siglen-siglen) // forward_len + 1)
+    ])
     if fmt.lower() in ["channel_last", "lead_last"]:
-        out_values = out_values.T
-    
+        out_values = np.moveaxis(out_values, 1, -1)
     return out_values
 
 
@@ -788,24 +808,41 @@ def get_ampl(sig:np.ndarray,
 
 
 def normalize(sig:np.ndarray,
-              mean:Union[Real,np.ndarray]=0.0,
-              std:Union[Real,np.ndarray]=1.0,
+              method:str,
+              mean:Union[Real,Iterable[Real]]=0.0,
+              std:Union[Real,Iterable[Real]]=1.0,
               sig_fmt:str="channel_first",
               per_channel:bool=False,) -> np.ndarray:
     """ finished, checked,
     
-    perform normalization on `sig`, to make it has fixed mean and standard deviation
+    perform z-score normalization on `sig`,
+    to make it has fixed mean and standard deviation,
+    or perform min-max normalization on `sig`,
+    or normalize `sig` using `mean` and `std` via (sig - mean) / std.
+    More precisely,
+
+        .. math::
+            \begin{align*}
+            \text{Min-Max normalization:} & \frac{sig - \min(sig)}{\max(sig) - \min(sig)} \\
+            \text{Naive normalization:} & \frac{sig - m}{s} \\
+            \text{Z-score normalization:} & \left(\frac{sig - mean(sig)}{std(sig)}\right) \cdot s + m
+            \end{align*}
 
     Parameters
     ----------
     sig: ndarray,
         signal to be normalized
-    mean: real number of ndarray, default 0.0,
+    method: str,
+        normalization method, case insensitive, can be one of
+        "naive", "min-max", "z-score",
+    mean: real number or array_like, default 0.0,
         mean value of the normalized signal,
-        or mean values for each lead of the normalized signal
-    std: real number of ndarray, default 1.0,
+        or mean values for each lead of the normalized signal,
+        useless if `method` is "min-max"
+    std: real number or array_like, default 1.0,
         standard deviation of the normalized signal,
-        or standard deviations for each lead of the normalized signal
+        or standard deviations for each lead of the normalized signal,
+        useless if `method` is "min-max"
     sig_fmt: str, default "channel_first",
         format of the signal, can be of one of
         "channel_last" (alias "lead_last"), or
@@ -823,15 +860,37 @@ def normalize(sig:np.ndarray,
     in cases where normalization is infeasible (std = 0),
     only the mean value will be shifted
     """
+    _method = method.lower()
+    assert _method in ["z-score", "naive", "min-max",]
     if isinstance(std, Real):
         assert std > 0, "standard deviation should be positive"
     else:
-        assert (std > 0).all(), "standard deviations should all be positive"
+        assert (np.array(std) > 0).all(), "standard deviations should all be positive"
     if not per_channel:
         assert isinstance(mean, Real) and isinstance(std, Real), \
             f"mean and std should be real numbers in the non per-channel setting"
     assert sig_fmt.lower() in ["channel_first", "lead_first", "channel_last", "lead_last",], \
         f"format {sig_fmt} of the signal not supported!"
+
+    if isinstance(mean, Iterable):
+        if sig_fmt.lower() in ["channel_first", "lead_first",]:
+            _mean = np.array(mean)[..., np.newaxis]
+        else:
+            _mean = np.array(mean)[np.newaxis, ...]
+    else:
+        _mean = mean
+    if isinstance(std, Iterable):
+        if sig_fmt.lower() in ["channel_first", "lead_first",]:
+            _std = np.array(std)[..., np.newaxis]
+        else:
+            _std = np.array(std)[np.newaxis, ...]
+    else:
+        _std = std
+
+    if _method == "naive":
+        nm_sig = (sig - _mean) / _std
+        return nm_sig
+
     eps = 1e-7  # to avoid dividing by zero
     if sig.ndim == 3:  # the first dimension is the batch dimension
         if not per_channel:
@@ -848,20 +907,8 @@ def normalize(sig:np.ndarray,
         else:
             options = dict(axis=0, keepdims=True)
 
-    if isinstance(mean, np.ndarray):
-        if sig_fmt.lower() in ["channel_first", "lead_first",]:
-            _mean = mean[..., np.newaxis]
-        else:
-            _mean = mean[np.newaxis, ...]
-    else:
-        _mean = mean
-    if isinstance(std, np.ndarray):
-        if sig_fmt.lower() in ["channel_first", "lead_first",]:
-            _std = std[..., np.newaxis]
-        else:
-            _std = std[np.newaxis, ...]
-    else:
-        _std = std    
-
-    nm_sig = ( (sig - np.mean(sig, **options)) / (np.std(sig, **options) + eps) ) * _std + _mean
+    if _method == "z-score":
+        nm_sig = ( (sig - np.mean(sig, **options)) / (np.std(sig, **options) + eps) ) * _std + _mean
+    elif _method == "min-max":
+        nm_sig = ( sig - np.amin(sig, **options) ) / ( np.amax(sig, **options) - np.amin(sig, **options) + eps )
     return nm_sig
