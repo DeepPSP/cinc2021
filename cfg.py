@@ -4,9 +4,11 @@ along with some constants
 
 "Brady", "LAD", "RAD", "PR", "LQRSV" are treated exceptionally, as special classes
 """
+
 import os
 from copy import deepcopy
 from itertools import repeat
+from typing import List, NoReturn
 
 import numpy as np
 from easydict import EasyDict as ED
@@ -15,41 +17,14 @@ from utils.scoring_aux_data import (
     equiv_class_dict,
     get_class_weight,
 )
-from torch_ecg.torch_ecg.model_configs import (
-    # cnn bankbone
-    vgg_block_basic, vgg_block_mish, vgg_block_swish,
-    vgg16, vgg16_leadwise,
-    resnet_block_basic, resnet_bottle_neck_B, resnet_bottle_neck_D,
-    resnet_block_basic_se, resnet_block_basic_gc,
-    resnet_bottle_neck_se, resnet_bottle_neck_gc,
-    resnet_nature_comm, resnet_nature_comm_se, resnet_nature_comm_gc,
-    resnet_nature_comm_bottle_neck, resnet_nature_comm_bottle_neck_se,
-    resnetN, resnetNB, resnetNS, resnetNBS,
-    tresnetF, tresnetP, tresnetN, tresnetS, tresnetM,
-    multi_scopic_block,
-    multi_scopic, multi_scopic_leadwise,
-    densenet_leadwise,
-    xception_leadwise,
-    # lstm
-    lstm,
-    attention,
-    # mlp
-    linear,
-    # attn
-    non_local,
-    squeeze_excitation,
-    global_context,
-    # the whole model config
-    ECG_CRNN_CONFIG,
-)
-
+from cfg_models import ModelArchCfg
 
 __all__ = [
     "BaseCfg",
     "PlotCfg",
     "SpecialDetectorCfg",
-    "ModelCfg",
-    "TrainCfg",
+    "TrainCfg", "TrainCfg_ns",
+    "ModelCfg", "ModelCfg_ns",
 ]
 
 
@@ -82,7 +57,8 @@ BaseCfg = ED()
 # BaseCfg.db_dir = "/media/cfs/wenhao71/data/CPSC2021/"
 # BaseCfg.db_dir = "D://Jupyter/data/CinC2021/All_training_WFDB/All_training_WFDB/"
 # BaseCfg.db_dir = "/home/taozi/Data/CinC2021/All_training_WFDB/"
-BaseCfg.db_dir = "/home/wenh06/Jupyter/data/CinC2021/"
+# BaseCfg.db_dir = "/home/wenh06/Jupyter/data/CinC2021/"
+BaseCfg.db_dir = "/home/wenhao/Jupyter/wenhao/data/CinC2021/"
 BaseCfg.log_dir = os.path.join(_BASE_DIR, "log")
 BaseCfg.model_dir = os.path.join(_BASE_DIR, "saved_models")
 os.makedirs(BaseCfg.log_dir, exist_ok=True)
@@ -129,6 +105,35 @@ PlotCfg.t_offset = 60
 
 
 
+def _assign_classes(cfg:ED, special_classes:List[str]) -> NoReturn:
+    """
+    """
+    cfg.special_classes = deepcopy(special_classes)
+    cfg.tranche_class_weights = ED({
+        t: get_class_weight(
+            t,
+            exclude_classes=cfg.special_classes,
+            scored_only=True,
+            threshold=20,
+            min_weight=cfg.min_class_weight,
+        ) for t in ["A", "B", "AB", "E", "F", "G",]
+    })
+    cfg.tranche_classes = ED({
+        t: sorted(list(t_cw.keys())) \
+            for t, t_cw in cfg.tranche_class_weights.items()
+    })
+
+    cfg.class_weights = get_class_weight(
+        tranches="ABEFG",
+        exclude_classes=cfg.special_classes,
+        scored_only=True,
+        threshold=20,
+        min_weight=cfg.min_class_weight,
+    )
+    cfg.classes = sorted(list(cfg.class_weights.keys()))
+
+
+
 # training configurations for machine learning and deep learning
 TrainCfg = ED()
 
@@ -146,46 +151,39 @@ TrainCfg.leads = deepcopy(twelve_leads)
 # configs of training data
 TrainCfg.fs = BaseCfg.fs
 TrainCfg.data_format = "channel_first"
-TrainCfg.special_classes = deepcopy(_SPECIAL_CLASSES)
-TrainCfg.normalize_data = True
+
 TrainCfg.train_ratio = 0.8
 TrainCfg.min_class_weight = 0.5
 TrainCfg.tranches_for_training = ""  # one of "", "AB", "E", "F", "G"
 
-TrainCfg.tranche_class_weights = ED({
-    t: get_class_weight(
-        t,
-        exclude_classes=TrainCfg.special_classes,
-        scored_only=True,
-        threshold=20,
-        min_weight=TrainCfg.min_class_weight,
-    ) for t in ["A", "B", "AB", "E", "F", "G",]
-})
-TrainCfg.tranche_classes = ED({
-    t: sorted(list(t_cw.keys())) \
-        for t, t_cw in TrainCfg.tranche_class_weights.items()
-})
-
-TrainCfg.class_weights = get_class_weight(
-    tranches="ABEFG",
-    exclude_classes=TrainCfg.special_classes,
-    scored_only=True,
-    threshold=20,
-    min_weight=TrainCfg.min_class_weight,
-)
-TrainCfg.classes = sorted(list(TrainCfg.class_weights.keys()))
+# assign classes, class weights, tranche classes, etc.
+_assign_classes(TrainCfg, _SPECIAL_CLASSES)
 
 # configs of signal preprocessing
+TrainCfg.normalize = ED(
+    method="z-score",
+    mean=0.0,
+    std=1.0,
+)
 # frequency band of the filter to apply, should be chosen very carefully
 # TrainCfg.bandpass = None  # [-np.inf, 45]
 # TrainCfg.bandpass = [-np.inf, 45]
-TrainCfg.bandpass = [0.5, 60]
-TrainCfg.bandpass_order = 5
+TrainCfg.bandpass = ED(
+    lowcut=0.5,
+    highcut=60,
+)
 
 # configs of data aumentation
-TrainCfg.label_smoothing = 0.1
-TrainCfg.random_mask = int(TrainCfg.fs * 0.0)  # 1.0s, 0 for no masking
-TrainCfg.stretch_compress = 1.0  # stretch or compress in time axis
+TrainCfg.label_smoothing = ED(
+    prob=0.8,
+    smoothing=0.1,
+)
+TrainCfg.random_mask = False
+TrainCfg.stretch_compress = False  # stretch or compress in time axis
+TrainCfg.mixup = ED(
+    prob=0.6,
+    alpha=0.3,
+)
 
 # configs of training epochs, batch, etc.
 TrainCfg.n_epochs = 40
@@ -217,7 +215,8 @@ TrainCfg.early_stopping.patience = 8
 
 # configs of loss function
 # TrainCfg.loss = "BCEWithLogitsLoss"
-TrainCfg.loss = "BCEWithLogitsWithClassWeightLoss"
+# TrainCfg.loss = "BCEWithLogitsWithClassWeightLoss"
+TrainCfg.loss = "AsymmetricLoss"  # "FocalLoss"
 TrainCfg.flooding_level = 0.0  # flooding performed if positive, typically 0.45-0.55 for cinc2021?
 
 TrainCfg.log_step = 20
@@ -225,8 +224,8 @@ TrainCfg.eval_every = 20
 
 # configs of model selection
 # "resnet_leadwise", "multi_scopic_leadwise", "vgg16", "resnet", "vgg16_leadwise", "cpsc", "cpsc_leadwise"
-TrainCfg.cnn_name = "multi_scopic_leadwise"
-TrainCfg.rnn_name = "none"  # "none", "lstm"
+TrainCfg.cnn_name = "resnet_nature_comm_se"
+TrainCfg.rnn_name = "lstm"  # "none", "lstm"
 TrainCfg.attn_name = "se"  # "none", "se", "gc", "nl"
 
 # configs of inputs and outputs
@@ -235,6 +234,7 @@ TrainCfg.attn_name = "se"  # "none", "se", "gc", "nl"
 TrainCfg.input_len = int(500 * 10.0)
 # tolerance for records with length shorter than `TrainCfg.input_len`
 TrainCfg.input_len_tol = int(0.2 * TrainCfg.input_len)
+TrainCfg.sig_slice_tol = 0.4  # None, do no slicing
 TrainCfg.siglen = TrainCfg.input_len
 
 
@@ -252,6 +252,11 @@ TrainCfg.bin_pred_look_again_tol = _bin_pred_look_again_tol
 TrainCfg.bin_pred_nsr_thr = _bin_pred_nsr_thr
 
 
+# the no special classes version
+
+TrainCfg_ns = deepcopy(TrainCfg)
+_assign_classes(TrainCfg, [])
+
 
 # configurations for building deep learning models
 # terminologies of stanford ecg repo. will be adopted
@@ -262,266 +267,29 @@ ModelCfg.spacing = 1000 / ModelCfg.fs
 ModelCfg.bin_pred_thr = _bin_pred_thr
 ModelCfg.bin_pred_look_again_tol = _bin_pred_look_again_tol
 ModelCfg.bin_pred_nsr_thr =_bin_pred_nsr_thr
-ModelCfg.special_classes = deepcopy(_SPECIAL_CLASSES)
 
+ModelCfg.special_classes = deepcopy(_SPECIAL_CLASSES)
 ModelCfg.dl_classes = deepcopy(TrainCfg.classes)
-ModelCfg.dl_siglen = TrainCfg.siglen
 ModelCfg.tranche_classes = deepcopy(TrainCfg.tranche_classes)
 ModelCfg.full_classes = ModelCfg.dl_classes + ModelCfg.special_classes
+
+ModelCfg.dl_siglen = TrainCfg.siglen
 
 ModelCfg.cnn_name = TrainCfg.cnn_name
 ModelCfg.rnn_name = TrainCfg.rnn_name
 ModelCfg.attn_name = TrainCfg.attn_name
 
+# model architectures configs
+ModelCfg.update(ModelArchCfg)
+for l in ["twelve_leads", "six_leads", "four_leads", "three_leads", "two_leads"]:
+    ModelCfg[l].cnn.name = ModelCfg.cnn_name
+    ModelCfg[l].rnn.name = ModelCfg.rnn_name
+    ModelCfg[l].attn.name = ModelCfg.attn_name
 
-_BASE_MODEL_CONFIG = deepcopy(ECG_CRNN_CONFIG)
-_BASE_MODEL_CONFIG.cnn.multi_scopic_leadwise.block.batch_norm = "group_norm"  # False
 
-# detailed configs for 12-lead, 6-lead, 4-lead, 3-lead, 2-lead models
-# mostly follow from torch_ecg.torch_ecg.model_configs.ecg_crnn
-
-ModelCfg.twelve_leads = deepcopy(_BASE_MODEL_CONFIG)
-ModelCfg.twelve_leads.cnn.name = ModelCfg.cnn_name
-ModelCfg.twelve_leads.rnn.name = ModelCfg.rnn_name
-ModelCfg.twelve_leads.attn.name = ModelCfg.attn_name
-
-# TODO: add adjustifications for "leadwise" configs for 6,4,3,2 leads models
-ModelCfg.six_leads = deepcopy(_BASE_MODEL_CONFIG)
-ModelCfg.six_leads.cnn.name = ModelCfg.cnn_name
-ModelCfg.six_leads.rnn.name = ModelCfg.rnn_name
-ModelCfg.six_leads.attn.name = ModelCfg.attn_name
-ModelCfg.six_leads.cnn.vgg16_leadwise.groups = 6
-_base_num_filters = 6 * 6  # 12 * 4
-ModelCfg.six_leads.cnn.vgg16_leadwise.num_filters = [
-    _base_num_filters*4,
-    _base_num_filters*8,
-    _base_num_filters*16,
-    _base_num_filters*32,
-    _base_num_filters*32,
-]
-ModelCfg.six_leads.cnn.resnet_leadwise.groups = 6
-ModelCfg.six_leads.cnn.resnet_leadwise.init_num_filters = 6 * 8  # 12 * 8
-ModelCfg.six_leads.cnn.multi_scopic_leadwise.groups = 6
-_base_num_filters = 6 * 6  # 12 * 4
-ModelCfg.six_leads.cnn.multi_scopic_leadwise.num_filters = [
-    [
-        _base_num_filters*4,
-        _base_num_filters*8,
-        _base_num_filters*16,
-    ],
-    [
-        _base_num_filters*4,
-        _base_num_filters*8,
-        _base_num_filters*16,
-    ],
-    [
-        _base_num_filters*4,
-        _base_num_filters*8,
-        _base_num_filters*16,
-    ],
-]
-ModelCfg.six_leads.cnn.densenet_leadwise.groups = 6
-ModelCfg.six_leads.cnn.densenet_leadwise.init_num_filters = 6 * 8  # 12 * 8
-ModelCfg.six_leads.cnn.xception_leadwise.groups = 6
-_base_num_filters = 6 * 2  # 12 * 2
-ModelCfg.six_leads.cnn.xception_vanilla.entry_flow = ED(
-    init_num_filters=[_base_num_filters*4, _base_num_filters*8],
-    init_filter_lengths=3,
-    init_subsample_lengths=[2,1],
-    num_filters=[_base_num_filters*16, _base_num_filters*32, _base_num_filters*91],
-    filter_lengths=3,
-    subsample_lengths=2,
-    subsample_kernels=3,
-)
-ModelCfg.six_leads.cnn.xception_vanilla.middle_flow = ED(
-    num_filters=list(repeat(_base_num_filters*91, 8)),
-    filter_lengths=3,
-)
-ModelCfg.six_leads.cnn.xception_vanilla.exit_flow = ED(
-    final_num_filters=[_base_num_filters*182, _base_num_filters*256],
-    final_filter_lengths=3,
-    num_filters=[[_base_num_filters*91, _base_num_filters*128]],
-    filter_lengths=3,
-    subsample_lengths=2,
-    subsample_kernels=3,
-)
-
-ModelCfg.four_leads = deepcopy(_BASE_MODEL_CONFIG)
-ModelCfg.four_leads.cnn.name = ModelCfg.cnn_name
-ModelCfg.four_leads.rnn.name = ModelCfg.rnn_name
-ModelCfg.four_leads.attn.name = ModelCfg.attn_name
-ModelCfg.four_leads.cnn.vgg16_leadwise.groups = 4
-_base_num_filters = 6 * 4  # 12 * 4
-ModelCfg.four_leads.cnn.vgg16_leadwise.num_filters = [
-    _base_num_filters*4,
-    _base_num_filters*8,
-    _base_num_filters*16,
-    _base_num_filters*32,
-    _base_num_filters*32,
-]
-ModelCfg.four_leads.cnn.resnet_leadwise.groups = 4
-ModelCfg.four_leads.cnn.resnet_leadwise.init_num_filters = 6 * 6  # 12 * 8
-ModelCfg.four_leads.cnn.multi_scopic_leadwise.groups = 4
-_base_num_filters = 6 * 4  # 12 * 4
-ModelCfg.four_leads.cnn.multi_scopic_leadwise.num_filters = [
-    [
-        _base_num_filters*4,
-        _base_num_filters*8,
-        _base_num_filters*16,
-    ],
-    [
-        _base_num_filters*4,
-        _base_num_filters*8,
-        _base_num_filters*16,
-    ],
-    [
-        _base_num_filters*4,
-        _base_num_filters*8,
-        _base_num_filters*16,
-    ],
-]
-ModelCfg.four_leads.cnn.densenet_leadwise.groups = 4
-ModelCfg.four_leads.cnn.densenet_leadwise.init_num_filters = 6 * 6  # 12 * 8
-ModelCfg.four_leads.cnn.xception_leadwise.groups = 4
-_base_num_filters = 6 * 2  # 12 * 2
-ModelCfg.four_leads.cnn.xception_vanilla.entry_flow = ED(
-    init_num_filters=[_base_num_filters*4, _base_num_filters*8],
-    init_filter_lengths=3,
-    init_subsample_lengths=[2,1],
-    num_filters=[_base_num_filters*16, _base_num_filters*32, _base_num_filters*91],
-    filter_lengths=3,
-    subsample_lengths=2,
-    subsample_kernels=3,
-)
-ModelCfg.four_leads.cnn.xception_vanilla.middle_flow = ED(
-    num_filters=list(repeat(_base_num_filters*91, 8)),
-    filter_lengths=3,
-)
-ModelCfg.four_leads.cnn.xception_vanilla.exit_flow = ED(
-    final_num_filters=[_base_num_filters*182, _base_num_filters*256],
-    final_filter_lengths=3,
-    num_filters=[[_base_num_filters*91, _base_num_filters*128]],
-    filter_lengths=3,
-    subsample_lengths=2,
-    subsample_kernels=3,
-)
-
-ModelCfg.three_leads = deepcopy(_BASE_MODEL_CONFIG)
-ModelCfg.three_leads.cnn.name = ModelCfg.cnn_name
-ModelCfg.three_leads.rnn.name = ModelCfg.rnn_name
-ModelCfg.three_leads.attn.name = ModelCfg.attn_name
-ModelCfg.three_leads.cnn.vgg16_leadwise.groups = 3
-_base_num_filters = 3 * 8  # 12 * 4
-ModelCfg.three_leads.cnn.vgg16_leadwise.num_filters = [
-    _base_num_filters*4,
-    _base_num_filters*8,
-    _base_num_filters*16,
-    _base_num_filters*32,
-    _base_num_filters*32,
-]
-ModelCfg.three_leads.cnn.resnet_leadwise.groups = 3
-ModelCfg.three_leads.cnn.resnet_leadwise.init_num_filters = 3 * 12  # 12 * 8
-ModelCfg.three_leads.cnn.multi_scopic_leadwise.groups = 3
-_base_num_filters = 3 * 8  # 12 * 4
-ModelCfg.three_leads.cnn.multi_scopic_leadwise.num_filters = [
-    [
-        _base_num_filters*4,
-        _base_num_filters*8,
-        _base_num_filters*16,
-    ],
-    [
-        _base_num_filters*4,
-        _base_num_filters*8,
-        _base_num_filters*16,
-    ],
-    [
-        _base_num_filters*4,
-        _base_num_filters*8,
-        _base_num_filters*16,
-    ],
-]
-ModelCfg.three_leads.cnn.densenet_leadwise.groups = 3
-ModelCfg.three_leads.cnn.densenet_leadwise.init_num_filters = 3 * 12  # 12 * 8
-ModelCfg.three_leads.cnn.xception_leadwise.groups = 3
-_base_num_filters = 3 * 4  # 12 * 2
-ModelCfg.three_leads.cnn.xception_vanilla.entry_flow = ED(
-    init_num_filters=[_base_num_filters*4, _base_num_filters*8],
-    init_filter_lengths=3,
-    init_subsample_lengths=[2,1],
-    num_filters=[_base_num_filters*16, _base_num_filters*32, _base_num_filters*91],
-    filter_lengths=3,
-    subsample_lengths=2,
-    subsample_kernels=3,
-)
-ModelCfg.three_leads.cnn.xception_vanilla.middle_flow = ED(
-    num_filters=list(repeat(_base_num_filters*91, 8)),
-    filter_lengths=3,
-)
-ModelCfg.three_leads.cnn.xception_vanilla.exit_flow = ED(
-    final_num_filters=[_base_num_filters*182, _base_num_filters*256],
-    final_filter_lengths=3,
-    num_filters=[[_base_num_filters*91, _base_num_filters*128]],
-    filter_lengths=3,
-    subsample_lengths=2,
-    subsample_kernels=3,
-)
-
-ModelCfg.two_leads = deepcopy(_BASE_MODEL_CONFIG)
-ModelCfg.two_leads.cnn.name = ModelCfg.cnn_name
-ModelCfg.two_leads.rnn.name = ModelCfg.rnn_name
-ModelCfg.two_leads.attn.name = ModelCfg.attn_name
-ModelCfg.two_leads.cnn.vgg16_leadwise.groups = 3
-_base_num_filters = 2 * 12  # 12 * 4
-ModelCfg.two_leads.cnn.vgg16_leadwise.num_filters = [
-    _base_num_filters*4,
-    _base_num_filters*8,
-    _base_num_filters*16,
-    _base_num_filters*32,
-    _base_num_filters*32,
-]
-ModelCfg.two_leads.cnn.resnet_leadwise.groups = 2
-ModelCfg.two_leads.cnn.resnet_leadwise.init_num_filters = 2 * 16  # 12 * 8
-ModelCfg.two_leads.cnn.multi_scopic_leadwise.groups = 2
-_base_num_filters = 2 * 8  # 12 * 4
-ModelCfg.two_leads.cnn.multi_scopic_leadwise.num_filters = [
-    [
-        _base_num_filters*4,
-        _base_num_filters*8,
-        _base_num_filters*16,
-    ],
-    [
-        _base_num_filters*4,
-        _base_num_filters*8,
-        _base_num_filters*16,
-    ],
-    [
-        _base_num_filters*4,
-        _base_num_filters*8,
-        _base_num_filters*16,
-    ],
-]
-ModelCfg.two_leads.cnn.densenet_leadwise.groups = 2
-ModelCfg.two_leads.cnn.densenet_leadwise.init_num_filters = 2 * 12  # 12 * 8
-ModelCfg.two_leads.cnn.xception_leadwise.groups = 3
-_base_num_filters = 2 * 6  # 12 * 2
-ModelCfg.two_leads.cnn.xception_vanilla.entry_flow = ED(
-    init_num_filters=[_base_num_filters*4, _base_num_filters*8],
-    init_filter_lengths=3,
-    init_subsample_lengths=[2,1],
-    num_filters=[_base_num_filters*16, _base_num_filters*32, _base_num_filters*91],
-    filter_lengths=3,
-    subsample_lengths=2,
-    subsample_kernels=3,
-)
-ModelCfg.two_leads.cnn.xception_vanilla.middle_flow = ED(
-    num_filters=list(repeat(_base_num_filters*91, 8)),
-    filter_lengths=3,
-)
-ModelCfg.two_leads.cnn.xception_vanilla.exit_flow = ED(
-    final_num_filters=[_base_num_filters*182, _base_num_filters*256],
-    final_filter_lengths=3,
-    num_filters=[[_base_num_filters*91, _base_num_filters*128]],
-    filter_lengths=3,
-    subsample_lengths=2,
-    subsample_kernels=3,
-)
+# the no special classes version
+ModelCfg_ns = deepcopy(ModelCfg)
+ModelCfg_ns.special_classes = []
+ModelCfg_ns.dl_classes = deepcopy(TrainCfg_ns.classes)
+ModelCfg_ns.tranche_classes = deepcopy(TrainCfg_ns.tranche_classes)
+ModelCfg_ns.full_classes = ModelCfg_ns.dl_classes + ModelCfg_ns.special_classes
