@@ -21,7 +21,7 @@ References: (mainly tips for faster and better training)
 4. more....
 """
 
-import os, sys, time
+import os, sys, time, textwrap, argparse
 from typing import Tuple, Dict, Any
 
 import numpy as np
@@ -73,14 +73,14 @@ class CINC2021Trainer(BaseTrainer):
         signals, labels = data
         signals = signals.to(self.device)
         labels = labels.to(self.device)
-        preds = model(signals)
+        preds = self.model(signals)
         return preds, labels
 
     @torch.no_grad()
     def evaluate(self, data_loader:DataLoader) -> Dict[str, float]:
         """
         """
-        model.eval()
+        self.model.eval()
 
         all_scalar_preds = []
         all_bin_preds = []
@@ -102,7 +102,7 @@ class CINC2021Trainer(BaseTrainer):
         all_labels = np.concatenate(all_labels, axis=0)
         classes = data_loader.dataset.all_classes
 
-        if debug:
+        if self.val_train_loader is not None:
             msg = f"all_scalar_preds.shape = {all_scalar_preds.shape}, all_labels.shape = {all_labels.shape}"
             self.log_manager.log_message(msg)
             head_num = 5

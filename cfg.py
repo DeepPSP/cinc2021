@@ -195,7 +195,7 @@ TrainCfg.batch_size = 64
 # TrainCfg.max_batches = 500500
 
 # configs of optimizers and lr_schedulers
-TrainCfg.train_optimizer = "adamw_amsgrad"  # "sgd", "adam", "adamw"
+TrainCfg.optimizer = "adamw_amsgrad"  # "sgd", "adam", "adamw"
 TrainCfg.momentum = 0.949  # default values for corresponding PyTorch optimizers
 TrainCfg.betas = (0.9, 0.999)  # default values for corresponding PyTorch optimizers
 TrainCfg.decay = 1e-2  # default values for corresponding PyTorch optimizers
@@ -219,7 +219,10 @@ TrainCfg.early_stopping.patience = 8
 # TrainCfg.loss = "BCEWithLogitsLoss"
 # TrainCfg.loss = "BCEWithLogitsWithClassWeightLoss"
 TrainCfg.loss = "AsymmetricLoss"  # "FocalLoss"
+TrainCfg.loss_kw = ED(gamma_neg=0.2, implementation="deep-psp")
 TrainCfg.flooding_level = 0.0  # flooding performed if positive, typically 0.45-0.55 for cinc2021?
+
+TrainCfg.monitor = "challenge_metric"
 
 TrainCfg.log_step = 20
 TrainCfg.eval_every = 20

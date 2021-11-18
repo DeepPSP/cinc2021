@@ -6,7 +6,7 @@ import json
 import time
 import textwrap
 import multiprocessing as mp
-from random import shuffle, randint
+from random import shuffle, randint, sample
 from copy import deepcopy
 from typing import Union, Optional, List, Tuple, Dict, Sequence, Set, NoReturn
 
@@ -96,6 +96,8 @@ class CINC2021(Dataset):
         self.records = self._train_test_split(config.train_ratio, force_recompute=False)
         # TODO: consider using `remove_spikes_naive` to treat these exceptional records
         self.records = [r for r in self.records if r not in self.reader.exceptional_records]
+        if self.__DEBUG__:
+            self.records = sample(self.records, int(len(self.records) * 0.01))
 
         ppm_config = ED(random=False)
         ppm_config.update(self.config)
