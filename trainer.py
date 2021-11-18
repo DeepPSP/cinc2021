@@ -22,7 +22,7 @@ References: (mainly tips for faster and better training)
 """
 
 import os, sys, time, textwrap, argparse
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, List
 
 import numpy as np
 np.set_printoptions(precision=5, suppress=True)
@@ -150,6 +150,16 @@ class CINC2021Trainer(BaseTrainer):
         batch dimension, for CinC2021, it is 0,
         """
         return 0
+
+    @property
+    def extra_required_train_config_fields(self) -> List[str]:
+        """
+        """
+        return []
+
+    @property
+    def save_prefix(self) -> str:
+        return f"{self._model.__name__}_{self.model_config.cnn_name}_epoch"
 
 
 def get_args(**kwargs:Any):
