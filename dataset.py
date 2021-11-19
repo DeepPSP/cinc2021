@@ -31,6 +31,7 @@ from data_reader import CINC2021Reader as CR
 from utils.utils_signal import ensure_siglen, butter_bandpass_filter, normalize
 from utils.misc import dict_to_str, list_sum
 from signal_processing.ecg_denoise import remove_spikes_naive
+from cfg import Standard12Leads
 
 from torch_ecg.torch_ecg._preprocessors import PreprocManager
 
@@ -53,7 +54,7 @@ class CINC2021(Dataset):
     __DEBUG__ = False
     __name__ = "CPSC2021"
 
-    def __init__(self, config:ED, training:bool=True) -> NoReturn:
+    def __init__(self, config:ED, training:bool=True, lazy:bool=True) -> NoReturn:
         """ finished, checked,
 
         Parameters
@@ -63,6 +64,8 @@ class CINC2021(Dataset):
             ref. `cfg.TrainCfg`
         training: bool, default True,
             if True, the training set will be loaded, otherwise the test set
+        lazy: bool, default True,
+            if True, the data will not be loaded immediately,
         """
         super().__init__()
         self.config = deepcopy(config)
@@ -91,7 +94,7 @@ class CINC2021(Dataset):
         self.class_weights = torch.from_numpy(cw.astype(self.dtype)).view(1, self.n_classes)
         # validation also goes in batches, hence length has to be fixed
         self.siglen = self.config.input_len
-        self._epsilon = 1e-7  # to avoid nan values caused by dividing zero
+        self.lazy = lazy
 
         self.records = self._train_test_split(config.train_ratio, force_recompute=False)
         # TODO: consider using `remove_spikes_naive` to treat these exceptional records
@@ -104,9 +107,10 @@ class CINC2021(Dataset):
         self.ppm = PreprocManager.from_config(ppm_config)
         self.ppm.rearrange(["bandpass", "normalize"])
 
-        self._signals = np.array([]).reshape(0, len(self.config.leads), self.siglen)
+        self._signals = np.array([]).reshape(0, len(Standard12Leads), self.siglen)
         self._labels = np.array([]).reshape(0, self.n_classes)
-        self._load_all_data()
+        if not self.lazy:
+            self._load_all_data()
 
     def _load_all_data(self) -> NoReturn:
         """
@@ -135,6 +139,7 @@ class CINC2021(Dataset):
                 self._labels.append(l)
         self._signals = np.concatenate(self._signals, axis=0)
         self._labels = np.concatenate(self._labels, axis=0)
+        self.to(self.config.leads, inplace=True)
 
     def _load_one_record(self, rec:str) -> Tuple[np.ndarray, np.ndarray]:
         """ finished, checked,
@@ -160,7 +165,8 @@ class CINC2021(Dataset):
         """
         values = self.reader.load_resampled_data(
             rec,
-            leads=self.config.leads,
+            # leads=self.config.leads,
+            leads=Standard12Leads,
             data_format=self.config.data_format,
             siglen=None
         )
@@ -182,6 +188,20 @@ class CINC2021(Dataset):
         labels = np.isin(self.all_classes, labels).astype(int)[np.newaxis, ...].repeat(values.shape[0], axis=0)
 
         return values, labels
+
+    def to(self, leads:Sequence[str], inplace:bool) -> "CINC2021":
+        """
+        """
+        if not inplace:
+            prev = self.lazy
+            obj = CINC2021(self.config, training=self.training, lazy=True)
+            obj.lazy = prev
+        else:
+            obj = self
+        obj.config.leads = leads
+        indices = [Standard12Leads.index(l) for l in leads]
+        obj._signals = obj._signals[:, indices, :]
+        return obj
 
     @property
     def signals(self) -> np.ndarray:
@@ -431,7 +451,8 @@ class FastDataReader(Dataset):
         rec = self.records[index]
         values = self.reader.load_resampled_data(
             rec,
-            leads=self.config.leads,
+            # leads=self.config.leads,
+            leads=Standard12Leads,
             data_format=self.config.data_format,
             siglen=None
         )
