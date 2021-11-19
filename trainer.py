@@ -60,7 +60,8 @@ class CINC2021Trainer(BaseTrainer):
                  model_config:dict,
                  train_config:dict,
                  device:Optional[torch.device]=None,
-                 lazy:bool=False,) -> NoReturn:
+                 lazy:bool=False,
+                 **kwargs:Any,) -> NoReturn:
         """ finished, checked,
 
         Parameters
