@@ -188,7 +188,7 @@ TrainCfg.mixup = ED(
 )
 
 # configs of training epochs, batch, etc.
-TrainCfg.n_epochs = 40
+TrainCfg.n_epochs = 50
 # TODO: automatic adjust batch size according to GPU capacity
 # https://stackoverflow.com/questions/45132809/how-to-select-batch-size-automatically-to-fit-gpu
 TrainCfg.batch_size = 64
@@ -200,20 +200,20 @@ TrainCfg.momentum = 0.949  # default values for corresponding PyTorch optimizers
 TrainCfg.betas = (0.9, 0.999)  # default values for corresponding PyTorch optimizers
 TrainCfg.decay = 1e-2  # default values for corresponding PyTorch optimizers
 
-TrainCfg.learning_rate = 1e-3  # 1e-4
+TrainCfg.learning_rate = 1e-4  # 1e-4
 TrainCfg.lr = TrainCfg.learning_rate
 
-TrainCfg.lr_scheduler = None  # "one_cycle", "plateau", "burn_in", "step", None
+TrainCfg.lr_scheduler = "one_cycle"  # "one_cycle", "plateau", "burn_in", "step", None
 TrainCfg.lr_step_size = 50
 TrainCfg.lr_gamma = 0.1
-TrainCfg.max_lr = 1e-2  # for "one_cycle" scheduler, to adjust via expriments
+TrainCfg.max_lr = 2e-3  # for "one_cycle" scheduler, to adjust via expriments
 
 TrainCfg.burn_in = 400
 TrainCfg.steps = [5000, 10000]
 
 TrainCfg.early_stopping = ED()  # early stopping according to challenge metric
 TrainCfg.early_stopping.min_delta = 0.001  # should be non-negative
-TrainCfg.early_stopping.patience = 8
+TrainCfg.early_stopping.patience = 10
 
 # configs of loss function
 # TrainCfg.loss = "BCEWithLogitsLoss"
@@ -230,7 +230,7 @@ TrainCfg.eval_every = 20
 # configs of model selection
 # "resnet_leadwise", "multi_scopic_leadwise", "vgg16", "resnet", "vgg16_leadwise", "cpsc", "cpsc_leadwise"
 TrainCfg.cnn_name = "resnet_nature_comm_se"
-TrainCfg.rnn_name = "lstm"  # "none", "lstm"
+TrainCfg.rnn_name = "none"  # "none", "lstm"
 TrainCfg.attn_name = "se"  # "none", "se", "gc", "nl"
 
 # configs of inputs and outputs
