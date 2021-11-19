@@ -21,8 +21,8 @@ References: (mainly tips for faster and better training)
 4. more....
 """
 
-import os, sys, time, textwrap, argparse
-from typing import Tuple, Dict, Any, List
+import os, sys, time, textwrap, argparse, logging
+from typing import Tuple, Dict, Any, List, NoReturn, Optional
 
 import numpy as np
 np.set_printoptions(precision=5, suppress=True)
@@ -31,6 +31,7 @@ from torch import nn
 from torch import Tensor
 import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel as DDP, DataParallel as DP
+from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
 from easydict import EasyDict as ED
 
@@ -40,6 +41,7 @@ from model import ECG_CRNN_CINC2021
 from utils.scoring_metrics import evaluate_scores
 from cfg import BaseCfg, TrainCfg, ModelCfg
 from dataset import CINC2021
+CINC2021.__DEBUG__ = False
 
 if BaseCfg.torch_dtype.lower() == "double":
     torch.set_default_tensor_type(torch.DoubleTensor)
@@ -52,6 +54,102 @@ class CINC2021Trainer(BaseTrainer):
     """
     """
     __name__ = "CINC2021Trainer"
+
+    def __init__(self,
+                 model:nn.Module,
+                 model_config:dict,
+                 train_config:dict,
+                 device:Optional[torch.device]=None,
+                 lazy:bool=False,) -> NoReturn:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        model: Module,
+            the model to be trained
+        model_config: dict,
+            the configuration of the model,
+            used to keep a record in the checkpoints
+        train_config: dict,
+            the configuration of the training,
+            including configurations for the data loader, for the optimization, etc.
+            will also be recorded in the checkpoints.
+            `train_config` should at least contain the following keys:
+                "monitor": str,
+                "loss": str,
+                "n_epochs": int,
+                "batch_size": int,
+                "learning_rate": float,
+                "lr_scheduler": str,
+                    "lr_step_size": int, optional, depending on the scheduler
+                    "lr_gamma": float, optional, depending on the scheduler
+                    "max_lr": float, optional, depending on the scheduler
+                "optimizer": str,
+                    "decay": float, optional, depending on the optimizer
+                    "momentum": float, optional, depending on the optimizer
+        device: torch.device, optional,
+            the device to be used for training
+        lazy: bool, default False,
+            whether to initialize the data loader lazily
+        """
+        super().__init__(model, CINC2021, model_config, train_config, device, lazy)
+
+    def _setup_dataloaders(self, train_dataset:Optional[Dataset]=None, val_dataset:Optional[Dataset]=None) -> NoReturn:
+        """ finished, checked,
+        
+        setup the dataloaders for training and validation
+
+        Parameters
+        ----------
+        train_dataset: Dataset, optional,
+            the training dataset
+        val_dataset: Dataset, optional,
+            the validation dataset
+        """
+        if train_dataset is None:
+            train_dataset = self.dataset_cls(config=self.train_config, training=True, lazy=False)
+
+        if self.train_config.debug:
+            val_train_dataset = train_dataset
+        else:
+            val_train_dataset = None
+        if val_dataset is None:
+            val_dataset = self.dataset_cls(config=self.train_config, training=False, lazy=False)
+
+         # https://discuss.pytorch.org/t/guidelines-for-assigning-num-workers-to-dataloader/813/4
+        num_workers = 4
+
+        self.train_loader = DataLoader(
+            dataset=train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=num_workers,
+            pin_memory=True,
+            drop_last=False,
+            collate_fn=collate_fn,
+        )
+
+        if self.train_config.debug:
+            self.val_train_loader = DataLoader(
+                dataset=val_train_dataset,
+                batch_size=self.batch_size,
+                shuffle=True,
+                num_workers=num_workers,
+                pin_memory=True,
+                drop_last=False,
+                collate_fn=collate_fn,
+            )
+        else:
+            self.val_train_loader = None
+        self.val_loader = DataLoader(
+            dataset=val_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=num_workers,
+            pin_memory=True,
+            drop_last=False,
+            collate_fn=collate_fn,
+        )
 
     def run_one_step(self, *data:Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -104,7 +202,7 @@ class CINC2021Trainer(BaseTrainer):
 
         if self.val_train_loader is not None:
             msg = f"all_scalar_preds.shape = {all_scalar_preds.shape}, all_labels.shape = {all_labels.shape}"
-            self.log_manager.log_message(msg)
+            self.log_manager.log_message(msg, level=logging.DEBUG)
             head_num = 5
             head_scalar_preds = all_scalar_preds[:head_num,...]
             head_bin_preds = all_bin_preds[:head_num,...]
@@ -159,7 +257,10 @@ class CINC2021Trainer(BaseTrainer):
 
     @property
     def save_prefix(self) -> str:
-        return f"{self._model.__name__}_{self.model_config.cnn_name}_epoch"
+        return f"{self._model.__name__}_{self.model_config.cnn.name}_epoch"
+
+    def extra_log_suffix(self) -> str:
+        return super().extra_log_suffix() + f"_{self.model_config.cnn.name}"
 
 
 def get_args(**kwargs:Any):
@@ -257,7 +358,6 @@ if __name__ == "__main__":
 
     trainer = CINC2021Trainer(
         model=model,
-        dataset_cls=CINC2021,
         model_config=model_config,
         train_config=train_config,
         device=device,
