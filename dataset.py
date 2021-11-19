@@ -13,7 +13,10 @@ from typing import Union, Optional, List, Tuple, Dict, Sequence, Set, NoReturn
 import numpy as np
 np.set_printoptions(precision=5, suppress=True)
 from easydict import EasyDict as ED
-from tqdm import tqdm
+try:
+    from tqdm.auto import tqdm
+except ModuleNotFoundError:
+    from tqdm import tqdm
 import torch
 from torch.utils.data.dataset import Dataset
 from sklearn.preprocessing import StandardScaler
@@ -73,7 +76,7 @@ class CINC2021(Dataset):
         self.reader = CR(db_dir=config.db_dir)
         self.tranches = config.tranches_for_training
         self.training = training
-        if ModelCfg.torch_dtype.lower() == "double":
+        if self.config.torch_dtype.lower() == "double":
             self.dtype = np.float64
         else:
             self.dtype = np.float32
@@ -107,8 +110,8 @@ class CINC2021(Dataset):
         self.ppm = PreprocManager.from_config(ppm_config)
         self.ppm.rearrange(["bandpass", "normalize"])
 
-        self._signals = np.array([]).reshape(0, len(Standard12Leads), self.siglen)
-        self._labels = np.array([]).reshape(0, self.n_classes)
+        self._signals = np.array([], dtype=self.dtype).reshape(0, len(self.config.leads), self.siglen)
+        self._labels = np.array([], dtype=self.dtype).reshape(0, self.n_classes)
         if not self.lazy:
             self._load_all_data()
 
@@ -137,9 +140,8 @@ class CINC2021(Dataset):
                 # self._labels = np.concatenate((self._labels, l), axis=0)
                 self._signals.append(s)
                 self._labels.append(l)
-        self._signals = np.concatenate(self._signals, axis=0)
+        self._signals = np.concatenate(self._signals, axis=0).astype(self.dtype)
         self._labels = np.concatenate(self._labels, axis=0)
-        self.to(self.config.leads, inplace=True)
 
     def _load_one_record(self, rec:str) -> Tuple[np.ndarray, np.ndarray]:
         """ finished, checked,
@@ -165,8 +167,8 @@ class CINC2021(Dataset):
         """
         values = self.reader.load_resampled_data(
             rec,
-            # leads=self.config.leads,
-            leads=Standard12Leads,
+            leads=self.config.leads,
+            # leads=Standard12Leads,
             data_format=self.config.data_format,
             siglen=None
         )
@@ -178,30 +180,24 @@ class CINC2021(Dataset):
             siglen=self.siglen,
             fmt=self.config.data_format,
             tolerance=self.config.sig_slice_tol,
-        )
+        ).astype(self.dtype)
         if values.ndim == 2:
             values = values[np.newaxis, ...]
         
         labels = self.reader.get_labels(
             rec, scored_only=True, fmt="a", normalize=True
         )
-        labels = np.isin(self.all_classes, labels).astype(int)[np.newaxis, ...].repeat(values.shape[0], axis=0)
+        labels = np.isin(self.all_classes, labels).astype(self.dtype)[np.newaxis, ...].repeat(values.shape[0], axis=0)
 
         return values, labels
 
-    def to(self, leads:Sequence[str], inplace:bool) -> "CINC2021":
+    def to(self, leads:Sequence[str]) -> NoReturn:
         """
         """
-        if not inplace:
-            prev = self.lazy
-            obj = CINC2021(self.config, training=self.training, lazy=True)
-            obj.lazy = prev
-        else:
-            obj = self
-        obj.config.leads = leads
-        indices = [Standard12Leads.index(l) for l in leads]
-        obj._signals = obj._signals[:, indices, :]
-        return obj
+        prev_leads = self.config.leads
+        self.config.leads = leads
+        indices = [prev_leads.index(l) for l in leads]
+        self._signals = self._signals[:, indices, :]
 
     @property
     def signals(self) -> np.ndarray:
@@ -439,6 +435,10 @@ class FastDataReader(Dataset):
         self.records = records
         self.config = config
         self.ppm = ppm
+        if self.config.torch_dtype.lower() == "double":
+            self.dtype = np.float64
+        else:
+            self.dtype = np.float32
 
     def __len__(self) -> int:
         """
@@ -451,8 +451,8 @@ class FastDataReader(Dataset):
         rec = self.records[index]
         values = self.reader.load_resampled_data(
             rec,
-            # leads=self.config.leads,
-            leads=Standard12Leads,
+            leads=self.config.leads,
+            # leads=Standard12Leads,
             data_format=self.config.data_format,
             siglen=None
         )
@@ -465,14 +465,14 @@ class FastDataReader(Dataset):
             siglen=self.config.input_len,
             fmt=self.config.data_format,
             tolerance=self.config.sig_slice_tol,
-        )
+        ).astype(self.dtype)
         if values.ndim == 2:
             values = values[np.newaxis, ...]
         
         labels = self.reader.get_labels(
             rec, scored_only=True, fmt="a", normalize=True
         )
-        labels = np.isin(self.config.all_classes, labels).astype(int)[np.newaxis, ...].repeat(values.shape[0], axis=0)
+        labels = np.isin(self.config.all_classes, labels).astype(self.dtype)[np.newaxis, ...].repeat(values.shape[0], axis=0)
 
         return values, labels
 

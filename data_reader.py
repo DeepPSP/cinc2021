@@ -38,9 +38,15 @@ from utils.scoring_aux_data import (
 )
 from utils import ecg_arrhythmia_knowledge as EAK
 from cfg import (
-    PlotCfg, Standard12Leads,
+    PlotCfg, Standard12Leads, BaseCfg,
     six_leads, four_leads, three_leads, two_leads,
 )
+
+
+if BaseCfg.torch_dtype == "float":
+    _DTYPE = np.float32
+else:
+    _DTYPE = np.float64
 
 
 __all__ = [
@@ -656,7 +662,7 @@ class CINC2021Reader(object):
             rec_fp = self.get_data_filepath(rec, with_ext=False)
             # p_signal of "lead_last" format
             wfdb_rec = wfdb.rdrecord(rec_fp, physical=True, channel_names=_leads)
-            data = np.asarray(wfdb_rec.p_signal.T)
+            data = np.asarray(wfdb_rec.p_signal.T, dtype=_DTYPE)
             # lead_units = np.vectorize(lambda s: s.lower())(wfdb_rec.units)
         elif backend.lower() == "scipy":
             # loadmat of "lead_first" format
@@ -665,7 +671,7 @@ class CINC2021Reader(object):
             header_info = self.load_ann(rec, raw=False)["df_leads"]
             baselines = header_info["baseline"].values.reshape(data.shape[0], -1)
             adc_gain = header_info["adc_gain"].values.reshape(data.shape[0], -1)
-            data = np.asarray(data-baselines) / adc_gain
+            data = np.asarray(data-baselines, dtype=_DTYPE) / adc_gain
             leads_ind = [self.all_leads.index(item) for item in _leads]
             data = data[leads_ind,:]
             # lead_units = np.vectorize(lambda s: s.lower())(header_info["df_leads"]["adc_units"].values)
@@ -680,7 +686,7 @@ class CINC2021Reader(object):
 
         rec_fs = self.get_fs(rec, from_hea=True)
         if fs is not None and fs != rec_fs:
-            data = resample_poly(data, fs, rec_fs, axis=1)
+            data = resample_poly(data, fs, rec_fs, axis=1).astype(_DTYPE)
         # if fs is not None and fs != self.fs[tranche]:
         #     data = resample_poly(data, fs, self.fs[tranche], axis=1)
 
@@ -1450,20 +1456,20 @@ class CINC2021Reader(object):
             )
             rec_fs = self.get_fs(rec, from_hea=True)
             if rec_fs != 500:
-                data = resample_poly(data, 500, rec_fs, axis=1)
+                data = resample_poly(data, 500, rec_fs, axis=1).astype(_DTYPE)
             # if self.fs[tranche] != 500:
             #     data = resample_poly(data, 500, self.fs[tranche], axis=1)
             if siglen is not None and data.shape[1] >= siglen:
                 # slice_start = (data.shape[1] - siglen)//2
                 # slice_end = slice_start + siglen
                 # data = data[..., slice_start:slice_end]
-                data = ensure_siglen(data, siglen=siglen, fmt="channel_first")
+                data = ensure_siglen(data, siglen=siglen, fmt="channel_first").astype(_DTYPE)
                 np.save(rec_fp, data)
             elif siglen is None:
                 np.save(rec_fp, data)
         else:
             # print(f"loading from local file...")
-            data = np.load(rec_fp)
+            data = np.load(rec_fp).astype(_DTYPE)
         # choose data of specific leads
         data = data[_leads, ...]
         if data_format.lower() in ["channel_last", "lead_last"]:
@@ -1496,10 +1502,10 @@ class CINC2021Reader(object):
         if backend.lower() == "wfdb":
             rec_fp = self.get_data_filepath(rec, with_ext=False)
             wfdb_rec = wfdb.rdrecord(rec_fp, physical=False)
-            raw_data = np.asarray(wfdb_rec.d_signal)
+            raw_data = np.asarray(wfdb_rec.d_signal, dtype=_DTYPE)
         elif backend.lower() == "scipy":
             rec_fp = self.get_data_filepath(rec, with_ext=True)
-            raw_data = loadmat(rec_fp)["val"]
+            raw_data = loadmat(rec_fp)["val"].astype(_DTYPE)
         return raw_data
 
 

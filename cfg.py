@@ -138,6 +138,7 @@ def _assign_classes(cfg:ED, special_classes:List[str]) -> NoReturn:
 
 # training configurations for machine learning and deep learning
 TrainCfg = ED()
+TrainCfg.torch_dtype = BaseCfg.torch_dtype
 
 # configs of files
 TrainCfg.db_dir = BaseCfg.db_dir
