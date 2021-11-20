@@ -19,18 +19,27 @@ import torch
 from easydict import EasyDict as ED
 from scipy.signal import resample, resample_poly
 
+from torch_ecg.torch_ecg._preprocessors import PreprocManager
+
 from trainer import CINC2021Trainer
 from dataset import CINC2021
 # from helper_code import twelve_leads, six_leads, four_leads, three_leads, two_leads, lead_sets
-from cfg import TrainCfg, ModelCfg, SpecialDetectorCfg
-from cfg_ns import TrainCfg as TrainCfg_ns, ModelCfg as ModelCfg_ns
+from cfg import (
+    TrainCfg, ModelCfg,
+    TrainCfg_ns, ModelCfg_ns,
+    SpecialDetectorCfg,
+)
 from model import ECG_CRNN_CINC2021
 from utils.special_detectors import special_detectors
 from utils.utils_nn import extend_predictions
-from utils.misc import get_date_str, dict_to_str, init_logger, rdheader
-from utils.utils_signal import ensure_siglen, butter_bandpass_filter, normalize
+from utils.misc import rdheader
+from utils.utils_signal import ensure_siglen
 from utils.scoring_aux_data import abbr_to_snomed_ct_code
 from signal_processing.ecg_denoise import remove_spikes_naive
+
+ECG_CRNN_CINC2021.__DEBUG__ = False
+CINC2021.__DEBUG__ = False
+CINC2021Trainer.__DEBUG__ = False
 
 
 # Define the Challenge lead sets. These variables are not required. You can change or remove them.
@@ -64,6 +73,13 @@ if _ModelCfg.torch_dtype.lower() == "double":
     DTYPE = np.float64
 else:
     DTYPE = np.float32
+
+
+ds_train = CINC2021(_TrainCfg, training=True, lazy=False)
+ds_val = CINC2021(_TrainCfg, training=False, lazy=False)
+
+PPM = PreprocManager(_TrainCfg)
+PPM.rearrange(["bandpass", "normalize"])
 
 
 ################################################################################
@@ -110,7 +126,7 @@ def training_code(data_directory, model_directory):
     train_config.debug = False
 
     train_config.cnn_name = "multi_scopic"
-    train_config.n_epochs = 27
+    train_config.n_epochs = 35
     train_config.batch_size = 24  # training 12-lead model sometimes requires GPU memory more than 16G (Tesla T4)
 
     tranches = train_config.tranches_for_training
@@ -208,10 +224,8 @@ def training_n_leads(train_config:ED, model_config:ED) -> NoReturn:
     model = ECG_CRNN_CINC2021(
         classes=train_classes,
         n_leads=train_config.n_leads,
-        # input_len=config.input_len,
         config=model_config,
     )
-    model.__DEBUG__ = False
 
     if torch.cuda.device_count() > 1:
         model = torch.nn.DataParallel(model)
@@ -219,11 +233,14 @@ def training_n_leads(train_config:ED, model_config:ED) -> NoReturn:
 
     trainer = CINC2021Trainer(
         model=model,
-        dataset_cls=CINC2021,
         model_config=model_config,
         train_config=train_config,
         device=DEVICE,
+        lazy=True,
     )
+    ds_train.to(leads=train_config.leads)
+    ds_val.to(leads=train_config.leads)
+    trainer._setup_dataloaders(ds_train, ds_val)
 
     trainer.train()
 
@@ -250,85 +267,13 @@ def load_model(model_directory, leads):
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
-    model = ECG_CRNN_CINC2021.from_checkpoint(
+    model, model_cfg = ECG_CRNN_CINC2021.from_checkpoint(
         path=os.path.join(model_directory, model_filename),
     )
     model.eval()
     if len(model.train_config.classes) != len(_TrainCfg.classes):
         warnings.warn(f"""checkpoint model has {len(model.train_config.classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
     return model
-
-# # Load your trained 12-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
-# def load_twelve_lead_model(model_directory):
-#     if torch.cuda.is_available():
-#         device = torch.device("cuda")
-#     else:
-#         device = torch.device("cpu")
-#     ckpt = torch.load(os.path.join(model_directory, twelve_lead_model_filename), map_location=device)
-#     model = ECG_CRNN_CINC2021(
-#         classes=ckpt["train_config"].classes,
-#         n_leads=12,  # ckpt["train_config"].n_leads
-#         config=ckpt["model_config"],
-#     )
-#     model.eval()
-#     model.load_state_dict(ckpt["model_state_dict"])
-#     if len(ckpt["train_config"].classes) != len(_TrainCfg.classes):
-#         warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
-#     return model
-
-# # Load your trained 6-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
-# def load_six_lead_model(model_directory):
-#     if torch.cuda.is_available():
-#         device = torch.device("cuda")
-#     else:
-#         device = torch.device("cpu")
-#     ckpt = torch.load(os.path.join(model_directory, six_lead_model_filename), map_location=device)
-#     model = ECG_CRNN_CINC2021(
-#         classes=ckpt["train_config"].classes,
-#         n_leads=6,  # ckpt["train_config"].n_leads
-#         config=ckpt["model_config"],
-#     )
-#     model.eval()
-#     model.load_state_dict(ckpt["model_state_dict"])
-#     if len(ckpt["train_config"].classes) != len(_TrainCfg.classes):
-#         warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
-#     return model
-
-# # Load your trained 3-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
-# def load_three_lead_model(model_directory):
-#     if torch.cuda.is_available():
-#         device = torch.device("cuda")
-#     else:
-#         device = torch.device("cpu")
-#     ckpt = torch.load(os.path.join(model_directory, three_lead_model_filename), map_location=device)
-#     model = ECG_CRNN_CINC2021(
-#         classes=ckpt["train_config"].classes,
-#         n_leads=3,  # ckpt["train_config"].n_leads
-#         config=ckpt["model_config"],
-#     )
-#     model.eval()
-#     model.load_state_dict(ckpt["model_state_dict"])
-#     if len(ckpt["train_config"].classes) != len(_TrainCfg.classes):
-#         warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
-#     return model
-
-# # Load your trained 2-lead ECG model. This function is *required*. Do *not* change the arguments of this function.
-# def load_two_lead_model(model_directory):
-#     if torch.cuda.is_available():
-#         device = torch.device("cuda")
-#     else:
-#         device = torch.device("cpu")
-#     ckpt = torch.load(os.path.join(model_directory, two_lead_model_filename), map_location=device)
-#     model = ECG_CRNN_CINC2021(
-#         classes=ckpt["train_config"].classes,
-#         n_leads=2,  # ckpt["train_config"].n_leads
-#         config=ckpt["model_config"],
-#     )
-#     model.eval()
-#     model.load_state_dict(ckpt["model_state_dict"])
-#     if len(ckpt["train_config"].classes) != len(_TrainCfg.classes):
-#         warnings.warn(f"""checkpoint model has {len(ckpt["train_config"].classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
-#     return model
 
 ################################################################################
 #
@@ -338,8 +283,7 @@ def load_model(model_directory, leads):
 
 # Run your trained model. This function is *required*. You should edit this function to add your code, but do *not* change the arguments of this function.
 def run_model(model, header, recording, verbose=0):
-    """
-    TODO: update this function
+    """ finished, NOT checked,
     """
     raw_data, ann_dict = preprocess_data(header, recording)
 
@@ -393,37 +337,7 @@ def run_model(model, header, recording, verbose=0):
     
     # DL part
     dl_data = raw_data.copy()
-    if _TrainCfg.bandpass is not None:
-        # bandpass
-        dl_data = butter_bandpass_filter(
-            dl_data,
-            lowcut=_TrainCfg.bandpass[0],
-            highcut=_TrainCfg.bandpass[1],
-            order=_TrainCfg.bandpass_order,
-            fs=_TrainCfg.fs,
-        )
-    # if dl_data.shape[1] >= _ModelCfg.dl_siglen:
-    #     dl_data = ensure_siglen(dl_data, siglen=_ModelCfg.dl_siglen, fmt="lead_first")
-    #     if _TrainCfg.normalize_data:
-    #         # normalize
-    #         dl_data = ((dl_data - np.mean(dl_data)) / np.std(dl_data)).astype(DTYPE)
-    # else:
-    #     if _TrainCfg.normalize_data:
-    #         # normalize
-    #         dl_data = ((dl_data - np.mean(dl_data)) / np.std(dl_data)).astype(DTYPE)
-    #     dl_data = ensure_siglen(dl_data, siglen=_ModelCfg.dl_siglen, fmt="lead_first")
-    if _TrainCfg.normalize_data:
-        # normalize
-        # dl_data = ((dl_data - np.mean(dl_data)) / np.std(dl_data)).astype(DTYPE)
-        dl_data = normalize(
-            sig=dl_data,
-            mean=0.0,
-            std=1.0,
-            sig_fmt="lead_first",
-            per_channel=False,
-        )
-    else: # to resolve the negative stride error of torch with numpy array after `butter_bandpass_filter` 
-        dl_data = dl_data.copy().astype(DTYPE)
+    dl_data, _ = PPM(dl_data, fs=ann_dict["fs"])
     # unsqueeze to add a batch dimention
     dl_data = (torch.from_numpy(dl_data)).unsqueeze(0).to(device=DEVICE)
 
