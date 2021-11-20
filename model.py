@@ -79,16 +79,12 @@ class ECG_CRNN_CINC2021(ECG_CRNN):
             nsr_cid = self.classes.index("426783006")
         else:
             nsr_cid = None
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-        else:
-            device = torch.device("cpu")
-        self.to(device)
-        self.eval()
-        if isinstance(input, np.ndarray):
-            _input = torch.from_numpy(input).to(device)
-        else:
-            _input = input.to(device)
+        _device = next(self.parameters()).device
+        _dtype = next(self.parameters()).dtype
+        _input = torch.as_tensor(input, dtype=_dtype, device=_device)
+        if _input.ndim == 2:
+            _input = _input.unsqueeze(0)  # add a batch dimension
+        # batch_size, channels, seq_len = _input.shape
         pred = self.forward(_input)
         pred = self.sigmoid(pred)
         bin_pred = (pred>=bin_pred_thr).int()
@@ -124,3 +120,35 @@ class ECG_CRNN_CINC2021(ECG_CRNN):
         alias for `self.inference`
         """
         return self.inference(input, class_names, bin_pred_thr)
+
+
+    @staticmethod
+    def from_checkpoint(path:str, device:Optional[torch.device]=None) -> Tuple[nn.Module, dict]:
+        """
+
+        Parameters
+        ----------
+        path: str,
+            path of the checkpoint
+        device: torch.device, optional,
+            map location of the model parameters,
+            defaults "cuda" if available, otherwise "cpu"
+
+        Returns
+        -------
+        model: Module,
+            the model loaded from a checkpoint
+        aux_config: dict,
+            auxiliary configs that are needed for data preprocessing, etc.
+        """
+        _device = device or (torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"))
+        ckpt = torch.load(path, map_location=_device)
+        aux_config = ckpt.get("train_config", None) or ckpt.get("config", None)
+        assert aux_config is not None, "input checkpoint has no sufficient data to recover a model"
+        model = ECG_CRNN_CINC2021(
+            classes=aux_config["classes"],
+            n_leads=aux_config["n_leads"],
+            config=ckpt["model_config"],
+        )
+        model.load_state_dict(ckpt["model_state_dict"])
+        return model, aux_config
