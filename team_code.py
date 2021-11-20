@@ -75,10 +75,7 @@ else:
     DTYPE = np.float32
 
 
-ds_train = CINC2021(_TrainCfg, training=True, lazy=False)
-ds_val = CINC2021(_TrainCfg, training=False, lazy=False)
-
-PPM = PreprocManager(_TrainCfg)
+PPM = PreprocManager.from_config(_TrainCfg)
 PPM.rearrange(["bandpass", "normalize"])
 
 
@@ -136,6 +133,9 @@ def training_code(data_directory, model_directory):
         train_classes = train_config.classes
 
     start_time = time.time()
+
+    ds_train = CINC2021(_TrainCfg, training=True, lazy=False)
+    ds_val = CINC2021(_TrainCfg, training=False, lazy=False)
 
     # Train 12-lead ECG model.
     print("Training 12-lead ECG model...")
@@ -213,7 +213,7 @@ def training_code(data_directory, model_directory):
 
 
 
-def training_n_leads(train_config:ED, model_config:ED) -> NoReturn:
+def training_n_leads(train_config:ED, model_config:ED, train_dataset:CINC2021, val_dataset:CINC2021) -> NoReturn:
     """
     """
     tranches = train_config.tranches_for_training
@@ -238,13 +238,14 @@ def training_n_leads(train_config:ED, model_config:ED) -> NoReturn:
         device=DEVICE,
         lazy=True,
     )
-    ds_train.to(leads=train_config.leads)
-    ds_val.to(leads=train_config.leads)
-    trainer._setup_dataloaders(ds_train, ds_val)
+    train_dataset.to(leads=train_config.leads)
+    val_dataset.to(leads=train_config.leads)
+    trainer._setup_dataloaders(train_dataset, val_dataset)
 
-    trainer.train()
+    trainer.train()  # including saving model
 
     del trainer
+    del model
 
 
 
@@ -271,8 +272,8 @@ def load_model(model_directory, leads):
         path=os.path.join(model_directory, model_filename),
     )
     model.eval()
-    if len(model.train_config.classes) != len(_TrainCfg.classes):
-        warnings.warn(f"""checkpoint model has {len(model.train_config.classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
+    if len(model.classes) != len(_TrainCfg.classes):
+        warnings.warn(f"""checkpoint model has {len(model.classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
     return model
 
 ################################################################################
