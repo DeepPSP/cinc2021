@@ -268,7 +268,7 @@ def load_model(model_directory, leads):
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
-    model, model_cfg = ECG_CRNN_CINC2021.from_checkpoint(
+    model, train_cfg = ECG_CRNN_CINC2021.from_checkpoint(
         path=os.path.join(model_directory, model_filename),
     )
     model.eval()
@@ -284,7 +284,7 @@ def load_model(model_directory, leads):
 
 # Run your trained model. This function is *required*. You should edit this function to add your code, but do *not* change the arguments of this function.
 def run_model(model, header, recording, verbose=0):
-    """ finished, NOT checked,
+    """ finished, checked,
     """
     raw_data, ann_dict = preprocess_data(header, recording)
 
