@@ -325,7 +325,9 @@ class CINC2021(Dataset):
         print(f"train test split finished in {(time.time()-start)/60:.2f} minutes")
 
         _tranches = list(self.tranches or "ABEFG")
-        if self.training:
+        if self.training == "all":
+            records = list_sum([train_set[k] for k in _tranches]) + list_sum([test_set[k] for k in _tranches])
+        elif self.training is True:
             records = list_sum([train_set[k] for k in _tranches])
         else:
             records = list_sum([test_set[k] for k in _tranches])

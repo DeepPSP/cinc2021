@@ -22,6 +22,7 @@ References: (mainly tips for faster and better training)
 """
 
 import os, sys, time, textwrap, argparse, logging
+from copy import deepcopy
 from typing import Tuple, Dict, Any, List, NoReturn, Optional
 
 import numpy as np
@@ -60,7 +61,7 @@ class CINC2021Trainer(BaseTrainer):
                  model_config:dict,
                  train_config:dict,
                  device:Optional[torch.device]=None,
-                 lazy:bool=False,
+                 lazy:bool=True,
                  **kwargs:Any,) -> NoReturn:
         """ finished, checked,
 
@@ -90,7 +91,7 @@ class CINC2021Trainer(BaseTrainer):
                     "momentum": float, optional, depending on the optimizer
         device: torch.device, optional,
             the device to be used for training
-        lazy: bool, default False,
+        lazy: bool, default True,
             whether to initialize the data loader lazily
         """
         super().__init__(model, CINC2021, model_config, train_config, device, lazy)

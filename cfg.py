@@ -261,7 +261,7 @@ TrainCfg.bin_pred_nsr_thr = _bin_pred_nsr_thr
 # the no special classes version
 
 TrainCfg_ns = deepcopy(TrainCfg)
-_assign_classes(TrainCfg, [])
+_assign_classes(TrainCfg_ns, [])
 
 
 # configurations for building deep learning models
