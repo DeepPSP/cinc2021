@@ -240,6 +240,9 @@ class CINC2021Trainer(BaseTrainer):
             challenge_metric=challenge_metric,
         )
 
+        # in case possible memeory leakage?
+        del all_scalar_preds, all_bin_preds, all_labels
+
         self.model.train()
 
         return eval_res
