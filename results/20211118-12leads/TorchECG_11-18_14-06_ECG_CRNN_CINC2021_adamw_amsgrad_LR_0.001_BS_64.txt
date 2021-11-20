@@ -328,11 +328,11 @@
         "lowcut": 0.5,
         "highcut": 60
     },
-    "label_smoothing": {
+    "label_smoothing": {  # due to key error (should be "label_smooth"), label_smoothing actually was not performed
         "prob": 0.8,
         "smoothing": 0.1
     },
-    "random_mask": False,
+    "random_mask": False,  # also a key error, but no side effects
     "stretch_compress": False,
     "mixup": {
         "prob": 0.6,
