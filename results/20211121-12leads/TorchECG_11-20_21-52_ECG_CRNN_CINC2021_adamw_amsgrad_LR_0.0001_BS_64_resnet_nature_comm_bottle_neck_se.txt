@@ -328,7 +328,7 @@
         "lowcut": 0.5,
         "highcut": 60
     },
-    "label_smoothing": {
+    "label_smoothing": {  # due to key error (should be "label_smooth"), label_smoothing actually was not performed
         "prob": 0.8,
         "smoothing": 0.1
     },
