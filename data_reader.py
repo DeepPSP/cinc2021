@@ -1287,21 +1287,21 @@ class CINC2021Reader(object):
         duration = len(t) / self.fs[tranche]
         fig_sz_w = int(round(4.8 * duration))
         fig_sz_h = 6 * y_ranges / 1500
-        fig, axes = plt.subplots(nb_leads, 1, sharex=True, figsize=(fig_sz_w, np.sum(fig_sz_h)))
+        fig, axes = plt.subplots(nb_leads, 1, sharex=False, figsize=(fig_sz_w, np.sum(fig_sz_h)))
         if nb_leads == 1:
             axes = [axes]
         for idx in range(nb_leads):
-            axes[idx].plot(t, _data[idx], color="black", label=f"lead - {_leads[idx]}")
+            axes[idx].plot(t, _data[idx], color="black", linewidth="2.0", label=f"lead - {_leads[idx]}")
             axes[idx].axhline(y=0, linestyle="-", linewidth="1.0", color="red")
             # NOTE that `Locator` has default `MAXTICKS` equal to 1000
             if ticks_granularity >= 1:
                 axes[idx].xaxis.set_major_locator(plt.MultipleLocator(0.2))
                 axes[idx].yaxis.set_major_locator(plt.MultipleLocator(500))
-                axes[idx].grid(which="major", linestyle="-", linewidth="0.5", color="red")
+                axes[idx].grid(which="major", linestyle="-", linewidth="0.4", color="red")
             if ticks_granularity >= 2:
                 axes[idx].xaxis.set_minor_locator(plt.MultipleLocator(0.04))
                 axes[idx].yaxis.set_minor_locator(plt.MultipleLocator(100))
-                axes[idx].grid(which="minor", linestyle=":", linewidth="0.5", color="black")
+                axes[idx].grid(which="minor", linestyle=":", linewidth="0.2", color="gray")
             # add extra info. to legend
             # https://stackoverflow.com/questions/16826711/is-it-possible-to-add-a-string-as-a-legend-item-in-matplotlib
             axes[idx].plot([], [], " ", label=f"labels_s - {','.join(diag_scored)}")
@@ -1311,13 +1311,17 @@ class CINC2021Reader(object):
             for w in ["p_waves", "qrs", "t_waves"]:
                 for itv in eval(w):
                     axes[idx].axvspan(itv[0], itv[1], color=palette[w], alpha=plot_alpha)
-            axes[idx].legend(loc="upper left")
+            axes[idx].legend(loc="upper left", fontsize=14)
             axes[idx].set_xlim(t[0], t[-1])
             axes[idx].set_ylim(-y_ranges[idx], y_ranges[idx])
-            axes[idx].set_xlabel("Time [s]")
-            axes[idx].set_ylabel("Voltage [μV]")
-        plt.subplots_adjust(hspace=0.2)
-        plt.show()
+            axes[idx].set_xlabel("Time [s]", fontsize=16)
+            axes[idx].set_ylabel("Voltage [μV]", fontsize=16)
+        plt.subplots_adjust(hspace=0.05)
+        fig.tight_layout()
+        if kwargs.get("save_path", None):
+            plt.savefig(kwargs["save_path"], dpi=200, bbox_inches="tight")
+        else:
+            plt.show()
 
 
     def _auto_infer_units(self, data:np.ndarray) -> str:
