@@ -332,7 +332,7 @@
         "prob": 0.8,
         "smoothing": 0.1
     },
-    "random_mask": False,
+    "random_mask": False,  # also a key error, but no side effects
     "stretch_compress": False,
     "mixup": {
         "prob": 0.6,
