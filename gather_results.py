@@ -82,7 +82,7 @@ def gather_from_checkpoint(path:str, fmt:str="svg") -> NoReturn:
     """
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     ckpt = torch.load(path, map_location=device)
-    model = ECG_CRNN_CINC2021.from_checkpoint(path, device=device)
+    model, _ = ECG_CRNN_CINC2021.from_checkpoint(path, device=device)
     print(f"model loaded from {path}")
     ds = CINC2021(ckpt["train_config"], training=False)
     dl =  DataLoader(
