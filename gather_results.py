@@ -9,11 +9,14 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
+try:
+    from tqdm.auto import tqdm
+except ModuleNotFoundError:
+    from tqdm import tqdm
 
 from torch_ecg.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
 from model import ECG_CRNN_CINC2021
 from dataset import CINC2021
-from trainer import evaluate
 from cfg import BaseCfg
 
 
@@ -77,17 +80,20 @@ def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
     return ax
 
 
-def gather_from_checkpoint(path:str, fmt:str="svg") -> NoReturn:
+@torch.no_grad()
+def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=None) -> NoReturn:
     """
     """
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     ckpt = torch.load(path, map_location=device)
     model, _ = ECG_CRNN_CINC2021.from_checkpoint(path, device=device)
+    model.eval()
     print(f"model loaded from {path}")
-    ds = CINC2021(ckpt["train_config"], training=False)
+    if dataset is None:
+        dataset = CINC2021(ckpt["train_config"], training=False, lazy=False)
     dl =  DataLoader(
-        dataset=ds,
-        batch_size=16,
+        dataset=dataset,
+        batch_size=256,
         shuffle=False,
         num_workers=4,
         pin_memory=True,
@@ -101,6 +107,8 @@ def gather_from_checkpoint(path:str, fmt:str="svg") -> NoReturn:
 
     start = time.time()
     print(f"start evaluating the model on the train-validation set...")
+    # with tqdm(dl) as pbar:
+    # for idx, (signals, labels) in enumerate(dl):
     for signals, labels in dl:
         signals = signals.to(device=device)
         labels = labels.numpy()
@@ -111,6 +119,7 @@ def gather_from_checkpoint(path:str, fmt:str="svg") -> NoReturn:
         preds, bin_preds = model.inference(signals)
         all_scalar_preds.append(preds)
         all_bin_preds.append(bin_preds)
+        # print(f"{idx+1}/{len(dl)}", end="\r")
 
     all_scalar_preds = np.concatenate(all_scalar_preds, axis=0)
     all_bin_preds = np.concatenate(all_bin_preds, axis=0)
