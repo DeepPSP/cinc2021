@@ -19814,3 +19814,71 @@ obtained at epoch 41
 2021-11-22 21:42:01,844 - TorchECG - INFO - --------------------------------------------------------------------------------------------------------------
 
 2021-11-22 21:42:02,201 - TorchECG - INFO - best model is saved at /home/wenhao/Jupyter/wenhao/workspace/cinc2021/checkpoints/BestModel_ECG_CRNN_CINC2021_resnet_nature_comm_se_epoch41_11-22_21-42_metric_0.68.pth.tar
+
+model configurations: {
+    "fs": 500,
+    "cnn": {
+        "resnet_nature_comm_se": {
+            "num_blocks": [
+                1, 1, 1, 1
+            ],
+            "fs": 500,
+            "subsample_lengths": [
+                4, 4, 4, 4
+            ],
+            "filter_lengths": 17,
+            "groups": 1,
+            "increase_channels_method": "conv",
+            "kernel_initializer": "he_normal",
+            "kw_initializer": {},
+            "activation": "relu",
+            "kw_activation": {
+                "inplace": True
+            },
+            "bias": False,
+            "stem": {
+                "num_filters": 64,
+                "filter_lengths": 17,
+                "conv_stride": 1,
+                "pool_size": 3,
+                "pool_stride": 1
+            },
+            "building_block": "basic",
+            "block": {
+                "increase_channels_method": "conv",
+                "subsample_mode": "conv",
+                "kernel_initializer": "he_normal",
+                "kw_initializer": {},
+                "activation": "relu",
+                "kw_activation": {
+                    "inplace": True
+                },
+                "bias": False,
+                "attn": {
+                    "reduction": 8,
+                    "activation": "relu",
+                    "kw_activation": {
+                        "inplace": True
+                    },
+                    "bias": True,
+                    "kernel_initializer": "he_normal",
+                    "name": "se",
+                    "pos": -1
+                }
+            },
+            "dropouts": 0.2,
+            "num_filters": [
+                128, 192, 256, 320
+            ]
+        }
+    },
+    "rnn": {},
+    "attn": {},
+    "global_pool": "max",
+    "clf": {
+        "out_channels": [],
+        "bias": True,
+        "dropouts": 0.0,
+        "activation": "mish"
+    }
+}

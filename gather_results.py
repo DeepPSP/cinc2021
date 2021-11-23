@@ -2,6 +2,7 @@
 """
 
 import os, re, time
+from copy import deepcopy
 from typing import Sequence, NoReturn, Optional, Any
 
 import numpy as np
@@ -15,6 +16,8 @@ except ModuleNotFoundError:
     from tqdm import tqdm
 
 from torch_ecg.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
+from torch_ecg.torch_ecg.utils.misc import dict_to_str, get_record_list_recursive3
+
 from model import ECG_CRNN_CINC2021
 from dataset import CINC2021
 from cfg import BaseCfg
@@ -85,12 +88,11 @@ def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=N
     """
     """
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    ckpt = torch.load(path, map_location=device)
-    model, _ = ECG_CRNN_CINC2021.from_checkpoint(path, device=device)
+    model, train_config = ECG_CRNN_CINC2021.from_checkpoint(path, device=device)
     model.eval()
     print(f"model loaded from {path}")
     if dataset is None:
-        dataset = CINC2021(ckpt["train_config"], training=False, lazy=False)
+        dataset = CINC2021(train_config, training=False, lazy=False)
     dl =  DataLoader(
         dataset=dataset,
         batch_size=256,
@@ -184,3 +186,45 @@ def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=N
         title=title,
         fmt=fmt,
     )        
+
+
+
+def append_model_config_if_needed() -> NoReturn:
+    """
+    """
+    results_dir = os.path.join(os.path.dirname(BaseCfg.log_dir), "results")
+    results_txt_files = get_record_list_recursive3(results_dir, "TorchECG.*\.txt")
+    for fp in results_txt_files:
+        fp = os.path.join(results_dir, fp+".txt")
+        with open(fp, "r") as f:
+            lines = f.read().splitlines()[-1000:]
+        model_fp = None
+        flag = False
+        for l in lines:
+            tmp = re.findall("/.*BestModel.*\.pth\.tar", l)
+            if len(tmp) > 0:
+                model_fp = tmp[0]
+            tmp = re.findall("model configurations", l)
+            if len(tmp) > 0:
+                flag = True
+                break
+        if flag:
+            print(f"{fp} already has model config")
+            continue
+        if model_fp is None:
+            print(f"{fp} does not have corresponding model")
+            continue
+        ckpt = torch.load(model_fp, map_location=torch.device("cpu"))
+        shrinked_cfg = deepcopy(ckpt["model_config"])
+        for k in ckpt["model_config"].cnn:
+            if k != ckpt["model_config"].cnn.name:
+                shrinked_cfg.cnn.pop(k)
+        for k in ckpt["model_config"].rnn:
+            if k != ckpt["model_config"].rnn.name:
+                shrinked_cfg.rnn.pop(k)
+        for k in ckpt["model_config"].attn:
+            if k != ckpt["model_config"].attn.name:
+                shrinked_cfg.attn.pop(k)
+        with open(fp, "a") as f:
+            f.write(f"\nmodel configurations: {dict_to_str(shrinked_cfg)}\n")
+        print(f"{fp} appended with model config")

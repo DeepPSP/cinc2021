@@ -19814,3 +19814,168 @@ obtained at epoch 43
 2021-11-22 12:31:12,919 - TorchECG - INFO - --------------------------------------------------------------------------------------------------------------
 
 2021-11-22 12:31:13,176 - TorchECG - INFO - best model is saved at /home/wenhao/Jupyter/wenhao/workspace/cinc2021/checkpoints/BestModel_ECG_CRNN_CINC2021_tresnetF_epoch43_11-22_12-31_metric_0.68.pth.tar
+
+model configurations: {
+    "fs": 500,
+    "cnn": {
+        "tresnetF": {
+            "fs": 500,
+            "subsample_lengths": [
+                1, 2, 2, 2
+            ],
+            "filter_lengths": 17,
+            "groups": 1,
+            "increase_channels_method": "conv",
+            "stem": {
+                "subsample_mode": "s2d",
+                "num_filters": 32,
+                "filter_lengths": 1,
+                "conv_stride": 1,
+                "pool_size": 1,
+                "pool_stride": 1
+            },
+            "kernel_initializer": "he_normal",
+            "kw_initializer": {},
+            "activation": "leaky",
+            "kw_activation": {
+                "inplace": True
+            },
+            "bias": False,
+            "building_block": [
+                "basic",
+                "basic",
+                "bottleneck",
+                "bottleneck"
+            ],
+            "block": [
+                {
+                    "increase_channels_method": "conv",
+                    "subsample_mode": "blur",
+                    "kernel_initializer": "he_normal",
+                    "kw_initializer": {},
+                    "activation": "leaky",
+                    "kw_activation": {
+                        "inplace": True
+                    },
+                    "bias": False,
+                    "attn": {
+                        "reduction": 8,
+                        "activation": "relu",
+                        "kw_activation": {
+                            "inplace": True
+                        },
+                        "bias": True,
+                        "kernel_initializer": "he_normal",
+                        "name": "se",
+                        "pos": -1
+                    },
+                    "reduction": 4,
+                    "filt_size": 7,
+                    "conv_type": "separable"
+                },
+                {
+                    "increase_channels_method": "conv",
+                    "subsample_mode": "blur",
+                    "kernel_initializer": "he_normal",
+                    "kw_initializer": {},
+                    "activation": "leaky",
+                    "kw_activation": {
+                        "inplace": True
+                    },
+                    "bias": False,
+                    "attn": {
+                        "reduction": 8,
+                        "activation": "relu",
+                        "kw_activation": {
+                            "inplace": True
+                        },
+                        "bias": True,
+                        "kernel_initializer": "he_normal",
+                        "name": "se",
+                        "pos": -1
+                    },
+                    "reduction": 4,
+                    "filt_size": 7,
+                    "conv_type": "separable"
+                },
+                {
+                    "expansion": 4,
+                    "increase_channels_method": "conv",
+                    "subsample_mode": "blur",
+                    "subsample_at": 1,
+                    "kernel_initializer": "he_normal",
+                    "kw_initializer": {},
+                    "activation": "leaky",
+                    "kw_activation": {
+                        "inplace": True
+                    },
+                    "bias": False,
+                    "attn": {
+                        "reduction": 8,
+                        "activation": "relu",
+                        "kw_activation": {
+                            "inplace": True
+                        },
+                        "bias": True,
+                        "kernel_initializer": "he_normal",
+                        "name": "se",
+                        "pos": -1
+                    },
+                    "pos": 2,
+                    "filt_size": 7,
+                    "conv_type": "separable"
+                },
+                {
+                    "expansion": 4,
+                    "increase_channels_method": "conv",
+                    "subsample_mode": "blur",
+                    "subsample_at": 1,
+                    "kernel_initializer": "he_normal",
+                    "kw_initializer": {},
+                    "activation": "leaky",
+                    "kw_activation": {
+                        "inplace": True
+                    },
+                    "bias": False,
+                    "filt_size": 7,
+                    "conv_type": "separable"
+                }
+            ],
+            "num_blocks": [
+                1, 1, 1, 1
+            ]
+        }
+    },
+    "rnn": {
+        "lstm": {
+            "bias": True,
+            "dropouts": 0.2,
+            "bidirectional": True,
+            "retseq": True,
+            "hidden_sizes": [
+                192, 192
+            ]
+        }
+    },
+    "attn": {
+        "se": {
+            "reduction": 8,
+            "activation": "relu",
+            "kw_activation": {
+                "inplace": True
+            },
+            "bias": True,
+            "kernel_initializer": "he_normal"
+        }
+    },
+    "global_pool": "max",
+    "clf": {
+        "out_channels": [
+            1024
+        ],
+        "activation": "mish",
+        "bias": True,
+        "kernel_initializer": "he_normal",
+        "dropouts": 0.2
+    }
+}

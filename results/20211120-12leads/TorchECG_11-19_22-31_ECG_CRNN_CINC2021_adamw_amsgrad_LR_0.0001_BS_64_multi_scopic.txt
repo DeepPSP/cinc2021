@@ -19814,3 +19814,135 @@ obtained at epoch 40
 2021-11-20 10:00:34,833 - TorchECG - INFO - --------------------------------------------------------------------------------------------------------------
 
 2021-11-20 10:00:35,340 - TorchECG - INFO - best model is saved at /home/wenhao/Jupyter/wenhao/workspace/cinc2021/checkpoints/BestModel_ECG_CRNN_CINC2021_multi_scopic_epoch40_11-20_10-00_metric_0.70.pth.tar
+
+model configurations: {
+    "fs": 500,
+    "cnn": {
+        "multi_scopic": {
+            "fs": 500,
+            "groups": 1,
+            "scopes": [
+                [
+                    [
+                        1
+                    ],
+                    [
+                        1, 1
+                    ],
+                    [
+                        1, 1, 1
+                    ]
+                ],
+                [
+                    [
+                        2
+                    ],
+                    [
+                        2, 4
+                    ],
+                    [
+                        8, 8, 8
+                    ]
+                ],
+                [
+                    [
+                        4
+                    ],
+                    [
+                        4, 8
+                    ],
+                    [
+                        16, 32, 64
+                    ]
+                ]
+            ],
+            "filter_lengths": [
+                [
+                    11, 7, 5
+                ],
+                [
+                    11, 7, 5
+                ],
+                [
+                    11, 7, 5
+                ]
+            ],
+            "subsample_lengths": [
+                2, 2, 2
+            ],
+            "num_filters": [
+                [
+                    96, 192, 384
+                ],
+                [
+                    96, 192, 384
+                ],
+                [
+                    96, 192, 384
+                ]
+            ],
+            "dropouts": [
+                [
+                    0, 0.2, 0
+                ],
+                [
+                    0, 0.2, 0
+                ],
+                [
+                    0, 0.2, 0
+                ]
+            ],
+            "bias": True,
+            "kernel_initializer": "he_normal",
+            "kw_initializer": {},
+            "activation": "relu",
+            "kw_activation": {
+                "inplace": True
+            },
+            "block": {
+                "subsample_mode": "max",
+                "bias": True,
+                "kernel_initializer": "he_normal",
+                "kw_initializer": {},
+                "activation": "relu",
+                "kw_activation": {
+                    "inplace": True
+                },
+                "batch_norm": False,
+                "kw_bn": {}
+            }
+        }
+    },
+    "rnn": {
+        "lstm": {
+            "bias": True,
+            "dropouts": 0.2,
+            "bidirectional": True,
+            "retseq": True,
+            "hidden_sizes": [
+                192, 192
+            ]
+        }
+    },
+    "attn": {
+        "se": {
+            "reduction": 8,
+            "activation": "relu",
+            "kw_activation": {
+                "inplace": True
+            },
+            "bias": True,
+            "kernel_initializer": "he_normal"
+        }
+    },
+    "global_pool": "max",
+    "clf": {
+        "out_channels": [
+            1024
+        ],
+        "activation": "mish",
+        "bias": True,
+        "kernel_initializer": "he_normal",
+        "dropouts": 0.2
+    }
+}
