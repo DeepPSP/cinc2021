@@ -12424,3 +12424,112 @@ Epoch 30 / Step 33294: val/challenge_metric : 0.6352
 --------------------------------------------------
 2021-11-23 12:13:32,446 - TorchECG - INFO - early stopping is triggered at epoch 30
 2021-11-23 12:13:32,819 - TorchECG - INFO - best model is saved at /home/wenhao/Jupyter/wenhao/workspace/cinc2021/checkpoints/BestModel_ECG_CRNN_CINC2021_multi_scopic_epoch20_11-23_12-13_metric_0.65.pth.tar
+
+model configurations: {
+    "fs": 500,
+    "cnn": {
+        "multi_scopic": {
+            "fs": 500,
+            "groups": 1,
+            "scopes": [
+                [
+                    [
+                        1
+                    ],
+                    [
+                        1, 1
+                    ],
+                    [
+                        1, 1, 1
+                    ]
+                ],
+                [
+                    [
+                        2
+                    ],
+                    [
+                        2, 4
+                    ],
+                    [
+                        8, 8, 8
+                    ]
+                ],
+                [
+                    [
+                        4
+                    ],
+                    [
+                        4, 8
+                    ],
+                    [
+                        16, 32, 64
+                    ]
+                ]
+            ],
+            "filter_lengths": [
+                [
+                    11, 7, 5
+                ],
+                [
+                    11, 7, 5
+                ],
+                [
+                    11, 7, 5
+                ]
+            ],
+            "subsample_lengths": [
+                2, 2, 2
+            ],
+            "num_filters": [
+                [
+                    96, 192, 384
+                ],
+                [
+                    96, 192, 384
+                ],
+                [
+                    96, 192, 384
+                ]
+            ],
+            "dropouts": [
+                [
+                    0, 0.2, 0
+                ],
+                [
+                    0, 0.2, 0
+                ],
+                [
+                    0, 0.2, 0
+                ]
+            ],
+            "bias": True,
+            "kernel_initializer": "he_normal",
+            "kw_initializer": {},
+            "activation": "relu",
+            "kw_activation": {
+                "inplace": True
+            },
+            "block": {
+                "subsample_mode": "max",
+                "bias": True,
+                "kernel_initializer": "he_normal",
+                "kw_initializer": {},
+                "activation": "relu",
+                "kw_activation": {
+                    "inplace": True
+                },
+                "batch_norm": False,
+                "kw_bn": {}
+            }
+        }
+    },
+    "rnn": {},
+    "attn": {},
+    "global_pool": "max",
+    "clf": {
+        "out_channels": [],
+        "bias": True,
+        "dropouts": 0.0,
+        "activation": "mish"
+    }
+}
