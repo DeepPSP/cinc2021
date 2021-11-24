@@ -99,6 +99,8 @@ class CINC2021(Dataset):
         self.siglen = self.config.input_len
         self.lazy = lazy
 
+        self._indices = [Standard12Leads.index(l) for l in self.config.leads]
+
         self.records = self._train_test_split(config.train_ratio, force_recompute=False)
         # TODO: consider using `remove_spikes_naive` to treat these exceptional records
         self.records = [r for r in self.records if r not in self.reader.exceptional_records]
@@ -167,8 +169,8 @@ class CINC2021(Dataset):
         """
         values = self.reader.load_resampled_data(
             rec,
-            leads=self.config.leads,
-            # leads=Standard12Leads,
+            # leads=self.config.leads,
+            leads=Standard12Leads,
             data_format=self.config.data_format,
             siglen=None
         )
@@ -194,16 +196,14 @@ class CINC2021(Dataset):
     def to(self, leads:Sequence[str]) -> NoReturn:
         """
         """
-        prev_leads = self.config.leads
         self.config.leads = leads
-        indices = [prev_leads.index(l) for l in leads]
-        self._signals = self._signals[:, indices, :]
+        self._indices = [Standard12Leads.index(l) for l in leads]
 
     @property
     def signals(self) -> np.ndarray:
         """
         """
-        return self._signals
+        return self._signals[:, self._indices, :]
 
     @property
     def labels(self) -> np.ndarray:
@@ -214,7 +214,7 @@ class CINC2021(Dataset):
     def __getitem__(self, index:int) -> Tuple[np.ndarray, np.ndarray]:
         """ finished, checked,
         """
-        return self.signals[index], self.labels[index]
+        return self.signals[index, self._indices, ...], self.labels[index]
 
     def __len__(self) -> int:
         """
@@ -453,8 +453,8 @@ class FastDataReader(Dataset):
         rec = self.records[index]
         values = self.reader.load_resampled_data(
             rec,
-            leads=self.config.leads,
-            # leads=Standard12Leads,
+            # leads=self.config.leads,
+            leads=Standard12Leads,
             data_format=self.config.data_format,
             siglen=None
         )

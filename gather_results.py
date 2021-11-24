@@ -23,14 +23,18 @@ from dataset import CINC2021
 from cfg import BaseCfg
 
 
-__all__ = ["gather_from_checkpoint", "plot_confusion_matrix"]
+__all__ = [
+    "gather_from_checkpoint",
+    "plot_confusion_matrix",
+    "append_model_config_if_needed",
+]
 
 
 def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
                           normalize:bool=False,
                           title:Optional[str]=None,
                           cmap:mpl.colors.Colormap=plt.cm.Blues,
-                          fmt:str="svg") -> Any:
+                          fmt:str="svg",) -> Any:
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
@@ -79,7 +83,7 @@ def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
     fig.tight_layout()
     # plt.show()
     plt.savefig(os.path.join(BaseCfg.log_dir, save_name), format=fmt, dpi=1200, bbox_inches="tight")
-    
+
     return ax
 
 
@@ -102,7 +106,7 @@ def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=N
         drop_last=False,
         collate_fn=collate_fn,
     )
-    
+
     all_scalar_preds = []
     all_bin_preds = []
     all_labels = []
@@ -127,10 +131,10 @@ def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=N
     all_bin_preds = np.concatenate(all_bin_preds, axis=0)
     all_labels = np.concatenate(all_labels, axis=0)
     classes = dl.dataset.all_classes
-    
+
     print(f"evaluation used {time.time()-start:.2f} seconds")
     print("start computing the confusion matrix from the binary predictions")
-    
+
     cm_bin = np.zeros((len(classes),len(classes)), dtype="int")
     for idx in range(all_labels.shape[0]):
         lb = set(all_labels[idx].nonzero()[0].tolist())
@@ -166,7 +170,7 @@ def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=N
         cm_scalar_mean[idx,...] = v
     for idx, v in scalar_std.items():
         cm_scalar_std[idx,...] = v
-    
+
     title = f"""Mean Scalar Prediction Matrix - {ckpt["train_config"]["cnn_name"].replace("_", "-")}"""
     if len(ckpt["train_config"]["special_classes"]) == 0:
         title += " - NCR"
@@ -186,7 +190,6 @@ def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=N
         title=title,
         fmt=fmt,
     )        
-
 
 
 def append_model_config_if_needed() -> NoReturn:
