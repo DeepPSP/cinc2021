@@ -17864,3 +17864,145 @@ Epoch 44 / Step 48330: val/challenge_metric : 0.6471
 --------------------------------------------------
 2021-11-24 14:27:21,339 - TorchECG - INFO - early stopping is triggered at epoch 44
 2021-11-24 14:27:21,773 - TorchECG - INFO - best model is saved at /home/wenhao/Jupyter/wenhao/workspace/cinc2021/checkpoints/BestModel_ECG_CRNN_CINC2021_tresnetP_epoch34_11-24_14-27_metric_0.66.pth.tar
+
+model configurations: {
+    "fs": 500,
+    "cnn": {
+        "tresnetP": {
+            "fs": 500,
+            "subsample_lengths": [
+                1, 2, 2, 2
+            ],
+            "filter_lengths": 17,
+            "groups": 1,
+            "increase_channels_method": "conv",
+            "stem": {
+                "subsample_mode": "s2d",
+                "num_filters": 56,
+                "filter_lengths": 1,
+                "conv_stride": 1,
+                "pool_size": 1,
+                "pool_stride": 1
+            },
+            "kernel_initializer": "he_normal",
+            "kw_initializer": {},
+            "activation": "leaky",
+            "kw_activation": {
+                "inplace": True
+            },
+            "bias": False,
+            "building_block": [
+                "basic",
+                "basic",
+                "bottleneck",
+                "bottleneck"
+            ],
+            "block": [
+                {
+                    "increase_channels_method": "conv",
+                    "subsample_mode": "blur",
+                    "kernel_initializer": "he_normal",
+                    "kw_initializer": {},
+                    "activation": "leaky",
+                    "kw_activation": {
+                        "inplace": True
+                    },
+                    "bias": False,
+                    "attn": {
+                        "reduction": 8,
+                        "activation": "relu",
+                        "kw_activation": {
+                            "inplace": True
+                        },
+                        "bias": True,
+                        "kernel_initializer": "he_normal",
+                        "name": "se",
+                        "pos": -1
+                    },
+                    "reduction": 4,
+                    "filt_size": 7,
+                    "conv_type": "aa"
+                },
+                {
+                    "increase_channels_method": "conv",
+                    "subsample_mode": "blur",
+                    "kernel_initializer": "he_normal",
+                    "kw_initializer": {},
+                    "activation": "leaky",
+                    "kw_activation": {
+                        "inplace": True
+                    },
+                    "bias": False,
+                    "attn": {
+                        "reduction": 8,
+                        "activation": "relu",
+                        "kw_activation": {
+                            "inplace": True
+                        },
+                        "bias": True,
+                        "kernel_initializer": "he_normal",
+                        "name": "se",
+                        "pos": -1
+                    },
+                    "reduction": 4,
+                    "filt_size": 7,
+                    "conv_type": "aa"
+                },
+                {
+                    "expansion": 4,
+                    "increase_channels_method": "conv",
+                    "subsample_mode": "blur",
+                    "subsample_at": 1,
+                    "kernel_initializer": "he_normal",
+                    "kw_initializer": {},
+                    "activation": "leaky",
+                    "kw_activation": {
+                        "inplace": True
+                    },
+                    "bias": False,
+                    "attn": {
+                        "reduction": 8,
+                        "activation": "relu",
+                        "kw_activation": {
+                            "inplace": True
+                        },
+                        "bias": True,
+                        "kernel_initializer": "he_normal",
+                        "name": "se",
+                        "pos": -1
+                    },
+                    "pos": 2,
+                    "filt_size": 7,
+                    "conv_type": "aa"
+                },
+                {
+                    "expansion": 4,
+                    "increase_channels_method": "conv",
+                    "subsample_mode": "blur",
+                    "subsample_at": 1,
+                    "kernel_initializer": "he_normal",
+                    "kw_initializer": {},
+                    "activation": "leaky",
+                    "kw_activation": {
+                        "inplace": True
+                    },
+                    "bias": False,
+                    "filt_size": 7,
+                    "conv_type": "aa"
+                }
+            ],
+            "num_blocks": [
+                1, 1, 1, 1
+            ]
+        }
+    },
+    "rnn": {},
+    "attn": {},
+    "global_pool": "max",
+    "clf": {
+        "out_channels": [],
+        "bias": True,
+        "dropouts": 0.0,
+        "activation": "mish"
+    }
+}
