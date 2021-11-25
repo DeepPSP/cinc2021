@@ -55,7 +55,7 @@ class CINC2021(Dataset):
     """
     """
     __DEBUG__ = False
-    __name__ = "CPSC2021"
+    __name__ = "CINC2021"
 
     def __init__(self, config:ED, training:bool=True, lazy:bool=True) -> NoReturn:
         """ finished, checked,
@@ -200,6 +200,32 @@ class CINC2021(Dataset):
         self.config.leads = leads
         self._indices = [prev_leads.index(l) for l in leads]
         self._signals = self._signals[:, self._indices, :]
+
+    def emtpy(self, leads:Optional[Sequence[str]]=None) -> NoReturn:
+        """
+        """
+        if leads is None:
+            leads = self.config.leads
+        else:
+            self.config.leads = leads
+        self._signals = np.array([], dtype=self.dtype).reshape(0, len(leads), self.siglen)
+
+    @classmethod
+    def from_extern(cls, ext_ds:"CINC2021", config:ED) -> "CINC2021":
+        """
+        """
+        new_ds = cls(config, ext_ds.training, lazy=True)
+        indices = [ext_ds.config.leads.index(l) for l in new_ds.config.leads]
+        new_ds._signals = ext_ds._signals[:, indices, :]
+        new_ds._labels = ext_ds._labels.copy()
+        return new_ds
+
+    def reload_from_extern(self, ext_ds:"CINC2021") -> NoReturn:
+        """
+        """
+        indices = [ext_ds.config.leads.index(l) for l in self.config.leads]
+        self._signals = ext_ds._signals[:, indices, :]
+        self._labels = ext_ds._labels.copy()
 
     @property
     def signals(self) -> np.ndarray:

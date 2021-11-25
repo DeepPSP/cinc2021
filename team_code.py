@@ -134,8 +134,8 @@ def training_code(data_directory, model_directory):
 
     start_time = time.time()
 
-    ds_train = CINC2021(_TrainCfg, training=True, lazy=False)
-    ds_val = CINC2021(_TrainCfg, training=False, lazy=False)
+    ds_train_cache = CINC2021(_TrainCfg, training=True, lazy=False)
+    ds_val_cache = CINC2021(_TrainCfg, training=False, lazy=False)
 
     # Train 12-lead ECG model.
     print("Training 12-lead ECG model...")
@@ -148,7 +148,7 @@ def training_code(data_directory, model_directory):
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    training_n_leads(train_config, model_config)
+    training_n_leads(train_config, model_config, ds_train_cache, ds_val_cache)
 
 
     # Train 6-lead ECG model.
@@ -162,7 +162,12 @@ def training_code(data_directory, model_directory):
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    training_n_leads(train_config, model_config)
+    ds_train = CINC2021.from_extern(ds_train_cache, train_config)
+    ds_val = CINC2021.from_extern(ds_val_cache, train_config)
+
+    training_n_leads(train_config, model_config, ds_train, ds_val)
+
+    del ds_train, ds_val
 
 
     # Train 4-lead ECG model.
@@ -177,7 +182,12 @@ def training_code(data_directory, model_directory):
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    training_n_leads(train_config, model_config)
+    ds_train = CINC2021.from_extern(ds_train_cache, train_config)
+    ds_val = CINC2021.from_extern(ds_val_cache, train_config)
+
+    training_n_leads(train_config, model_config, ds_train, ds_val)
+
+    del ds_train, ds_val
     
 
     # Train 3-lead ECG model.
@@ -192,7 +202,12 @@ def training_code(data_directory, model_directory):
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    training_n_leads(train_config, model_config)
+    ds_train = CINC2021.from_extern(ds_train_cache, train_config)
+    ds_val = CINC2021.from_extern(ds_val_cache, train_config)
+
+    training_n_leads(train_config, model_config, ds_train, ds_val)
+
+    del ds_train, ds_val
     
 
     # Train 2-lead ECG model.
@@ -207,7 +222,12 @@ def training_code(data_directory, model_directory):
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
 
-    training_n_leads(train_config, model_config)
+    ds_train = CINC2021.from_extern(ds_train_cache, train_config)
+    ds_val = CINC2021.from_extern(ds_val_cache, train_config)
+
+    training_n_leads(train_config, model_config, ds_train, ds_val)
+
+    del ds_train, ds_val, ds_train_cache, ds_val_cache
 
     print(f"Training finishes! Total time usage is {((time.time() - start_time) / 3600):.3f} hours.")
 
