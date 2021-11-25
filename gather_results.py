@@ -10,6 +10,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
+from torch.nn.parallel import DistributedDataParallel as DDP, DataParallel as DP
 try:
     from tqdm.auto import tqdm
 except ModuleNotFoundError:
@@ -62,7 +63,7 @@ def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
            yticks=np.arange(cm.shape[0]),
            xticklabels=classes, yticklabels=classes,
         )
-    ax.set_title(title, fontsize=24)
+    # ax.set_title(title, fontsize=24)
     ax.set_xlabel("Label",fontsize=18)
     ax.set_ylabel("Predicted",fontsize=18)
     ax.tick_params(axis = "both", which = "major", labelsize = 13)
@@ -93,6 +94,13 @@ def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=N
     """
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model, train_config = ECG_CRNN_CINC2021.from_checkpoint(path, device=device)
+    if torch.cuda.device_count() > 1:
+        model = DP(model)
+        # model = DDP(model)
+        _model = model.module
+    else:
+        _model = model
+    model.to(device=device)
     model.eval()
     print(f"model loaded from {path}")
     if dataset is None:
@@ -113,19 +121,19 @@ def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=N
 
     start = time.time()
     print(f"start evaluating the model on the train-validation set...")
-    # with tqdm(dl) as pbar:
-    # for idx, (signals, labels) in enumerate(dl):
-    for signals, labels in dl:
-        signals = signals.to(device=device)
-        labels = labels.numpy()
-        all_labels.append(labels)
+    with tqdm(total=len(dataset), unit="signals") as pbar:
+        for step, (signals, labels) in enumerate(dl):
+            signals = signals.to(device=device)
+            labels = labels.numpy()
+            all_labels.append(labels)
 
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-        preds, bin_preds = model.inference(signals)
-        all_scalar_preds.append(preds)
-        all_bin_preds.append(bin_preds)
-        # print(f"{idx+1}/{len(dl)}", end="\r")
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+            preds, bin_preds = _model.inference(signals)
+            all_scalar_preds.append(preds)
+            all_bin_preds.append(bin_preds)
+            # print(f"{step+1}/{len(dl)}", end="\r")
+            pbar.update(signals.shape[0])
 
     all_scalar_preds = np.concatenate(all_scalar_preds, axis=0)
     all_bin_preds = np.concatenate(all_bin_preds, axis=0)
@@ -145,8 +153,8 @@ def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=N
             for j in lb:
                 cm_bin[j,i] += 1
         print(f"{idx+1} / {len(all_labels)}", end="\r")
-    title = f"""Confusion Matrix - {ckpt["train_config"]["cnn_name"].replace("_", "-")}"""
-    if len(ckpt["train_config"]["special_classes"]) == 0:
+    title = f"""Confusion Matrix - {train_config["cnn_name"].replace("_", "-")}"""
+    if len(train_config["special_classes"]) == 0:
         title += " - NCR"
     plot_confusion_matrix(
         cm=cm_bin,
@@ -171,8 +179,8 @@ def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=N
     for idx, v in scalar_std.items():
         cm_scalar_std[idx,...] = v
 
-    title = f"""Mean Scalar Prediction Matrix - {ckpt["train_config"]["cnn_name"].replace("_", "-")}"""
-    if len(ckpt["train_config"]["special_classes"]) == 0:
+    title = f"""Mean Scalar Prediction Matrix - {train_config["cnn_name"].replace("_", "-")}"""
+    if len(train_config["special_classes"]) == 0:
         title += " - NCR"
     plot_confusion_matrix(
         cm=cm_scalar_mean,
@@ -181,8 +189,8 @@ def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=N
         fmt=fmt,
     )
 
-    title = f"""STD Scalar Prediction Matrix - {ckpt["train_config"]["cnn_name"].replace("_", "-")}"""
-    if len(ckpt["train_config"]["special_classes"]) == 0:
+    title = f"""STD Scalar Prediction Matrix - {train_config["cnn_name"].replace("_", "-")}"""
+    if len(train_config["special_classes"]) == 0:
         title += " - NCR"
     plot_confusion_matrix(
         cm=cm_scalar_std,
