@@ -23,7 +23,7 @@ __all__ = [
 class ECG_CRNN_CINC2021(ECG_CRNN):
     """
     """
-    __DEBUG__ = True
+    __DEBUG__ = False
     __name__ = "ECG_CRNN_CINC2021"
 
     def __init__(self, classes:Sequence[str], n_leads:int, config:Optional[ED]=None) -> NoReturn:

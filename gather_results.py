@@ -226,7 +226,7 @@ def test_inference_speed(path:str, dataset:Optional[CINC2021]=None) -> int:
     )
 
     start = time.time()
-    print(f"start evaluating the model on the train-validation set...")
+    print(f"start evaluating the model...")
     with tqdm(total=len(dataset), unit="signals") as pbar:
         for step, (signals, labels) in enumerate(dl):
             signals = signals.to(device=device)
@@ -239,7 +239,6 @@ def test_inference_speed(path:str, dataset:Optional[CINC2021]=None) -> int:
     speed = round(len(dataset) / (time.time()-start))
 
     print(f"evaluation used {time.time()-start:.2f} seconds")
-    print("start computing the confusion matrix from the binary predictions")
 
     del model
     torch.cuda.empty_cache()
