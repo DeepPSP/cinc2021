@@ -28,7 +28,11 @@ __all__ = [
     "gather_from_checkpoint",
     "plot_confusion_matrix",
     "append_model_config_if_needed",
+    "test_inference_speed",
 ]
+
+
+ECG_CRNN_CINC2021.__DEBUG__ = False
 
 
 def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
@@ -197,7 +201,50 @@ def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=N
         classes=classes,
         title=title,
         fmt=fmt,
-    )        
+    )
+
+
+@torch.no_grad()
+def test_inference_speed(path:str, dataset:Optional[CINC2021]=None) -> int:
+    """
+    """
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    model, train_config = ECG_CRNN_CINC2021.from_checkpoint(path, device=device)
+    model.to(device=device)
+    model.eval()
+    print(f"model loaded from {path}")
+    if dataset is None:
+        dataset = CINC2021(train_config, training=False, lazy=False)
+    dl =  DataLoader(
+        dataset=dataset,
+        batch_size=64,
+        shuffle=False,
+        num_workers=4,
+        pin_memory=True,
+        drop_last=False,
+        collate_fn=collate_fn,
+    )
+
+    start = time.time()
+    print(f"start evaluating the model on the train-validation set...")
+    with tqdm(total=len(dataset), unit="signals") as pbar:
+        for step, (signals, labels) in enumerate(dl):
+            signals = signals.to(device=device)
+
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+            _ = model(signals)
+            pbar.update(signals.shape[0])
+
+    speed = round(len(dataset) / (time.time()-start))
+
+    print(f"evaluation used {time.time()-start:.2f} seconds")
+    print("start computing the confusion matrix from the binary predictions")
+
+    del model
+    torch.cuda.empty_cache()
+
+    return speed
 
 
 def append_model_config_if_needed() -> NoReturn:
