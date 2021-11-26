@@ -122,7 +122,9 @@ def training_code(data_directory, model_directory):
     train_config.model_dir = model_directory
     train_config.debug = False
 
-    train_config.cnn_name = "multi_scopic"
+    train_config.cnn_name = "resnet_nature_comm_bottle_neck_se"
+    train_config.rnn_name = "lstm"  # "none", "lstm"
+    train_config.attn_name = "se"  # "none", "se", "gc", "nl"
     train_config.n_epochs = 35
     train_config.batch_size = 24  # training 12-lead model sometimes requires GPU memory more than 16G (Tesla T4)
 

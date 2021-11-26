@@ -177,11 +177,12 @@ TrainCfg.bandpass = ED(
 )
 
 # configs of data aumentation
-TrainCfg.label_smoothing = ED(
-    prob=0.8,
-    smoothing=0.1,
-)
-TrainCfg.random_mask = False
+# TrainCfg.label_smooth = ED(
+#     prob=0.8,
+#     smoothing=0.1,
+# )
+TrainCfg.label_smooth = False
+TrainCfg.random_masking = False
 TrainCfg.stretch_compress = False  # stretch or compress in time axis
 TrainCfg.mixup = ED(
     prob=0.6,
@@ -229,9 +230,9 @@ TrainCfg.log_step = 20
 TrainCfg.eval_every = 20
 
 # configs of model selection
-# "resnet_leadwise", "multi_scopic_leadwise", "vgg16", "resnet", "vgg16_leadwise", "cpsc", "cpsc_leadwise"
-TrainCfg.cnn_name = "resnet_nature_comm_se"
-TrainCfg.rnn_name = "none"  # "none", "lstm"
+# "resnet_nature_comm_se", "multi_scopic_leadwise", "vgg16", "vgg16_leadwise",
+TrainCfg.cnn_name = "resnet_nature_comm_bottle_neck_se"
+TrainCfg.rnn_name = "lstm"  # "none", "lstm"
 TrainCfg.attn_name = "se"  # "none", "se", "gc", "nl"
 
 # configs of inputs and outputs
@@ -292,6 +293,13 @@ for l in ["twelve_leads", "six_leads", "four_leads", "three_leads", "two_leads"]
     ModelCfg[l].cnn.name = ModelCfg.cnn_name
     ModelCfg[l].rnn.name = ModelCfg.rnn_name
     ModelCfg[l].attn.name = ModelCfg.attn_name
+    # ModelCfg[l].clf = ED()
+    # ModelCfg[l].clf.out_channels = [
+    # # not including the last linear layer, whose out channels equals n_classes
+    # ]
+    # ModelCfg[l].clf.bias = True
+    # ModelCfg[l].clf.dropouts = 0.0
+    # ModelCfg[l].clf.activation = "mish"  # for a single layer `SeqLin`, activation is ignored
 
 
 # the no special classes version
