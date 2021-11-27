@@ -27,8 +27,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set_theme(style="darkgrid")
 
-plt.rcParams['xtick.labelsize']=16
-plt.rcParams['ytick.labelsize']=16
+plt.rcParams['xtick.labelsize']=28
+plt.rcParams['ytick.labelsize']=28
+plt.rcParams['axes.labelsize']=40
+plt.rcParams['legend.fontsize']=24
 
 from utils.misc import read_log_txt, read_event_scalars
 from torch_ecg.benchmarks.database_reader.database_reader.utils.utils_signal import MovingAverage
@@ -39,35 +41,71 @@ ml_12 = read_event_scalars("./results/20210714-12leads/events.out.tfevents.16261
 ml_12_ncr = read_event_scalars("./results/20210827-12leads/events.out.tfevents.1630045554.Precision-7920-TowerOPT_ECG_CRNN_CINC2021_multi_scopic_leadwise_adamw_amsgrad_LR_0.001_BS_64_tranche_all")
 
 fig, ax = plt.subplots(figsize=(16,12))
-ax.plot(ml_12["train/loss"].step, MovingAverage(ml_12["train/loss"].value)._ema(), label="train-loss", color=default_color_cycle[0])
-ax.plot(ml_12_ncr["train/loss"].step, MovingAverage(ml_12_ncr["train/loss"].value)._ema(), label="train-loss-ncr", color=default_color_cycle[1])
-ax.text(ml_12["train/loss"].step.values[-1]-2000, ml_12["train/loss"].value.values[-1]-0.09, "train-loss", c=default_color_cycle[0], fontsize=16)
-ax.text(ml_12_ncr["train/loss"].step.values[-1]-3500, ml_12_ncr["train/loss"].value.values[-1]-0.025, "train-loss-ncr", c=default_color_cycle[1], fontsize=16)
+ax.plot(
+    ml_12["train/loss"].step,
+    MovingAverage(ml_12["train/loss"].value)._ema(),
+    label="train-loss", color=default_color_cycle[0],
+)
+ax.plot(
+    ml_12_ncr["train/loss"].step,
+    MovingAverage(ml_12_ncr["train/loss"].value)._ema(),
+    label="train-loss-ncr", color=default_color_cycle[1],
+)
+ax.text(
+    ml_12["train/loss"].step.values[-1]-2000,
+    ml_12["train/loss"].value.values[-1]-0.09,
+    "train-loss", c=default_color_cycle[0], fontsize=24,
+)
+ax.text(
+    ml_12_ncr["train/loss"].step.values[-1]-3800,
+    ml_12_ncr["train/loss"].value.values[-1]-0.025,
+    "train-loss-ncr", c=default_color_cycle[1], fontsize=24,
+)
 ax.set_ylim(0.2,1.2)
-ax.set_xlabel("Steps (n.u.)",fontsize=22)
-ax.set_ylabel("Loss (n.u.)",fontsize=22)
+ax.set_xlabel("Steps (n.u.)")
+ax.set_ylabel("Loss (n.u.)")
 ax2 = ax.twinx()
-ax2.plot(ml_12["train/challenge_metric"].step, ml_12["train/challenge_metric"].value, marker="x", markersize=8, label="train-cm", linestyle="solid", color=default_color_cycle[2])
-ax2.plot(ml_12_ncr["train/challenge_metric"].step, ml_12_ncr["train/challenge_metric"].value, marker="x", markersize=8, label="train-cm-ncr", linestyle="dashed", color=default_color_cycle[3])
-ax2.plot(ml_12["test/challenge_metric"].step, ml_12["test/challenge_metric"].value, marker="x", markersize=8, label="val-cm", linestyle="dotted", color=default_color_cycle[4])
-ax2.plot(ml_12_ncr["test/challenge_metric"].step, ml_12_ncr["test/challenge_metric"].value, marker="x", markersize=8, label="val-cm-ncr", linestyle="dashdot", color=default_color_cycle[5])
+ax2.plot(
+    ml_12["train/challenge_metric"].step,
+    ml_12["train/challenge_metric"].value,
+    marker="x", markersize=9, label="train-cm",
+    linestyle="solid", color=default_color_cycle[2],
+)
+ax2.plot(
+    ml_12_ncr["train/challenge_metric"].step,
+    ml_12_ncr["train/challenge_metric"].value,
+    marker="x", markersize=9, label="train-cm-ncr",
+    linestyle="dashed", color=default_color_cycle[3],
+)
+ax2.plot(
+    ml_12["test/challenge_metric"].step,
+    ml_12["test/challenge_metric"].value,
+    marker="x", markersize=9, label="val-cm",
+    linestyle="dotted", color=default_color_cycle[4],
+)
+ax2.plot(
+    ml_12_ncr["test/challenge_metric"].step,
+    ml_12_ncr["test/challenge_metric"].value,
+    marker="x", markersize=9, label="val-cm-ncr",
+    linestyle="dashdot", color=default_color_cycle[5],
+)
 ax2.set_ylim(0.35,0.9)
-ax2.set_ylabel("Challenge Metric (n.u.)",fontsize=22)
-ax2.legend(loc="best", fontsize=20)
+ax2.set_ylabel("Challenge Metric (n.u.)")
+ax2.legend(loc="best")
 rect_x = ml_12["test/challenge_metric"].step.values[-10]-200
 rect_y = ml_12["test/challenge_metric"].value.values[-10:].min()-0.012
 rect_width = ml_12["test/challenge_metric"].step.values[-1] - rect_x + 500
 rect_height = ml_12["test/challenge_metric"].value.values[-10:].max() - rect_y + 0.016
 rect = patches.Rectangle((rect_x, rect_y), rect_width, rect_height, facecolor="r",alpha=0.3)
 ax2.add_patch(rect)
-ax2.text(rect_x+rect_width-1000, rect_y+rect_height-0.014, "early stopping", fontsize=16, c="r")
+ax2.text(rect_x+rect_width-1400, rect_y+rect_height-0.018, "early stopping", fontsize=24, c="r")
 rect_x = ml_12_ncr["test/challenge_metric"].step.values[-10]-200
 rect_y = ml_12_ncr["test/challenge_metric"].value.values[-10:].min()-0.012
 rect_width = ml_12_ncr["test/challenge_metric"].step.values[-1] - rect_x + 500
-rect_height = ml_12_ncr["test/challenge_metric"].value.values[-10:].max() - rect_y + 0.016
+rect_height = ml_12_ncr["test/challenge_metric"].value.values[-10:].max() - rect_y + 0.018
 rect_ncr = patches.Rectangle((rect_x, rect_y), rect_width, rect_height, linewidth=1, facecolor="r",alpha=0.3)
 ax2.add_patch(rect_ncr)
-ax2.text(rect_x+rect_width-5000, rect_y+rect_height-0.014, "early stopping", fontsize=16, c="r")
+ax2.text(rect_x+rect_width-5200, rect_y+rect_height-0.018, "early stopping", fontsize=24, c="r")
 
 fig.savefig("./images/train.svg", format="svg", dpi=1200, bbox_inches="tight")
 fig.savefig("./images/train.pdf", format="pdf", dpi=1200, bbox_inches="tight")
