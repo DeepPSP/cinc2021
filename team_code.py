@@ -127,7 +127,7 @@ def training_code(data_directory, model_directory):
     train_config.rnn_name = "lstm"  # "none", "lstm"
     train_config.attn_name = "se"  # "none", "se", "gc", "nl"
     train_config.n_epochs = 45
-    train_config.batch_size = 20  # training 12-lead model sometimes requires GPU memory more than 16G (Tesla T4)
+    train_config.batch_size = 16  # training 12-lead model sometimes requires GPU memory more than 16G (Tesla T4)
 
     tranches = train_config.tranches_for_training
     if tranches:
@@ -220,7 +220,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = two_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = _ModelFilename[2]
-    train_config.batch_size = 32
+    train_config.batch_size = 40
     model_config = deepcopy(_ModelCfg.two_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
