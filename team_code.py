@@ -374,11 +374,22 @@ def run_model(model, header, recording, verbose=0):
         dl_nsr_cid = None
 
     # dl_scores, dl_conclusions each of shape (1,n_classes)
-    dl_scores, dl_conclusions = model.inference(
-        dl_data,
-        class_names=False,
-        bin_pred_thr=0.5
-    )
+    try:
+        dl_scores, dl_conclusions = model.inference(
+            dl_data,
+            class_names=False,
+            bin_pred_thr=0.5
+        )
+    except Exception as e:
+        # in case of errors, set the prediction to "NSR"
+        dl_scores = np.zeros(shape=(1, len(_ModelCfg.dl_classes)), dtype=float)
+        dl_conclusions = np.zeros(shape=(1, len(_ModelCfg.dl_classes)), dtype=int)
+        if dl_nsr_cid is not None:
+            ind = dl_nsr_cid
+        else:
+            ind = np.random.randint(0, len(_ModelCfg.dl_classes))
+        dl_scores[0, ind] = 1
+        dl_conclusions[0, ind] = 1
     dl_scores = dl_scores[0]
     dl_conclusions = dl_conclusions[0]
 
