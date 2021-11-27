@@ -36,8 +36,11 @@ from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
 from easydict import EasyDict as ED
 
-from torch_ecg.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
-from torch_ecg.torch_ecg.utils.trainer import BaseTrainer
+# from torch_ecg.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
+# from torch_ecg.torch_ecg.utils.trainer import BaseTrainer
+from torch_ecg_bak.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
+from torch_ecg_bak.torch_ecg.utils.trainer import BaseTrainer
+
 from model import ECG_CRNN_CINC2021
 from utils.scoring_metrics import evaluate_scores
 from cfg import BaseCfg, TrainCfg, ModelCfg

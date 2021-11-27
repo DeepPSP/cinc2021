@@ -84,7 +84,7 @@ if __name__ == "__main__":
         from torch_ecg_bak.torch_ecg.models.ecg_crnn import ECG_CRNN
 
         # in train.py
-        from torch_ecg_bak.torch_ecg.models.loss import BCEWithLogitsWithClassWeightLoss, AssymmetricLoss
+        from torch_ecg_bak.torch_ecg.models.loss import BCEWithLogitsWithClassWeightLoss, AsymmetricLoss
         from torch_ecg_bak.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
         from torch_ecg_bak.torch_ecg.utils.misc import (
             init_logger, get_date_str, dict_to_str, str2bool,

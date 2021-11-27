@@ -10,8 +10,8 @@ from torch import nn
 from torch import Tensor
 from easydict import EasyDict as ED
 
-from torch_ecg.torch_ecg.models.ecg_crnn import ECG_CRNN
-# from torch_ecg_bak.torch_ecg.models.ecg_crnn import ECG_CRNN
+# from torch_ecg.torch_ecg.models.ecg_crnn import ECG_CRNN
+from torch_ecg_bak.torch_ecg.models.ecg_crnn import ECG_CRNN
 from cfg import ModelCfg
 
 

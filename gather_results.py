@@ -16,8 +16,10 @@ try:
 except ModuleNotFoundError:
     from tqdm import tqdm
 
-from torch_ecg.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
-from torch_ecg.torch_ecg.utils.misc import dict_to_str, get_record_list_recursive3
+# from torch_ecg.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
+# from torch_ecg.torch_ecg.utils.misc import dict_to_str, get_record_list_recursive3
+from torch_ecg_bak.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
+from torch_ecg_bak.torch_ecg.utils.misc import dict_to_str, get_record_list_recursive3
 
 from model import ECG_CRNN_CINC2021
 from dataset import CINC2021

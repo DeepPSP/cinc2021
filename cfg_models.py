@@ -5,7 +5,8 @@ from itertools import repeat
 
 from easydict import EasyDict as ED
 
-from torch_ecg.torch_ecg.model_configs import (
+# from torch_ecg.torch_ecg.model_configs import (
+from torch_ecg_bak.torch_ecg.model_configs import (
     # cnn bankbone
     vgg_block_basic, vgg_block_mish, vgg_block_swish,
     vgg16, vgg16_leadwise,

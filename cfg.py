@@ -19,7 +19,8 @@ from utils.scoring_aux_data import (
 )
 from cfg_models import ModelArchCfg
 
-from torch_ecg.torch_ecg.utils.utils_nn import adjust_cnn_filter_lengths
+# from torch_ecg.torch_ecg.utils.utils_nn import adjust_cnn_filter_lengths
+from torch_ecg_bak.torch_ecg.utils.utils_nn import adjust_cnn_filter_lengths
 
 __all__ = [
     "BaseCfg",

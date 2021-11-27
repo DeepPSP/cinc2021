@@ -10,7 +10,8 @@ from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
 from easydict import EasyDict as ED
 
-from torch_ecg.torch_ecg.utils.nas import NAS
+# from torch_ecg.torch_ecg.utils.nas import NAS
+from torch_ecg_bak.torch_ecg.utils.nas import NAS
 
 from trainer import CINC2021Trainer
 from dataset import CINC2021

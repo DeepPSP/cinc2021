@@ -19,7 +19,8 @@ import torch
 from easydict import EasyDict as ED
 from scipy.signal import resample, resample_poly
 
-from torch_ecg.torch_ecg._preprocessors import PreprocManager
+# from torch_ecg.torch_ecg._preprocessors import PreprocManager
+from torch_ecg_bak.torch_ecg._preprocessors import PreprocManager
 
 from trainer import CINC2021Trainer
 from dataset import CINC2021

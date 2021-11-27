@@ -36,7 +36,8 @@ from utils.misc import dict_to_str, list_sum
 from signal_processing.ecg_denoise import remove_spikes_naive
 from cfg import Standard12Leads
 
-from torch_ecg.torch_ecg._preprocessors import PreprocManager
+# from torch_ecg.torch_ecg._preprocessors import PreprocManager
+from torch_ecg_bak.torch_ecg._preprocessors import PreprocManager
 
 
 if ModelCfg.torch_dtype.lower() == "double":
