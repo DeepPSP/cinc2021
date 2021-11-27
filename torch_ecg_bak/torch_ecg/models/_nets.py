@@ -36,17 +36,20 @@ __all__ = [
     "MultiConv", "BranchedConv",
     "SeparableConv",
     "DeformConv",
-    "DownSample",
+    "AntiAliasConv",
+    "DownSample", "BlurPool",
     "BidirectionalLSTM", "StackedLSTM",
     # "AML_Attention", "AML_GatedAttention",
     "AttentionWithContext",
     "MultiHeadAttention", "SelfAttention",
     "AttentivePooling",
-    "ZeroPadding",
+    "ZeroPadding", "ZeroPad1d",
     "SeqLin", "MLP",
     "NonLocalBlock", "SEBlock", "GlobalContextBlock",
     "CBAMBlock", "BAMBlock", "CoordAttention",
     "CRF", "ExtendedCRF",
+    "SpaceToDepth",
+    "make_attention_layer",
 ]
 
 
@@ -306,9 +309,13 @@ class Bn_Activation(nn.Sequential):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class Conv_Bn_Activation(nn.Sequential):
@@ -433,6 +440,12 @@ class Conv_Bn_Activation(nn.Sequential):
                 bias=self.__bias,
                 **kwargs
             )
+        elif self.__conv_type in ["anti_alias", "aa",]:
+            conv_layer = AntiAliasConv(
+                self.__in_channels, self.__out_channels,
+                self.__kernel_size, self.__stride, self.__padding, self.__dilation, self.__groups,
+                bias=self.__bias, **kwargs
+            )
         else:
             raise NotImplementedError(f"convolution of type {self.__conv_type} not implemented yet!")
         
@@ -545,15 +558,19 @@ class Conv_Bn_Activation(nn.Sequential):
                 padding=self.__padding,
                 channel_last=False,
             )
-        elif self.__conv_type == "separable":
+        elif self.__conv_type in ["separable", "anti_alias", "aa",]:
             output_shape = self.conv1d.compute_output_shape(seq_len, batch_size)
         return output_shape
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class MultiConv(nn.Sequential):
@@ -711,9 +728,13 @@ class MultiConv(nn.Sequential):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 # alias
 CBA = Conv_Bn_Activation
@@ -850,6 +871,18 @@ class BranchedConv(nn.Module):
                 filter(lambda p: p.requires_grad, self.branches[f"multi_conv_{idx}"].parameters())
             n_params += sum([np.prod(p.size()) for p in module_parameters])
         return n_params
+
+    @property
+    def module_size_(self) -> str:
+        n_params = self.module_size
+        n_params = n_params * {"float16":2, "float32":4, "float64":8}[dtype.lower()] / 1024
+        div_count = 0
+        while n_params >= 1024:
+            n_params /= 1024
+            div_count += 1
+        # cvt_dict = {0:"K", 1:"M", 2:"G", 3:"T", 4:"P"}
+        cvt_dict = {c:u for c,u in enumerate(list("KMGTP"))}
+        n_params = f"""{n_params:.1f}{cvt_dict[div_count]}"""
 
 
 class SeparableConv(nn.Sequential):
@@ -1009,9 +1042,13 @@ class SeparableConv(nn.Sequential):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class DeformConv(nn.Module):
@@ -1056,9 +1093,13 @@ class DeformConv(nn.Module):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class DownSample(nn.Sequential):
@@ -1080,7 +1121,8 @@ class DownSample(nn.Sequential):
                  groups:Optional[int]=None,
                  padding:int=0,
                  batch_norm:Union[bool,nn.Module]=False,
-                 mode:str="max") -> NoReturn:
+                 mode:str="max",
+                 **kwargs:Any) -> NoReturn:
         """ finished, checked,
 
         Parameters
@@ -1122,7 +1164,7 @@ class DownSample(nn.Sequential):
                     padding=self.__padding,
                 )
             else:
-                down_layer = nn.Sequential((
+                down_layer = nn.Sequential(
                     nn.MaxPool1d(
                         kernel_size=self.__kernel_size,
                         stride=self.__down_scale,
@@ -1132,7 +1174,7 @@ class DownSample(nn.Sequential):
                         self.__in_channels, self.__out_channels, 
                         kernel_size=1, groups=self.__groups, bias=False
                     ),
-                ))
+                )
         elif self.__mode == "avg":
             if self.__in_channels == self.__out_channels:
                 down_layer = nn.AvgPool1d(
@@ -1170,7 +1212,24 @@ class DownSample(nn.Sequential):
         elif self.__mode == "linear":
             raise NotImplementedError
         elif self.__mode == "blur":
-            raise NotImplementedError
+            if self.__in_channels == self.__out_channels:
+                down_layer = BlurPool(
+                    down_scale=self.__down_scale,
+                    in_channels=self.__in_channels,
+                    **kwargs,
+                )
+            else:
+                down_layer = nn.Sequential(
+                    BlurPool(
+                        down_scale=self.__down_scale,
+                        in_channels=self.__in_channels,
+                        **kwargs,
+                    ),
+                    nn.Conv1d(
+                        self.__in_channels,self.__out_channels,
+                        kernel_size=1, groups=self.__groups, bias=False,
+                    ),
+                )
         else:
             down_layer = None
         if down_layer:
@@ -1196,7 +1255,7 @@ class DownSample(nn.Sequential):
         input: Tensor,
             of shape (batch_size, n_channels, seq_len)
         """
-        if self.__mode in ["max", "avg", "conv",]:
+        if self.__mode in ["max", "avg", "conv", "blur",]:
             output = super().forward(input)
         else:
             # align_corners = False if mode in ["nearest", "area"] else True
@@ -1235,6 +1294,11 @@ class DownSample(nn.Sequential):
                 kernel_size=self.__kernel_size, stride=self.__down_scale,
                 padding=self.__padding,
             )[-1]
+        elif self.__mode == "blur":
+            if self.__in_channels == self.__out_channels:
+                out_seq_len = self.down_sample.compute_output_shape(seq_len, batch_size)[-1]
+            else:
+                out_seq_len = self.down_sample[0].compute_output_shape(seq_len, batch_size)[-1]
         elif self.__mode in ["avg", "nearest", "area", "linear",]:
             out_seq_len = compute_avgpool_output_shape(
                 input_shape=(batch_size, self.__in_channels, seq_len),
@@ -1246,19 +1310,45 @@ class DownSample(nn.Sequential):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
+
+
+class ZeroPad1d(nn.ConstantPad1d):
+    """Pads the input tensor boundaries with zero.
+    do NOT be confused with `ZeroPadding`, which pads along the channel dimension
+    """
+    __name__ = "ZeroPad1d"
+
+    def __init__(self, padding: Sequence[int]) -> NoReturn:
+        """
+
+        Parameters
+        ----------
+        padding: 2-sequence of int,
+            the padding to be applied to the input tensor
+        """
+        assert len(padding) == 2 and all([isinstance(i, int) for i in padding]), \
+            "padding must be a 2-sequence of int"
+        super().__init__(padding, 0.)
 
 
 class BlurPool(nn.Module):
     """
 
+    Blur Pooling, also named as AntiAliasDownsample
+
     References
     ----------
     1. Zhang, Richard. "Making convolutional networks shift-invariant again." International conference on machine learning. PMLR, 2019.
-    2. https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/layers/blur_pool.py
-    3. https://github.com/kornia/kornia/blob/master/kornia/filters/blur_pool.py
+    2. https://github.com/adobe/antialiased-cnns/blob/master/antialiased_cnns/blurpool.py
+    3. https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/layers/blur_pool.py
+    4. https://github.com/kornia/kornia/blob/master/kornia/filters/blur_pool.py
     """
     __DEBUG__ = True
     __name__ = "BlurPool"
@@ -1266,14 +1356,251 @@ class BlurPool(nn.Module):
     def __init__(self,
                  down_scale:int,
                  in_channels:int,
-                 filt_size:int=3,) -> NoReturn:
-        """ NOT finished, NOT checked,
+                 filt_size:int=3,
+                 pad_type:str="reflect",
+                 pad_off:int=0,
+                 **kwargs:Any) -> NoReturn:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        down_scale: int,
+            scale (in terms of stride) of down sampling
+        in_channels: int,
+            number of input channels
+        filt_size: int, default 3,
+            size (length) of the filter
+        pad_type: str, default "reflect",
+            type of padding, can be "reflect" or "replicate" or "zero"
+        pad_off: int, default 0,
+            padding offset
+        kwargs: keyword arguments,
         """
         super().__init__()
         self.__down_scale = down_scale
         self.__in_channels = in_channels
         self.__filt_size = filt_size
-        raise NotImplementedError
+        self.__pad_type = pad_type.lower()
+        self.__pad_off = pad_off
+        self.__pad_sizes = [int(1. * (filt_size - 1) / 2), int(np.ceil(1. * (filt_size - 1) / 2))]
+        self.__pad_sizes = [pad_size + pad_off for pad_size in self.__pad_sizes]
+        self.__off = int((self.__down_scale - 1) / 2.)
+        if(self.__filt_size == 1):
+            a = np.array([1., ])
+        elif(self.__filt_size == 2):
+            a = np.array([1., 1.])
+        elif(self.__filt_size == 3):
+            a = np.array([1., 2., 1.])
+        elif(self.__filt_size == 4):
+            a = np.array([1., 3., 3., 1.])
+        elif(self.__filt_size == 5):
+            a = np.array([1., 4., 6., 4., 1.])
+        elif(self.__filt_size == 6):
+            a = np.array([1., 5., 10., 10., 5., 1.])
+        elif(self.__filt_size == 7):
+            a = np.array([1., 6., 15., 20., 15., 6., 1.])
+
+        # saved and restored in the state_dict, but not trained by the optimizer
+        filt = Tensor(a)
+        filt = filt / torch.sum(filt)
+        self.register_buffer("filt", filt.unsqueeze(0).unsqueeze(0).repeat((self.__in_channels, 1, 1)))
+
+        self.pad = self._get_pad_layer()
+
+    def forward(self, input:Tensor) -> Tensor:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        input: Tensor,
+            of shape (batch_size, n_channels, seq_len)
+
+        Returns
+        -------
+        Tensor,
+            the blur-pooled output of the input tensor,
+            of shape (batch_size, n_channels, seq_len)
+        """
+        if self.__filt_size == 1:
+            if self.__pad_off == 0:
+                return input[..., ::self.__down_scale]
+            else:
+                return self.pad(input)[..., ::self.__down_scale]
+        else:
+            return F.conv1d(self.pad(input), self.filt, stride=self.__down_scale, groups=self.__in_channels)
+        
+    def _get_pad_layer(self) -> nn.Module:
+        """
+        get the padding layer by `self.__pad_type` and `self.__pad_sizes`
+        """
+        if(self.__pad_type in ["refl", "reflect",]):
+            PadLayer = nn.ReflectionPad1d
+        elif(pad_type in ["repl", "replicate",]):
+            PadLayer = nn.ReplicationPad1d
+        elif(pad_type == "zero"):
+            PadLayer = ZeroPad1d
+        else:
+            print(f"Pad type [{pad_type}] not recognized")
+        return PadLayer(self.__pad_sizes)
+
+    def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        seq_len: int,
+            length of the 1d sequence
+        batch_size: int, optional,
+            the batch size, can be None
+
+        Returns
+        -------
+        output_shape: sequence,
+            the output shape of this `DownSample` layer, given `seq_len` and `batch_size`
+        """
+        if self.__filt_size == 1:
+            if seq_len is None:
+                output_shape = (batch_size, self.__in_channels, None)
+            else:
+                output_shape = (
+                    batch_size,
+                    self.__in_channels,
+                    (np.sum(self.__pad_sizes) + seq_len - 1) // self.__down_scale + 1,
+                )
+            return output_shape
+        if seq_len is None:
+            padded_len = None
+        else:
+            padded_len = np.sum(self.__pad_sizes) + seq_len
+        kernel_size = self.filt.shape[-1]
+        output_shape = compute_conv_output_shape(
+            input_shape=(batch_size, self.__in_channels, padded_len),
+            num_filters=self.__in_channels,
+            kernel_size=kernel_size,
+            stride=self.__down_scale,
+        )
+        return output_shape
+
+    @property
+    def module_size(self) -> int:
+        return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
+
+    def extra_repr(self):
+        return "down_scale={}, in_channels={}, filt_size={}, pad_type={}, pad_off={},".format(
+            self.__down_scale, self.__in_channels, self.__filt_size, self.__pad_type, self.__pad_off
+        )
+
+
+class AntiAliasConv(nn.Sequential):
+    """
+    """
+    __DEBUG__ = False
+    __name__ = "AntiAliasConv"
+
+    def __init__(self,
+                 in_channels:int,
+                 out_channels:int,
+                 kernel_size:int,
+                 stride:int,
+                 padding:Optional[int]=None,
+                 dilation:int=1,
+                 groups:int=1,
+                 bias:bool=True,
+                 **kwargs:Any) -> NoReturn:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        in_channels: int,
+            number of channels in the input signal
+        out_channels: int,
+            number of channels produced by the convolution
+        kernel_size: int,
+            size (length) of the convolution kernel
+        stride: int,
+            stride (subsample length) of the convolution
+        padding: int, optional,
+            zero-padding added to both sides of the input
+        dilation: int, default 1,
+            spacing between the kernel points
+        groups: int, default 1,
+            connection pattern (of channels) of the inputs and outputs
+        bias: bool, default True,
+            if True, adds a learnable bias to the output
+        kwargs: keyword arguments
+        """
+        super().__init__()
+        self.__in_channels = in_channels
+        self.__out_channels = out_channels
+        self.__kernel_size = kernel_size
+        self.__stride = stride
+        self.__padding = dilation * (kernel_size - 1) // 2 if padding is None else padding
+        self.__dilation = dilation
+        self.__groups = groups
+        self.add_module(
+            "conv", 
+            nn.Conv1d(
+                self.__in_channels, self.__out_channels, self.__kernel_size,
+                stride=1,
+                padding=self.__padding,
+                dilation=self.__dilation,
+                groups=self.__groups,
+                bias=bias,
+            )
+        )
+        if self.__stride > 1:
+            self.add_module(
+                "aa",
+                BlurPool(
+                    self.__stride, self.__out_channels,
+                    **kwargs,
+                )
+            )
+
+    def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        seq_len: int,
+            length of the 1d sequence
+        batch_size: int, optional,
+            the batch size, can be None
+
+        Returns
+        -------
+        output_shape: sequence,
+            the output shape of this `DownSample` layer, given `seq_len` and `batch_size`
+        """
+        output_shape = compute_conv_output_shape(
+            input_shape=(batch_size, self.__in_channels, seq_len),
+            num_filters=self.__out_channels,
+            kernel_size=self.__kernel_size,
+            stride=1,
+            dilation=self.__dilation,
+            padding=self.__padding,
+            channel_last=False,
+        )
+        if self.__stride > 1:
+            output_shape = self.aa.compute_output_shape(output_shape[-1], batch_size)
+        return output_shape
+
+    @property
+    def module_size(self) -> int:
+        return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
+
 
 
 class BidirectionalLSTM(nn.Module):
@@ -1357,9 +1684,13 @@ class BidirectionalLSTM(nn.Module):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class StackedLSTM(nn.Sequential):
@@ -1498,9 +1829,13 @@ class StackedLSTM(nn.Sequential):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 # ---------------------------------------------
@@ -1705,9 +2040,13 @@ class AttentionWithContext(nn.Module):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class _ScaledDotProductAttention(nn.Module):
@@ -1855,9 +2194,13 @@ class MultiHeadAttention(nn.Module):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
     def extra_repr(self):
         return "in_features={}, head_num={}, bias={}, activation={}".format(
@@ -1938,9 +2281,13 @@ class SelfAttention(nn.Module):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class AttentivePooling(nn.Module):
@@ -2023,9 +2370,13 @@ class AttentivePooling(nn.Module):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class ZeroPadding(nn.Module):
@@ -2097,9 +2448,13 @@ class ZeroPadding(nn.Module):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class SeqLin(nn.Sequential):
@@ -2234,9 +2589,13 @@ class SeqLin(nn.Sequential):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class MLP(SeqLin):
@@ -2404,9 +2763,13 @@ class NonLocalBlock(nn.Module):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class SEBlock(nn.Module):
@@ -2503,9 +2866,13 @@ class SEBlock(nn.Module):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class GEBlock(nn.Module):
@@ -2574,7 +2941,8 @@ class GlobalContextBlock(nn.Module):
                  ratio:int,
                  reduction:bool=False,
                  pooling_type:str="attn",
-                 fusion_types:Sequence[str]=["add",]) -> NoReturn:
+                 fusion_types:Sequence[str]=["add",],
+                 **kwargs:Any) -> NoReturn:
         """ finished, checked,
 
         Parameters
@@ -2699,9 +3067,13 @@ class GlobalContextBlock(nn.Module):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class BAMBlock(nn.Module):
@@ -2941,9 +3313,13 @@ class CBAMBlock(nn.Module):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class CoordAttention(nn.Module):
@@ -3344,9 +3720,13 @@ class CRF(nn.Module):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class ExtendedCRF(nn.Sequential):
@@ -3437,6 +3817,149 @@ class ExtendedCRF(nn.Sequential):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
+
+
+class SpaceToDepth(nn.Module):
+    """
+
+    References
+    ----------
+    1. https://github.com/Alibaba-MIIL/TResNet/blob/master/src/models/tresnet_v2/layers/space_to_depth.py
+    """
+    __DEBUG__ = False
+    __name__ = "SpaceToDepth"
+
+    def __init__(self, in_channels:int, out_channels:int, block_size:int=4) -> NoReturn:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        in_channels: int,
+            number of channels in the input
+        out_channels: int,
+            number of channels in the output
+        block_size: int, default 4,
+            block size of converting from the space dim to depth dim
+        """
+        super().__init__()
+        self.__in_channels = in_channels
+        self.__out_channels = out_channels
+        self.bs = block_size
+        if self.__in_channels * self.bs != self.__out_channels:
+            self.out_conv = Conv_Bn_Activation(
+                in_channels=self.__in_channels * self.bs,
+                out_channels=self.__out_channels,
+                kernel_size=1,
+                stride=1,
+            )
+        else:
+            self.out_conv = None
+
+    def forward(self, x:Tensor) -> Tensor:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        x: Tensor,
+            of shape (batch, channel, seqlen)
+        
+        Returns
+        -------
+        Tensor,
+            of shape (batch, channel', seqlen//bs)
+        """
+        batch, channel, seqlen = x.shape
+        x = x.view(batch, channel, seqlen // self.bs, self.bs)
+        x = x.permute(0, 3, 1, 2).contiguous()
+        x = x.view(batch, channel * self.bs, seqlen // self.bs)
+        if self.out_conv is not None:
+            x = self.out_conv(x)
+        return x
+
+    def compute_output_shape(self, seq_len:Optional[int]=None, batch_size:Optional[int]=None) -> Sequence[Union[int, None]]:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        seq_len: int, optional,
+            length of the 1d sequence,
+            if is None, then the input is composed of single feature vectors for each batch
+        batch_size: int, optional,
+            the batch size, can be None
+
+        Returns
+        -------
+        tuple,
+            the output shape of this layer, given `seq_len` and `batch_size`
+        """
+        if seq_len is not None:
+            return (batch_size, self.__out_channels, seq_len // self.bs)
+        else:
+            return (batch_size, self.__out_channels, None)
+
+    @property
+    def module_size(self) -> int:
+        return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
+
+
+def make_attention_layer(in_channels:int, **config:dict) -> nn.Module:
+    """ finished, checked,
+
+    make attention layer by config
+
+    Parameters
+    ----------
+    in_channels: int,
+        number of channels in the input
+    config: dict,
+        config of the attention layer
+
+    Returns
+    -------
+    nn.Module,
+        the attention layer
+
+    Examples
+    --------
+    ```python
+    from torch_ecg.model_configs.attn import squeeze_excitation
+    from torch_ecg.models._nets import make_attention_layer
+    layer = make_attention_layer(in_channels=128, name="se", **squeeze_excitation)
+    ```
+    """
+    key = "name" if "name" in config else "type"
+    name = config[key].lower()
+    if name in ["se"]:
+        return SEBlock(in_channels, **config)
+    elif name in ["gc"]:
+        return GlobalContextBlock(in_channels, **config)
+    elif name in ["nl", "non-local", "nonlocal", "non_local"]:
+        return NonLocalBlock(in_channels, **config)
+    elif name in ["ca",]:
+        return CoordAttention(in_channels, **config)
+    elif name in ["sk",]:
+        return SKBlock(in_channels, **config)
+    elif name in ["ge",]:
+        return GEBlock(in_channels, **config)
+    elif name in ["cbam",]:
+        return CBAMBlock(in_channels, **config)
+    elif name in ["bam",]:
+        return BAMBlock(in_channels, **config)
+    else:
+        try:
+            return eval(f"""{config[key]}(in_channels, **config)""")
+        except:
+            raise ValueError(f"Unknown attention type: {config[key]}")

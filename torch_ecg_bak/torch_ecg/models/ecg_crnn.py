@@ -17,7 +17,7 @@ from torch import Tensor
 import torch.nn.functional as F
 from easydict import EasyDict as ED
 
-from ..cfg import Cfg
+from ..cfg import DEFAULTS
 from ..model_configs.ecg_crnn import ECG_CRNN_CONFIG
 from ..utils.utils_nn import compute_conv_output_shape, compute_module_size
 from ..utils.misc import dict_to_str
@@ -43,7 +43,7 @@ from .cnn.xception import Xception
 # )
 
 
-if Cfg.torch_dtype.lower() == "double":
+if DEFAULTS.torch_dtype.lower() == "double":
     torch.set_default_tensor_type(torch.DoubleTensor)
 
 
@@ -96,17 +96,17 @@ class ECG_CRNN(nn.Module):
         
         cnn_choice = self.config.cnn.name.lower()
         if "vgg16" in cnn_choice:
-            self.cnn = VGG16(self.n_leads, **(self.config.cnn[cnn_choice]))
+            self.cnn = VGG16(self.n_leads, **(self.config.cnn[self.config.cnn.name]))
             # rnn_input_size = self.config.cnn.vgg16.num_filters[-1]
         elif "resnet" in cnn_choice:
-            self.cnn = ResNet(self.n_leads, **(self.config.cnn[cnn_choice]))
+            self.cnn = ResNet(self.n_leads, **(self.config.cnn[self.config.cnn.name]))
             # rnn_input_size = \
             #     2**len(self.config.cnn[cnn_choice].num_blocks) * self.config.cnn[cnn_choice].init_num_filters
         elif "multi_scopic" in cnn_choice:
-            self.cnn = MultiScopicCNN(self.n_leads, **(self.config.cnn[cnn_choice]))
+            self.cnn = MultiScopicCNN(self.n_leads, **(self.config.cnn[self.config.cnn.name]))
             # rnn_input_size = self.cnn.compute_output_shape(None, None)[1]
         elif "densenet" in cnn_choice or "dense_net" in cnn_choice:
-            self.cnn = DenseNet(self.n_leads, **(self.config.cnn[cnn_choice]))
+            self.cnn = DenseNet(self.n_leads, **(self.config.cnn[self.config.cnn.name]))
         else:
             raise NotImplementedError(f"the CNN \042{cnn_choice}\042 not implemented yet")
         rnn_input_size = self.cnn.compute_output_shape(None, None)[1]
@@ -254,7 +254,7 @@ class ECG_CRNN(nn.Module):
             features = features.permute(2,0,1)
 
         # Attention (optional)
-        if self.attn is None and x.ndim == 3:
+        if self.attn is None and features.ndim == 3:
             # (seq_len, batch_size, channels) --> (batch_size, channels, seq_len)
             features = features.permute(1,2,0)
         elif self.config.attn.name.lower() in ["nl", "se", "gc"]:
@@ -319,9 +319,13 @@ class ECG_CRNN(nn.Module):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
     @staticmethod

@@ -1,51 +1,73 @@
 """
 """
 
-from typing import NoReturn, Sequence, Iterable
+from typing import NoReturn, Sequence, Iterable, Union, Any
+from numbers import Real
 
 import torch
 
+from ..utils.utils_signal_t import normalize as normalize_t
 
-__all__ = ["Normalize", "normalize",]
+
+__all__ = [
+    "Normalize",
+    "MinMaxNormalize",
+    "NaiveNormalize",
+    "ZScoreNormalize",
+]
 
 
 class Normalize(torch.nn.Module):
     """
-    perform normalization on `sig`, to make it has fixed mean and standard deviation,
-    or normalize `sig` using `mean` and `std` via (sig - mean) / std
+    perform z-score normalization on `sig`,
+    to make it has fixed mean and standard deviation,
+    or perform min-max normalization on `sig`,
+    or normalize `sig` using `mean` and `std` via (sig - mean) / std.
+    More precisely,
+
+        .. math::
+            \begin{align*}
+            \text{Min-Max normalization:} & \frac{sig - \min(sig)}{\max(sig) - \min(sig)} \\
+            \text{Naive normalization:} & \frac{sig - m}{s} \\
+            \text{Z-score normalization:} & \left(\frac{sig - mean(sig)}{std(sig)}\right) \cdot s + m
+            \end{align*}
     """
 
     def __init__(self,
+                 method:str="z-score",
                  mean:Union[Real,Iterable[Real]]=0.0,
                  std:Union[Real,Iterable[Real]]=1.0,
-                 per_channel:bool=True,
-                 fixed:bool=True,
-                 inplace:bool=False,
+                 per_channel:bool=False,
+                 inplace:bool=True,
                  **kwargs:Any) -> NoReturn:
         """ finished, checked,
 
         Parameters
         ----------
+        method: str, default "z-score",
+            normalization method, case insensitive, can be one of
+            "naive", "min-max", "z-score",
         mean: real number or array_like, default 0.0,
             mean value of the normalized signal,
-            or mean values for each lead of the normalized signal
+            or mean values for each lead of the normalized signal, if `method` is "z-score";
+            mean values to be subtracted from the original signal, if `method` is "naive";
+            useless if `method` is "min-max"
         std: real number or array_like, default 1.0,
             standard deviation of the normalized signal,
-            or standard deviations for each lead of the normalized signal
+            or standard deviations for each lead of the normalized signal, if `method` is "z-score";
+            std to be divided from the original signal, if `method` is "naive";
+            useless if `method` is "min-max"
         per_channel: bool, default False,
             if True, normalization will be done per channel
-        fixed: bool, default True,
-            if True, the normalized signal will have fixed mean (equals to `mean`)
-            and fixed standard deviation (equals to `std`),
-            otherwise, the signal will be normalized as (signal - mean) / std
-        inplace: bool, default False,
+        inplace: bool, default True,
             if True, normalization will be done inplace (on the signal)
         """
         super().__init__()
+        self.method = method.lower()
+        assert self.method in ["z-score", "naive", "min-max",]
         self.mean = mean
         self.std = std
         self.per_channel = per_channel
-        self.fixed = fixed
         self.inplace = inplace
 
     def forward(self, sig:torch.Tensor) -> torch.Tensor:
@@ -62,82 +84,98 @@ class Normalize(torch.nn.Module):
         sig: Tensor,
             the normalized Tensor ECG signal
         """
-        sig = normalize(
+        sig = normalize_t(
             sig=sig,
+            method=self.method,
             mean=self.mean, std=self.std,
-            per_channel=self.per_channel, fixed=self.fixed, inplace=self.inplace,
+            per_channel=self.per_channel, inplace=self.inplace,
         )
         return sig
 
 
-def normalize(sig:torch.Tensor,
-              mean:Union[Real,Iterable[Real]]=0.0,
-              std:Union[Real,Iterable[Real]]=1.0,
-              per_channel:bool=True,
-              fixed:bool=True,
-              inplace:bool=False) -> torch.Tensor:
-    """ finished, checked,
-    
-    perform normalization on `sig`, to make it has fixed mean and standard deviation,
-    or normalize `sig` using `mean` and `std` via (sig - mean) / std
-
-    Parameters
-    ----------
-    sig: Tensor,
-        signal to be normalized, assumed to have shape (..., n_leads, siglen)
-    mean: real number or array_like, default 0.0,
-        mean value of the normalized signal,
-        or mean values for each lead of the normalized signal
-    std: real number or array_like, default 1.0,
-        standard deviation of the normalized signal,
-        or standard deviations for each lead of the normalized signal
-    per_channel: bool, default False,
-        if True, normalization will be done per channel
-    fixed: bool, default True,
-        if True, the normalized signal will have fixed mean (equals to `mean`)
-        and fixed standard deviation (equals to `std`),
-        otherwise, the signal will be normalized as (sig - mean) / std
-    inplace: bool, default False,
-        if True, normalization will be done inplace (on `sig`)
-        
-    Returns
-    -------
-    sig: Tensor,
-        the normalized signal
-        
-    NOTE
-    ----
-    in cases where normalization is infeasible (std = 0),
-    only the mean value will be shifted
+class MinMaxNormalize(Normalize):
     """
-    if not inplace:
-        sig = sig.clone()
-    n_leads, siglen = sig.shape[-2:]
-    device = sig.device
-    dtype = sig.dtype
-    if not per_channel:
-        assert isinstance(mean, Real) and isinstance(std, Real), \
-            f"mean and std should be real numbers in the non per-channel setting"
-    if isinstance(std, Real):
-        assert std > 0, "standard deviation should be positive"
-        _std = torch.as_tensor([std for _ in range(n_leads)], dtype=dtype, device=device).view((n_leads,1))
-    else:
-        _std = torch.as_tensor(std, dtype=dtype, device=device).view((n_leads,1))
-        assert (_std > 0).all(), "standard deviations should all be positive"
-    if isinstance(mean, Real):
-        _mean = torch.as_tensor([mean for _ in range(n_leads)], dtype=dtype, device=device).view((n_leads,1))
-    else:
-        _mean = torch.as_tensor(mean, dtype=dtype, device=device).view((n_leads,1))
+    Min-Max normalization, defined as
 
-    eps = 1e-7  # to avoid dividing by zero
+        .. math::
+            \frac{sig - \min(sig)}{\max(sig) - \min(sig)}
+    """
+    __name__ = "MinMaxNormalize"
 
-    if fixed:
-        if not per_channel:
-            options = dict(dim=(-1,-2), keepdims=True)
-        else:
-            options = dict(dim=-1, keepdims=True)
-        ori_mean, ori_std = sig.mean(**options), sig.std(**options).add_(eps)
-        sig = sig.sub_(ori_mean).div_(ori_std).mul_(_std).add_(_mean)
-    else:
-        sig = sig.sub_(_mean).div_(_std)
-    return sig
+    def __init__(self, per_channel:bool=False,) -> NoReturn:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        per_channel: bool, default False,
+            if True, normalization will be done per channel
+        """
+        super().__init__(method="min-max", per_channel=per_channel)
+
+
+class NaiveNormalize(Normalize):
+    """
+    Naive normalization via
+
+        .. math::
+            \frac{sig - m}{s}
+    """
+    __name__ = "NaiveNormalize"
+
+    def __init__(self,
+                 mean:Union[Real,Iterable[Real]]=0.0,
+                 std:Union[Real,Iterable[Real]]=1.0,
+                 per_channel:bool=False,
+                 **kwargs:Any) -> NoReturn:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        mean: real number or array_like, default 0.0,
+            value(s) to be subtracted
+        std: real number or array_like, default 1.0,
+            value(s) to be divided
+        per_channel: bool, default False,
+            if True, normalization will be done per channel
+        """
+        super().__init__(
+            method="naive",
+            mean=mean,
+            std=std,
+            per_channel=per_channel,
+        )
+
+
+class ZScoreNormalize(Normalize):
+    """
+    Z-score normalization via
+
+        .. math::
+            \left(\frac{sig - mean(sig)}{std(sig)}\right) \cdot s + m
+    """
+    __name__ = "ZScoreNormalize"
+
+    def __init__(self,
+                 mean:Union[Real,Iterable[Real]]=0.0,
+                 std:Union[Real,Iterable[Real]]=1.0,
+                 per_channel:bool=False,
+                 **kwargs:Any) -> NoReturn:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        mean: real number or array_like, default 0.0,
+            mean value of the normalized signal,
+            or mean values for each lead of the normalized signal,
+        std: real number or array_like, default 1.0,
+            standard deviation of the normalized signal,
+            or standard deviations for each lead of the normalized signal,
+        per_channel: bool, default False,
+            if True, normalization will be done per channel
+        """
+        super().__init__(
+            method="z-score",
+            mean=mean,
+            std=std,
+            per_channel=per_channel,
+        )

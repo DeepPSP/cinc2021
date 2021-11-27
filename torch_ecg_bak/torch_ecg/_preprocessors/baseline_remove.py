@@ -3,7 +3,7 @@ use median filter to remove baseline,
 note that highpass filters also have the effect of baseline removal
 """
 
-from typing import NoReturn, Any
+from typing import NoReturn, Any, Tuple, List
 from numbers import Real
 import warnings
 
@@ -12,7 +12,6 @@ import numpy as np
 from .base import (
     PreProcessor,
     preprocess_multi_lead_signal,
-    preprocess_single_lead_signal,
 )
 
 
@@ -25,7 +24,7 @@ class BaselineRemove(PreProcessor):
     __name__ = "BaselineRemove"
 
     def __init__(self, window1:float=0.2, window2:float=0.6, **kwargs:Any) -> NoReturn:
-        """ finished, NOT checked,
+        """ finished, checked,
 
         Parameters
         ----------
@@ -40,8 +39,8 @@ class BaselineRemove(PreProcessor):
             self.window1, self.window2 = self.window2, self.window1
             warnings.warn("values of window1 and window2 are switched")
 
-    def apply(self, sig:np.ndarray, fs:Real) -> np.ndarray:
-        """ finished, NOT checked,
+    def apply(self, sig:np.ndarray, fs:Real) -> Tuple[np.ndarray, int]:
+        """ finished, checked,
 
         apply the preprocessor to `sig`
 
@@ -59,26 +58,19 @@ class BaselineRemove(PreProcessor):
         -------
         filtered_sig: ndarray,
             the median filtered (hence baseline removed) ECG signal
+        fs: int,
+            the sampling frequency of the filtered ECG signal
         """
-        self.__check_sig(sig)
-        if sig.ndim == 1:
-            filtered_sig = preprocess_single_lead_signal(
-                raw_sig=sig,
-                fs=fs,
-                bl_win=[self.window1, self.window2],
-            )
-        elif sig.ndim == 2:
-            filtered_sig = preprocess_multi_lead_signal(
-                raw_sig=sig,
-                fs=fs,
-                bl_win=[self.window1, self.window2],
-            )
-        elif sig.ndim == 3:
-            filtered_sig = np.zeros_like(sig)
-            for b in range(filtered_sig.shape[0]):
-                filtered_sig[b, ...] = preprocess_multi_lead_signal(
-                    raw_sig=sig[b, ...],
-                    fs=fs,
-                    bl_win=[self.window1, self.window2],
-                )
-        return filtered_sig
+        self._check_sig(sig)
+        filtered_sig = preprocess_multi_lead_signal(
+            raw_sig=sig,
+            fs=fs,
+            bl_win=[self.window1, self.window2],
+        )
+        return filtered_sig, fs
+
+    def extra_repr_keys(self) -> List[str]:
+        """
+        return the extra keys for `__repr__`
+        """
+        return ["window1", "window2"] + super().extra_repr_keys()

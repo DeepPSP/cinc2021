@@ -20,7 +20,7 @@ from torch import nn
 from torch import Tensor
 from easydict import EasyDict as ED
 
-from ...cfg import Cfg
+from ...cfg import DEFAULTS
 from ...utils.utils_nn import compute_module_size
 from ...utils.misc import dict_to_str
 from ...models._nets import (
@@ -30,7 +30,7 @@ from ...models._nets import (
 )
 
 
-if Cfg.torch_dtype.lower() == "double":
+if DEFAULTS.torch_dtype.lower() == "double":
     torch.set_default_tensor_type(torch.DoubleTensor)
 
 
@@ -217,9 +217,13 @@ class MobileNetSeparableConv(nn.Sequential):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class MobileNetV1(nn.Sequential):
@@ -451,9 +455,13 @@ class MobileNetV1(nn.Sequential):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class InvertedResidual(nn.Module):
@@ -611,9 +619,13 @@ class InvertedResidual(nn.Module):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class MobileNetV2(nn.Sequential):
@@ -769,10 +781,14 @@ class MobileNetV2(nn.Sequential):
         return output_shape
 
     @property
-    def module_size(self):
-        """
-        """
+    def module_size(self) -> int:
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class MobileNetV3(nn.Module):

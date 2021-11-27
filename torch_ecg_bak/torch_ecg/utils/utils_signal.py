@@ -566,7 +566,7 @@ def remove_spikes_naive(sig:np.ndarray, threshold:Real=20) -> np.ndarray:
         signal with `spikes` removed
     """
     b = list(filter(lambda k: k > 0, np.argwhere(np.abs(sig)>threshold).squeeze(-1)))
-    filtered_sig = sig.copy()
+    filtered_sig = sig
     for k in b:
         filtered_sig[k] = filtered_sig[k-1]
     return filtered_sig
@@ -699,7 +699,7 @@ def get_ampl(sig:np.ndarray,
     if fmt.lower() in ["channel_last", "lead_last"]:
         _sig = sig.T
     else:
-        _sig = sig.copy()
+        _sig = sig
     _window = int(round(window * fs))
     half_window = _window // 2
     _window = half_window * 2
@@ -736,36 +736,47 @@ def get_ampl(sig:np.ndarray,
 
 
 def normalize(sig:np.ndarray,
+              method:str,
               mean:Union[Real,Iterable[Real]]=0.0,
               std:Union[Real,Iterable[Real]]=1.0,
               sig_fmt:str="channel_first",
-              per_channel:bool=False,
-              fixed:bool=True,) -> np.ndarray:
+              per_channel:bool=False,) -> np.ndarray:
     """ finished, checked,
     
-    perform normalization on `sig`, to make it has fixed mean and standard deviation,
-    or normalize `sig` using `mean` and `std` via (sig - mean) / std
+    perform z-score normalization on `sig`,
+    to make it has fixed mean and standard deviation,
+    or perform min-max normalization on `sig`,
+    or normalize `sig` using `mean` and `std` via (sig - mean) / std.
+    More precisely,
+
+        .. math::
+            \begin{align*}
+            \text{Min-Max normalization:} & \frac{sig - \min(sig)}{\max(sig) - \min(sig)} \\
+            \text{Naive normalization:} & \frac{sig - m}{s} \\
+            \text{Z-score normalization:} & \left(\frac{sig - mean(sig)}{std(sig)}\right) \cdot s + m
+            \end{align*}
 
     Parameters
     ----------
     sig: ndarray,
         signal to be normalized
+    method: str,
+        normalization method, case insensitive, can be one of
+        "naive", "min-max", "z-score",
     mean: real number or array_like, default 0.0,
         mean value of the normalized signal,
-        or mean values for each lead of the normalized signal
+        or mean values for each lead of the normalized signal,
+        useless if `method` is "min-max"
     std: real number or array_like, default 1.0,
         standard deviation of the normalized signal,
-        or standard deviations for each lead of the normalized signal
+        or standard deviations for each lead of the normalized signal,
+        useless if `method` is "min-max"
     sig_fmt: str, default "channel_first",
         format of the signal, can be of one of
         "channel_last" (alias "lead_last"), or
         "channel_first" (alias "lead_first")
     per_channel: bool, default False,
         if True, normalization will be done per channel
-    fixed: bool, default True,
-        if True, the normalized signal will have fixed mean (equals to `mean`)
-        and fixed standard deviation (equals to `std`),
-        otherwise, the signal will be normalized as (sig - mean) / std
         
     Returns
     -------
@@ -777,6 +788,8 @@ def normalize(sig:np.ndarray,
     in cases where normalization is infeasible (std = 0),
     only the mean value will be shifted
     """
+    _method = method.lower()
+    assert _method in ["z-score", "naive", "min-max",]
     if isinstance(std, Real):
         assert std > 0, "standard deviation should be positive"
     else:
@@ -800,27 +813,30 @@ def normalize(sig:np.ndarray,
         else:
             _std = np.array(std)[np.newaxis, ...]
     else:
-        _std = std 
+        _std = std
+
+    if _method == "naive":
+        nm_sig = (sig - _mean) / _std
+        return nm_sig
 
     eps = 1e-7  # to avoid dividing by zero
-
-    if fixed:
-        if sig.ndim == 3:  # the first dimension is the batch dimension
-            if not per_channel:
-                options = dict(axis=(1,2), keepdims=True)
-            elif sig_fmt.lower() in ["channel_first", "lead_first",]:
-                options = dict(axis=2, keepdims=True)
-            else:
-                options = dict(axis=1, keepdims=True)
+    if sig.ndim == 3:  # the first dimension is the batch dimension
+        if not per_channel:
+            options = dict(axis=(1,2), keepdims=True)
+        elif sig_fmt.lower() in ["channel_first", "lead_first",]:
+            options = dict(axis=2, keepdims=True)
         else:
-            if not per_channel:
-                options = dict(axis=None)
-            elif sig_fmt.lower() in ["channel_first", "lead_first",]:
-                options = dict(axis=1, keepdims=True)
-            else:
-                options = dict(axis=0, keepdims=True)   
-
-        nm_sig = ( (sig - np.mean(sig, **options)) / (np.std(sig, **options) + eps) ) * _std + _mean
+            options = dict(axis=1, keepdims=True)
     else:
-        nm_sig = (sig - _mean) / _std
+        if not per_channel:
+            options = dict(axis=None)
+        elif sig_fmt.lower() in ["channel_first", "lead_first",]:
+            options = dict(axis=1, keepdims=True)
+        else:
+            options = dict(axis=0, keepdims=True)
+
+    if _method == "z-score":
+        nm_sig = ( (sig - np.mean(sig, **options)) / (np.std(sig, **options) + eps) ) * _std + _mean
+    elif _method == "min-max":
+        nm_sig = ( sig - np.amin(sig, **options) ) / ( np.amax(sig, **options) - np.amin(sig, **options) + eps )
     return nm_sig

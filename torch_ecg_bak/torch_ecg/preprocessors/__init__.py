@@ -2,9 +2,25 @@
 PreProcessors as torch.nn.Module
 """
 
-from .normalize import Normalize, normalize
+from .preproc_manager import PreprocManager
+from .bandpass import BandPass
+from .baseline_remove import BaselineRemove
+from .normalize import (
+    Normalize,
+    MinMaxNormalize,
+    NaiveNormalize,
+    ZScoreNormalize,
+)
+from .resample import Resample
 
 
 __all__ = [
-    "Normalize", "normalize",
+    "PreprocManager",
+    "BandPass",
+    "BaselineRemove",
+    "Normalize",
+    "MinMaxNormalize",
+    "NaiveNormalize",
+    "ZScoreNormalize",
+    "Resample",
 ]

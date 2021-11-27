@@ -1,9 +1,11 @@
 """
 """
 
+from itertools import repeat
+import multiprocessing as mp
 from abc import ABC, abstractmethod
 from numbers import Real
-from typing import Optional, List, NoReturn
+from typing import Optional, List, NoReturn, Tuple, List
 
 import numpy as np
 np.set_printoptions(precision=5, suppress=True)
@@ -13,7 +15,7 @@ from scipy.signal.signaltools import resample
 # https://github.com/scipy/scipy/issues/9680
 from biosppy.signals.tools import filter_signal
 
-import numpy as np
+from ..utils.misc import default_class_repr
 
 
 __all__ = [
@@ -30,7 +32,7 @@ class PreProcessor(ABC):
     __name__ = "PreProcessor"
 
     @abstractmethod
-    def apply(self, sig:np.ndarray, fs:Real) -> np.ndarray:
+    def apply(self, sig:np.ndarray, fs:Real) -> Tuple[np.ndarray, int]:
         """
         apply the preprocessor to `sig`
 
@@ -46,13 +48,13 @@ class PreProcessor(ABC):
         """
         raise NotImplementedError
 
-    def __call__(self, sig:np.ndarray, fs:Real) -> np.ndarray:
+    def __call__(self, sig:np.ndarray, fs:Real) -> Tuple[np.ndarray, int]:
         """
         alias of `self.apply`
         """
-        return self.apply(sig)
+        return self.apply(sig, fs)
 
-    def __check_sig(self, sig:np.ndarray) -> NoReturn:
+    def _check_sig(self, sig:np.ndarray) -> NoReturn:
         """
         check validity of the signal
 
@@ -72,6 +74,17 @@ class PreProcessor(ABC):
                 "or 3d array, which is a tensor of several ECGs, of shape (batch, lead, siglen)."
             )
 
+    def __repr__(self) -> str:
+        return default_class_repr(self)
+
+    __str__ = __repr__
+
+    def extra_repr_keys(self) -> List[str]:
+        """
+        return the extra keys for `__repr__`
+        """
+        return []
+
 
 def preprocess_multi_lead_signal(raw_sig:np.ndarray,
                                  fs:Real,
@@ -82,6 +95,7 @@ def preprocess_multi_lead_signal(raw_sig:np.ndarray,
 
     perform preprocessing for multi-lead ecg signal (with units in mV),
     preprocessing may include median filter, bandpass filter, and rpeaks detection, etc.
+    also works for single-lead ecg signal (sig_fmt="channel_first")
 
     Parameters
     ----------
@@ -103,8 +117,6 @@ def preprocess_multi_lead_signal(raw_sig:np.ndarray,
         a typical pair is [0.5, 45],
         be careful when detecting paced rhythm,
         if is None or empty, bandpass filtering will not be performed
-    verbose: int, default 0,
-        print verbosity
 
     Returns
     -------
@@ -116,15 +128,42 @@ def preprocess_multi_lead_signal(raw_sig:np.ndarray,
     if sig_fmt.lower() in ["channel_last", "lead_last"]:
         filtered_ecg = raw_sig.T
     else:
-        filtered_ecg = raw_sig.copy()
-    cpu_num = max(1, mp.cpu_count()-3)
-    with mp.Pool(processes=cpu_num) as pool:
-        results = pool.starmap(
-            func=preprocess_single_lead_signal,
-            iterable=[(filtered_ecg[lead,...], fs, bl_win, band_fs, verbose) for lead in range(filtered_ecg.shape[0])]
-        )
-    for lead in range(filtered_ecg.shape[0]):
-        filtered_ecg[lead,...] = results[lead]
+        filtered_ecg = raw_sig
+
+    # remove baseline
+    if bl_win:
+        window1, window2 = list(repeat(1, filtered_ecg.ndim)), list(repeat(1, filtered_ecg.ndim))
+        window1[-1] = 2 * (int(bl_win[0] * fs) // 2) + 1  # window size must be odd
+        window2[-1] = 2 * (int(bl_win[1] * fs) // 2) + 1
+        baseline = median_filter(filtered_ecg, size=window1, mode="nearest")
+        baseline = median_filter(baseline, size=window2, mode="nearest")
+        filtered_ecg = filtered_ecg - baseline
+    
+    # filter signal
+    if band_fs:
+        assert band_fs[0] < band_fs[1]
+        nyq = 0.5 * fs
+        if band_fs[0] <= 0 and band_fs[1] < nyq:
+            band = "lowpass"
+            frequency = band_fs[1]
+        elif band_fs[1] >= nyq and band_fs[0] > 0:
+            band = "highpass"
+            frequency = band_fs[0]
+        elif band_fs[0] > 0 and band_fs[1] < nyq:
+            band = "bandpass"
+            frequency = band_fs
+        else:
+            raise ValueError("Invalid frequency band")
+        filtered_ecg = filter_signal(
+            signal=filtered_ecg,
+            ftype="FIR",
+            # ftype="butter",
+            band=band,
+            order=int(0.3 * fs),
+            sampling_rate=fs,
+            frequency=frequency,
+        )["signal"]
+
     if sig_fmt.lower() in ["channel_last", "lead_last"]:
         filtered_ecg = filtered_ecg.T
 
@@ -134,8 +173,7 @@ def preprocess_multi_lead_signal(raw_sig:np.ndarray,
 def preprocess_single_lead_signal(raw_sig:np.ndarray,
                                   fs:Real,
                                   bl_win:Optional[List[Real]]=None,
-                                  band_fs:Optional[List[Real]]=None,
-                                  verbose:int=0,) -> np.ndarray:
+                                  band_fs:Optional[List[Real]]=None,) -> np.ndarray:
     """ finished, checked,
 
     perform preprocessing for single lead ecg signal (with units in mV),
@@ -157,8 +195,6 @@ def preprocess_single_lead_signal(raw_sig:np.ndarray,
         a typical pair is [0.5, 45],
         be careful when detecting paced rhythm,
         if is None or empty, bandpass filtering will not be performed
-    verbose: int, default 0,
-        print verbosity
 
     Returns
     -------
@@ -170,7 +206,7 @@ def preprocess_single_lead_signal(raw_sig:np.ndarray,
     bandpass filter uses FIR filters, an alternative can be Butterworth filter,
     e.g. `butter_bandpass_filter` in `utils.utils_singal`
     """
-    filtered_ecg = raw_sig.copy()
+    filtered_ecg = raw_sig
 
     # remove baseline
     if bl_win:

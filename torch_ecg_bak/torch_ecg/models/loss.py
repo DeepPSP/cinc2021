@@ -1,5 +1,6 @@
 """custom loss functions"""
 
+from numbers import Real
 from typing import Union, Sequence, Tuple, List, Optional, NoReturn, Any
 
 import torch
@@ -12,6 +13,7 @@ __all__ = [
     "WeightedBCELoss", "BCEWithLogitsWithClassWeightLoss",
     "MaskedBCEWithLogitsLoss",
     "FocalLoss",
+    "AsymmetricLoss",
 ]
 
 
@@ -37,6 +39,7 @@ def weighted_binary_cross_entropy(sigmoid_x:Tensor,
     reduce: bool, default True,
 
     Reference (original source):
+    ----------------------------
     https://github.com/pytorch/pytorch/issues/5660#issuecomment-403770305
     """
     if not (targets.size() == sigmoid_x.size()):
@@ -108,7 +111,7 @@ class WeightedBCELoss(nn.Module):
         Returns
         -------
         loss: Tensor,
-            the loss (scalar tensor) w.r.t. `input` and `target`
+            the loss w.r.t. `input` and `target`
         """
         if self.PosWeightIsDynamic:
             positive_counts = target.sum(dim=0)
@@ -169,7 +172,7 @@ class MaskedBCEWithLogitsLoss(nn.BCEWithLogitsLoss):
         super().__init__(reduction="none")
 
     def forward(self, input:Tensor, target:Tensor, weight_mask:Tensor) -> Tensor:
-        """
+        """ finished, checked,
 
         Parameters
         ----------
@@ -221,13 +224,33 @@ class FocalLoss(nn.modules.loss._WeightedLoss):
                  reduction:str="mean",
                  multi_label:bool=True,
                  **kwargs:Any) -> NoReturn:
-        """ NOT finished, NOT checked,
+        """ finished, checked,
 
         Parameters
         ----------
-        to write
+        gamma: float, default 2.0,
+            the gamma parameter of focal loss
+        weight: Tensor, optional,
+            if `multi_label` is True,
+            is a manual rescaling weight given to the loss of each batch element, of size `batch_size`;
+            if `multi_label` is False,
+            is a weight for each class, of size `n_classes`
+        class_weight: Tensor, optional,
+            the class weight, of shape (1, n_classes)
+        size_average: bool, optional,
+            not used, to keep in accordance with PyTorch native loss
+        reduce: bool, optional,
+            not used, to keep in accordance with PyTorch native loss
+        reduction: str, default "mean",
+            the reduction to apply to the output, can be one of
+            "none", "mean", "sum"
         """
-        w = weight if multi_label else class_weight or weight
+        if multi_label or weight is not None:
+            w = weight
+        else:
+            w = class_weight
+        if not multi_label and w.ndim == 2:
+            w = w.squeeze(0)
         super().__init__(weight=w, size_average=size_average, reduce=reduce, reduction=reduction)
         # In practice `alpha` may be set by inverse class frequency or treated as a hyperparameter
         # the `class_weight` are usually inverse class frequencies
@@ -249,22 +272,225 @@ class FocalLoss(nn.modules.loss._WeightedLoss):
         return self.class_weight
 
     def forward(self, input:Tensor, target:Tensor) -> Tensor:
-        """ NOT finished, NOT checked,
+        """ finished, checked,
 
         Parameters
         ----------
-        to write
+        input: Tensor,
+            input tensor, of shape (batch_size, n_classes)
+        target: Tensor,
+            multi-label binarized vector of shape (batch_size, n_classes),
+            or single label binarized vector of shape (batch_size,)
 
         Returns
         -------
-        to write
+        fl: Tensor,
+            the focal loss w.r.t. `input` and `target`
         """
         entropy = self.entropy_func(
             input, target,
-            weight=self.weight, size_average=self.size_average, reduce=self.reduce, reduction=self._reduction,
+            weight=self.weight, reduction="none",
         )
         p_t = torch.exp(-entropy)
-        fl = -torch.pow(1 - p_t, self.gamma) * entropy
-        if self.class_weight:
+        fl = torch.pow(1 - p_t, self.gamma) * entropy
+        if self.class_weight is not None:
             fl = fl * self.class_weight
+        if self.reduction == "mean":
+            fl = fl.mean()
+        elif self.reduction == "sum":
+            fl = fl.sum()
         return fl
+
+
+class AsymmetricLoss(nn.Module):
+    """ finished, checked,
+
+    The asymmetric loss is defined as
+
+        .. math::
+            ASL = \begin{cases} L_+ := (1-p)^{\gamma_+} \log(p) \\ L_- := (p_m)^{\gamma_-} \log(1-p_m) \end{cases}
+
+    where :math:`p_m = \max(p-m, 0)` is the shifted probability, with probability margin :math:`m`.
+    The loss on one label of one sample is
+
+        .. math::
+            L = -yL_+ - (1-y)L_-
+
+    References
+    ----------
+    1. Ridnik, Tal, et al. "Asymmetric Loss for Multi-Label Classification." Proceedings of the IEEE/CVF International Conference on Computer Vision. 2021.
+    2. https://github.com/Alibaba-MIIL/ASL/
+    """
+    __name__ = "AsymmetricLoss"
+
+    def __init__(self,
+                 gamma_neg:Union[Real,torch.Tensor]=4,
+                 gamma_pos:Union[Real,torch.Tensor]=1,
+                 prob_margin:float=0.05, 
+                 disable_torch_grad_focal_loss:bool=False,
+                 reduction:str="mean",
+                 implementation:str="alibaba-miil") -> NoReturn:
+        """ finished, checked,
+
+        Parameters
+        ----------
+        gamma_neg: real number or Tensor, default 4,
+            exponent of the multiplier to the negative loss
+        gamma_pos: real number or Tensor, default 1,
+            exponent of the multiplier to the positive loss
+        prob_margin: float, default 0.05,
+            the probability margin
+        disable_torch_grad_focal_loss: bool, default False,
+            if True, disable torch.grad for asymmetric focal loss computing
+        reduction: str, default "mean",
+            the reduction to apply to the output, can be one of
+            "none", "mean", "sum"
+        implementation: str, default "alibaba-miil",
+            can also be "deep-psp", case insensitive,
+            implementation by Alibaba-MIIL, or by `DeepPSP`
+
+        NOTE
+        ----
+        Since `AsymmetricLoss` aims at emphasizing the contribution of positive samples,
+        `gamma_neg` usually > `gamma_pos`.
+
+        TODO
+        ----
+        1. evaluate `gamma_neg`, `gamma_pos` be set as tensors, of shape (1, n_classes),
+        one ratio of positive to negative for each class
+        """
+        super().__init__()
+        self.implementation = implementation.lower()
+        assert self.implementation in ["alibaba-miil", "deep-psp", "deeppsp",]
+        self.gamma_neg = gamma_neg
+        self.gamma_pos = gamma_pos
+        self.prob_margin = prob_margin
+        if self.prob_margin < 0:
+            raise ValueError("`prob_margin` must be non-negative")
+        self.disable_torch_grad_focal_loss = disable_torch_grad_focal_loss
+        self.eps = 1e-8
+        self.reduction = reduction.lower()
+
+        if self.implementation == "alibaba-miil":
+            self.targets = self.anti_targets = self.xs_pos = self.xs_neg = self.asymmetric_w = self.loss = None
+        elif self.implementation in ["deep-psp", "deeppsp",]:
+            self.targets = self.anti_targets = self.xs_pos = self.xs_neg = self.loss = self.loss_pos = self.loss_neg = None
+
+    def forward(self, input:Tensor, target:Tensor) -> Tensor:
+        """" finished, checked,
+
+        Parameters
+        ----------
+        input: Tensor,
+            input tensor, of shape (batch_size, n_classes)
+        target: Tensor,
+            multi-label binarized vector, of shape (batch_size, n_classes)
+
+        Returns
+        -------
+        loss: Tensor,
+            the loss w.r.t. `input` and `target`
+        """
+        if self.implementation == "alibaba-miil":
+            return self._forward_alibaba_miil(input, target)
+        else:
+            return self._forward_deep_psp(input, target)
+
+    def _forward_deep_psp(self, input:Tensor, target:Tensor) -> Tensor:
+        """" finished, checked,
+
+        Parameters
+        ----------
+        input: Tensor,
+            input tensor, of shape (batch_size, n_classes)
+        target: Tensor,
+            multi-label binarized vector, of shape (batch_size, n_classes)
+
+        Returns
+        -------
+        loss: Tensor,
+            the loss w.r.t. `input` and `target`
+        """
+        self.targets = target
+        self.anti_targets = 1 - target
+
+        # Calculating Probabilities
+        self.xs_pos = torch.sigmoid(input)
+        self.xs_neg = 1.0 - self.xs_pos
+
+        # Asymmetric Clipping
+        if self.prob_margin > 0:
+            self.xs_neg.add_(self.prob_margin).clamp_(max=1)
+
+        # Basic CE calculation
+        self.loss_pos = self.targets * torch.log(self.xs_pos.clamp(min=self.eps))
+        self.loss_neg = self.anti_targets * torch.log(self.xs_neg.clamp(min=self.eps))
+
+        # Asymmetric Focusing
+        if self.gamma_neg > 0 or self.gamma_pos > 0:
+            if self.disable_torch_grad_focal_loss:
+                prev = torch.is_grad_enabled()
+                torch.set_grad_enabled(False)
+            self.loss_pos *= torch.pow(1-self.xs_pos, self.gamma_pos)
+            self.loss_neg *= torch.pow(self.xs_pos, self.gamma_neg)
+            if self.disable_torch_grad_focal_loss:
+                torch.set_grad_enabled(prev)
+        self.loss = -self.loss_pos - self.loss_neg
+
+        if self.reduction == "mean":
+            self.loss = self.loss.mean()
+        elif self.reduction == "sum":
+            self.loss = self.loss.sum()
+        return self.loss
+
+    def _forward_alibaba_miil(self, input:Tensor, target:Tensor) -> Tensor:
+        """" finished, checked,
+
+        Parameters
+        ----------
+        input: Tensor,
+            input tensor, of shape (batch_size, n_classes)
+        target: Tensor,
+            multi-label binarized vector, of shape (batch_size, n_classes)
+
+        Returns
+        -------
+        loss: Tensor,
+            the loss w.r.t. `input` and `target`
+        """
+        self.targets = target
+        self.anti_targets = 1 - target
+
+        # Calculating Probabilities
+        self.xs_pos = torch.sigmoid(input)
+        self.xs_neg = 1.0 - self.xs_pos
+
+        # Asymmetric Clipping
+        if self.prob_margin > 0:
+            self.xs_neg.add_(self.prob_margin).clamp_(max=1)
+
+        # Basic CE calculation
+        # loss = y * log(p) + (1-y) * log(1-p)
+        self.loss = self.targets * torch.log(self.xs_pos.clamp(min=self.eps))
+        self.loss.add_(self.anti_targets * torch.log(self.xs_neg.clamp(min=self.eps)))
+
+        # Asymmetric Focusing
+        if self.gamma_neg > 0 or self.gamma_pos > 0:
+            if self.disable_torch_grad_focal_loss:
+                prev = torch.is_grad_enabled()
+                torch.set_grad_enabled(False)
+            self.xs_pos = self.xs_pos * self.targets  # p * y
+            self.xs_neg = self.xs_neg * self.anti_targets  # (1-p) * (1-y)
+            self.asymmetric_w = torch.pow(1 - self.xs_pos - self.xs_neg,
+                                          self.gamma_pos * self.targets + self.gamma_neg * self.anti_targets)
+            if self.disable_torch_grad_focal_loss:
+                torch.set_grad_enabled(prev)
+            self.loss *= self.asymmetric_w
+
+        if self.reduction == "mean":
+            self.loss = -self.loss.mean()
+        elif self.reduction == "sum":
+            self.loss = -self.loss.sum()
+        else:
+            self.loss = -self.loss
+        return self.loss

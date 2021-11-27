@@ -21,7 +21,7 @@ from torch import Tensor
 import torch.nn.functional as F
 from easydict import EasyDict as ED
 
-from ...cfg import Cfg
+from ...cfg import DEFAULTS
 from ...utils.utils_nn import compute_deconv_output_shape, compute_module_size
 from ...utils.misc import dict_to_str
 from ...models._nets import (
@@ -29,7 +29,7 @@ from ...models._nets import (
     DownSample, ZeroPadding,
 )
 
-if Cfg.torch_dtype.lower() == "double":
+if DEFAULTS.torch_dtype.lower() == "double":
     torch.set_default_tensor_type(torch.DoubleTensor)
 
 
@@ -464,7 +464,7 @@ class ECG_SUBTRACT_UNET(nn.Module):
 
     entry 0433 of CPSC2019
     """
-    __DEBUG__ = True
+    __DEBUG__ = False
     __name__ = "ECG_SUBTRACT_UNET"
 
     def __init__(self, classes:Sequence[str], n_leads:int, config:dict) -> NoReturn:

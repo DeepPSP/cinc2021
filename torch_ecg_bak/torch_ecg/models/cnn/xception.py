@@ -17,7 +17,7 @@ from torch import Tensor
 import torch.nn.functional as F
 from easydict import EasyDict as ED
 
-from ...cfg import Cfg
+from ...cfg import DEFAULTS
 from ...utils.utils_nn import compute_module_size
 from ...utils.misc import dict_to_str, list_sum
 from ...models._nets import (
@@ -27,7 +27,7 @@ from ...models._nets import (
 )
 
 
-if Cfg.torch_dtype.lower() == "double":
+if DEFAULTS.torch_dtype.lower() == "double":
     torch.set_default_tensor_type(torch.DoubleTensor)
 
 
@@ -201,9 +201,13 @@ class XceptionMultiConv(nn.Module):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class XceptionEntryFlow(nn.Sequential):
@@ -398,9 +402,13 @@ class XceptionEntryFlow(nn.Sequential):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class XceptionMiddleFlow(nn.Sequential):
@@ -544,9 +552,13 @@ class XceptionMiddleFlow(nn.Sequential):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class XceptionExitFlow(nn.Sequential):
@@ -733,9 +745,13 @@ class XceptionExitFlow(nn.Sequential):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
 class Xception(nn.Sequential):
@@ -838,6 +854,10 @@ class Xception(nn.Sequential):
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )

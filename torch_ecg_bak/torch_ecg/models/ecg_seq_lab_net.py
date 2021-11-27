@@ -26,7 +26,7 @@ from torch import Tensor
 import torch.nn.functional as F
 from easydict import EasyDict as ED
 
-from ..cfg import Cfg
+from ..cfg import DEFAULTS
 from ..utils.utils_nn import compute_conv_output_shape, compute_module_size
 from ..utils.misc import dict_to_str
 from ..model_configs.ecg_seq_lab_net import ECG_SEQ_LAB_NET_CONFIG
@@ -41,7 +41,7 @@ from ._nets import (
 from .cnn.multi_scopic import MultiScopicCNN
 
 
-if Cfg.torch_dtype.lower() == "double":
+if DEFAULTS.torch_dtype.lower() == "double":
     torch.set_default_tensor_type(torch.DoubleTensor)
 
 
@@ -59,18 +59,16 @@ class ECG_SEQ_LAB_NET(nn.Module):
     --------
     (multi-scopic, etc.) cnn --> head ((bidi-lstm -->) "attention" --> seq linear) -> output
 
-    TODO
-    ----
-    add optional upsampling (e.g. `F.interpolate`) to make output size the same as input size
-
     References
     ----------
     [1] Cai, Wenjie, and Danqin Hu. "QRS complex detection using novel deep learning neural networks." IEEE Access (2020).
     """
     __DEBUG__ = False
     __name__ = "ECG_SEQ_LAB_NET"
+    __DEFAULT_CONFIG__ = {"recover_length": False}
+    __DEFAULT_CONFIG__.update(deepcopy(ECG_SEQ_LAB_NET_CONFIG))
 
-    def __init__(self, classes:Sequence[str], n_leads:int, config:Optional[ED]=None, **kwargs:Any) -> NoReturn:
+    def __init__(self, classes:Sequence[str], n_leads:int, config:Optional[ED]=None) -> NoReturn:
         """ finished, checked,
 
         Parameters
@@ -89,7 +87,7 @@ class ECG_SEQ_LAB_NET(nn.Module):
         self.__out_channels = self.n_classes
         # self.__out_channels = self.n_classes if self.n_classes > 2 else 1
         self.n_leads = n_leads
-        self.config = ED(deepcopy(ECG_SEQ_LAB_NET_CONFIG))
+        self.config = ED(deepcopy(self.__DEFAULT_CONFIG__))
         self.config.update(deepcopy(config) or {})
         if self.__DEBUG__:
             print(f"classes (totally {self.n_classes}) for prediction:{self.classes}")
@@ -207,19 +205,27 @@ class ECG_SEQ_LAB_NET(nn.Module):
         Returns
         -------
         pred: Tensor,
-            of shape (batch_size, seq_len)
+            of shape (batch_size, seq_len, n_classes)
         """
+        batch_size, channels, seq_len = input.shape
+
         features = self.extract_features(input)
 
         # classify
         pred = self.clf(features)
+
+        if self.config.recover_length:
+            pred = F.interpolate(
+                pred.permute(0,2,1),
+                size=seq_len, mode="linear", align_corners=True,
+            ).permute(0,2,1)
 
         return pred
 
     # inference will not be included in the model itself
     # as it is strongly related to the usage scenario
     @torch.no_grad()
-    def inference(self, input:Union[np.ndarray,Tensor], bin_pred_thr:float=0.5) -> Tuple[np.ndarray, List[np.ndarray]]:
+    def inference(self, input:Union[np.ndarray,Tensor], bin_pred_thr:float=0.5) -> Any:
         """
         """
         raise NotImplementedError("implement a task specific inference method")
@@ -248,13 +254,19 @@ class ECG_SEQ_LAB_NET(nn.Module):
         output_shape = self.attn.compute_output_shape(_seq_len, batch_size)
         _, _, _seq_len = output_shape
         output_shape = self.clf.compute_output_shape(_seq_len, batch_size)
+        if self.config.recover_length:
+            output_shape = output_shape[0], seq_len, output_shape[2]
         return output_shape
 
     @property
     def module_size(self) -> int:
-        """
-        """
         return compute_module_size(self)
+
+    @property
+    def module_size_(self) -> str:
+        return compute_module_size(
+            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
+        )
 
 
     @staticmethod
