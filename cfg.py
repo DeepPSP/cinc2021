@@ -221,7 +221,7 @@ TrainCfg.early_stopping.patience = 10
 # TrainCfg.loss = "BCEWithLogitsLoss"
 # TrainCfg.loss = "BCEWithLogitsWithClassWeightLoss"
 TrainCfg.loss = "AsymmetricLoss"  # "FocalLoss"
-TrainCfg.loss_kw = ED(gamma_neg=0.2, implementation="deep-psp")
+TrainCfg.loss_kw = ED(gamma_pos=0, gamma_neg=0.2, implementation="deep-psp")
 TrainCfg.flooding_level = 0.0  # flooding performed if positive, typically 0.45-0.55 for cinc2021?
 
 TrainCfg.monitor = "challenge_metric"

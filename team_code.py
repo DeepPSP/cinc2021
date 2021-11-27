@@ -125,8 +125,8 @@ def training_code(data_directory, model_directory):
     train_config.cnn_name = "resnet_nature_comm_bottle_neck_se"
     train_config.rnn_name = "lstm"  # "none", "lstm"
     train_config.attn_name = "se"  # "none", "se", "gc", "nl"
-    train_config.n_epochs = 35
-    train_config.batch_size = 24  # training 12-lead model sometimes requires GPU memory more than 16G (Tesla T4)
+    train_config.n_epochs = 45
+    train_config.batch_size = 20  # training 12-lead model sometimes requires GPU memory more than 16G (Tesla T4)
 
     tranches = train_config.tranches_for_training
     if tranches:
@@ -159,6 +159,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = six_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = _ModelFilename[6]
+    train_config.batch_size = 24
     model_config = deepcopy(_ModelCfg.six_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
@@ -178,7 +179,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = four_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = _ModelFilename[4]
-    # train_config.batch_size = 32
+    train_config.batch_size = 24
     model_config = deepcopy(_ModelCfg.four_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
