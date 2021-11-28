@@ -75,6 +75,14 @@ if _ModelCfg.torch_dtype.lower() == "double":
 else:
     DTYPE = np.float32
 
+# _ModelCfg.clf = ED()
+# _ModelCfg.clf.out_channels = [
+#   # not including the last linear layer, whose out channels equals n_classes
+# ]
+# _ModelCfg.clf.bias = True
+# _ModelCfg.clf.dropouts = 0.0
+# _ModelCfg.clf.activation = "mish"  # for a single layer `SeqLin`, activation is ignored
+
 
 PPM = PreprocManager.from_config(_TrainCfg)
 PPM.rearrange(["bandpass", "normalize"])
