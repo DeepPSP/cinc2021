@@ -89,33 +89,12 @@ PPM.rearrange(["bandpass", "normalize"])
 
 # Train your model. This function is *required*. You should edit this function to add your code, but do *not* change the arguments of this function.
 def training_code(data_directory, model_directory):
-    # Find header and recording files.
-    print("Finding header and recording files...")
-
-    header_files, recording_files = find_challenge_files(data_directory)
-    num_recordings = len(recording_files)
-
-    if not num_recordings:
-        raise Exception("No data was provided.")
-
+    """
+    """
     # Create a folder for the model if it does not already exist.
     if not os.path.isdir(model_directory):
         os.mkdir(model_directory)
     # os.makedirs(model_directory, exist_ok=True)
-
-    # Extract classes from dataset.
-    print("Extracting classes...")
-
-    classes = set()
-    for header_file in header_files:
-        header = load_header(header_file)
-        classes |= set(get_labels(header))
-    if all(is_integer(x) for x in classes):
-        classes = sorted(classes, key=lambda x: int(x)) # Sort classes numerically if numbers.
-    else:
-        classes = sorted(classes) # Sort classes alphanumerically otherwise.
-    num_classes = len(classes)
-
 
     # general configs and logger
     train_config = deepcopy(_TrainCfg)
@@ -137,8 +116,8 @@ def training_code(data_directory, model_directory):
 
     start_time = time.time()
 
-    ds_train_cache = CINC2021(_TrainCfg, training=True, lazy=False)
-    ds_val_cache = CINC2021(_TrainCfg, training=False, lazy=False)
+    ds_train_cache = CINC2021(train_config, training=True, lazy=False)
+    ds_val_cache = CINC2021(train_config, training=False, lazy=False)
 
     # Train 12-lead ECG model.
     print("Training 12-lead ECG model...")
