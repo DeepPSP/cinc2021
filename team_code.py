@@ -107,6 +107,8 @@ def training_code(data_directory, model_directory):
     train_config.attn_name = "se"  # "none", "se", "gc", "nl"
     train_config.n_epochs = 45
     train_config.batch_size = 16  # training 12-lead model sometimes requires GPU memory more than 16G (Tesla T4)
+    train_config.log_step = 200
+    train_config.max_lr = 3e-3  # accelerate convergence
 
     tranches = train_config.tranches_for_training
     if tranches:
