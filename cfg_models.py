@@ -285,10 +285,12 @@ ModelArchCfg.two_leads.cnn.xception_vanilla.exit_flow = ED(
 nas_list = []
 cnn_list = [
     vgg16, vgg16_leadwise,
-    resnet_nature_comm, resnet_nature_comm_se, resnet_nature_comm_gc,
-    resnet_nature_comm_bottle_neck, resnet_nature_comm_bottle_neck_se,
+    resnet_nature_comm, resnet_nature_comm_gc,
+    resnet_nature_comm_bottle_neck,
     resnetN, resnetNB, resnetNS, resnetNBS,
-    tresnetF, tresnetP, tresnetN, tresnetS, tresnetM,
+    tresnetM,
+    resnet_nature_comm_se, resnet_nature_comm_bottle_neck_se,
+    tresnetF, tresnetP, tresnetN, tresnetS, 
     multi_scopic, multi_scopic_leadwise,
 ]
 for item in cnn_list:
