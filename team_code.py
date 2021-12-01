@@ -75,13 +75,13 @@ if _ModelCfg.torch_dtype.lower() == "double":
 else:
     DTYPE = np.float32
 
-# _ModelCfg.clf = ED()
-# _ModelCfg.clf.out_channels = [
-#   # not including the last linear layer, whose out channels equals n_classes
-# ]
-# _ModelCfg.clf.bias = True
-# _ModelCfg.clf.dropouts = 0.0
-# _ModelCfg.clf.activation = "mish"  # for a single layer `SeqLin`, activation is ignored
+clf_1linear = ED()
+clf_1linear.out_channels = [
+  # not including the last linear layer, whose out channels equals n_classes
+]
+clf_1linear.bias = True
+clf_1linear.dropouts = 0.0
+clf_1linear.activation = "mish"  # for a single layer `SeqLin`, activation is ignored
 
 
 PPM = PreprocManager.from_config(_TrainCfg)
@@ -111,10 +111,10 @@ def training_code(data_directory, model_directory):
     train_config.debug = False
 
     train_config.cnn_name = "resnet_nature_comm_bottle_neck_se"
-    train_config.rnn_name = "lstm"  # "none", "lstm"
-    train_config.attn_name = "se"  # "none", "se", "gc", "nl"
+    train_config.rnn_name = "none"  # "none", "lstm"
+    train_config.attn_name = "none"  # "none", "se", "gc", "nl"
     train_config.n_epochs = 45
-    train_config.batch_size = 16  # training 12-lead model sometimes requires GPU memory more than 16G (Tesla T4)
+    train_config.batch_size = 20  # training 12-lead model sometimes requires GPU memory more than 16G (Tesla T4)
     train_config.log_step = 200
     train_config.max_lr = 3e-3  # accelerate convergence
 
@@ -139,6 +139,7 @@ def training_code(data_directory, model_directory):
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
+    model_config.clf = clf_1linear
 
     training_n_leads(train_config, model_config, ds_train_cache, ds_val_cache)
 
@@ -154,6 +155,7 @@ def training_code(data_directory, model_directory):
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
+    model_config.clf = clf_1linear
 
     ds_train = CINC2021.from_extern(ds_train_cache, train_config)
     ds_val = CINC2021.from_extern(ds_val_cache, train_config)
@@ -169,11 +171,12 @@ def training_code(data_directory, model_directory):
     train_config.leads = four_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = _ModelFilename[4]
-    train_config.batch_size = 24
+    train_config.batch_size = 28
     model_config = deepcopy(_ModelCfg.four_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
+    model_config.clf = clf_1linear
 
     ds_train = CINC2021.from_extern(ds_train_cache, train_config)
     ds_val = CINC2021.from_extern(ds_val_cache, train_config)
@@ -194,6 +197,7 @@ def training_code(data_directory, model_directory):
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
+    model_config.clf = clf_1linear
 
     ds_train = CINC2021.from_extern(ds_train_cache, train_config)
     ds_val = CINC2021.from_extern(ds_val_cache, train_config)
@@ -214,6 +218,7 @@ def training_code(data_directory, model_directory):
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
     model_config.attn.name = train_config.attn_name
+    model_config.clf = clf_1linear
 
     ds_train = CINC2021.from_extern(ds_train_cache, train_config)
     ds_val = CINC2021.from_extern(ds_val_cache, train_config)
