@@ -18,7 +18,7 @@ import torch.nn.functional as F
 from easydict import EasyDict as ED
 
 from ...cfg import DEFAULTS
-from ...utils.utils_nn import compute_module_size
+from ...utils.utils_nn import compute_module_size, SizeMixin
 from ...utils.misc import dict_to_str, list_sum
 from ...models._nets import (
     Conv_Bn_Activation, SeparableConv, MultiConv,
@@ -50,13 +50,13 @@ _DEFAULT_CONV_CONFIGS = ED(
 )
 
 
-class XceptionMultiConv(nn.Module):
+class XceptionMultiConv(SizeMixin, nn.Module):
     """
 
     -> n(2 or 3) x (activation -> norm -> sep_conv) (-> optional sub-sample) ->
     |-------------------------------- shortcut ------------------------------|
     """
-    __DEBUG__ = True
+    __DEBUG__ = False
     __name__ = "XceptionMultiConv"
 
     def __init__(self,
@@ -199,25 +199,15 @@ class XceptionMultiConv(nn.Module):
             output_shape = self.subsample.compute_output_shape(output_shape[-1], output_shape[0])
         return output_shape
 
-    @property
-    def module_size(self) -> int:
-        return compute_module_size(self)
 
-    @property
-    def module_size_(self) -> str:
-        return compute_module_size(
-            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
-        )
-
-
-class XceptionEntryFlow(nn.Sequential):
+class XceptionEntryFlow(SizeMixin, nn.Sequential):
     """
 
     Entry flow of the Xception model,
     consisting of 2 initial convolutions which subsamples at the first one,
     followed by several Xception blocks of 2 convolutions and of sub-sampling size 2
     """
-    __DEBUG__ = True
+    __DEBUG__ = False
     __name__ = "XceptionEntryFlow"
 
     def __init__(self,
@@ -400,24 +390,14 @@ class XceptionEntryFlow(nn.Sequential):
             _, _, _seq_len = output_shape
         return output_shape
 
-    @property
-    def module_size(self) -> int:
-        return compute_module_size(self)
 
-    @property
-    def module_size_(self) -> str:
-        return compute_module_size(
-            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
-        )
-
-
-class XceptionMiddleFlow(nn.Sequential):
+class XceptionMiddleFlow(SizeMixin, nn.Sequential):
     """
 
     Middle flow of the Xception model,
     consisting of several Xception blocks of 3 convolutions and without sub-sampling
     """
-    __DEBUG__ = True
+    __DEBUG__ = False
     __name__ = "XceptionMiddleFlow"
 
     def __init__(self,
@@ -550,25 +530,15 @@ class XceptionMiddleFlow(nn.Sequential):
             _, _, _seq_len = output_shape
         return output_shape
 
-    @property
-    def module_size(self) -> int:
-        return compute_module_size(self)
 
-    @property
-    def module_size_(self) -> str:
-        return compute_module_size(
-            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
-        )
-
-
-class XceptionExitFlow(nn.Sequential):
+class XceptionExitFlow(SizeMixin, nn.Sequential):
     """
 
     Exit flow of the Xception model,
     consisting of several Xception blocks of 2 convolutions,
     followed by several separable convolutions
     """
-    __DEBUG__ = True
+    __DEBUG__ = False
     __name__ = "XceptionExitFlow"
 
     def __init__(self,
@@ -743,18 +713,8 @@ class XceptionExitFlow(nn.Sequential):
             _, _, _seq_len = output_shape
         return output_shape
 
-    @property
-    def module_size(self) -> int:
-        return compute_module_size(self)
 
-    @property
-    def module_size_(self) -> str:
-        return compute_module_size(
-            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
-        )
-
-
-class Xception(nn.Sequential):
+class Xception(SizeMixin, nn.Sequential):
     """
 
     References
@@ -763,7 +723,7 @@ class Xception(nn.Sequential):
     [2] https://github.com/keras-team/keras-applications/blob/master/keras_applications/xception.py
     [3] https://github.com/Cadene/pretrained-models.pytorch/blob/master/pretrainedmodels/models/xception.py
     """
-    __DEBUG__ = True
+    __DEBUG__ = False
     __name__ = "Xception"
 
     def __init__(self, in_channels:int, **config) -> NoReturn:
@@ -851,13 +811,3 @@ class Xception(nn.Sequential):
             output_shape = module.compute_output_shape(_seq_len, batch_size)
             _, _, _seq_len = output_shape
         return output_shape
-
-    @property
-    def module_size(self) -> int:
-        return compute_module_size(self)
-
-    @property
-    def module_size_(self) -> str:
-        return compute_module_size(
-            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
-        )

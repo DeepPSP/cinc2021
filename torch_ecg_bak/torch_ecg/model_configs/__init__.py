@@ -27,6 +27,7 @@ from .cnn import (
     resnet_nature_comm,
     resnet_nature_comm_se, resnet_nature_comm_nl, resnet_nature_comm_gc,
     resnet_nature_comm_bottle_neck, resnet_nature_comm_bottle_neck_se,
+    resnet_nature_comm_bottle_neck_gc, resnet_nature_comm_bottle_neck_nl,
     # TResNet
     tresnetF, tresnetP, tresnetN, tresnetS,
     tresnetM, tresnetL, tresnetXL,
@@ -50,7 +51,10 @@ from .cnn import (
 )
 from .rnn import lstm, attention
 from .mlp import linear
-from .attn import non_local, squeeze_excitation, global_context
+from .attn import (
+    non_local, squeeze_excitation, global_context,
+    transformer,
+)
 
 from .ati_cnn import ATI_CNN_CONFIG
 from .ecg_crnn import ECG_CRNN_CONFIG
@@ -90,6 +94,7 @@ __all__ = [
     "resnet_nature_comm",
     "resnet_nature_comm_se", "resnet_nature_comm_nl", "resnet_nature_comm_gc",
     "resnet_nature_comm_bottle_neck", "resnet_nature_comm_bottle_neck_se",
+    "resnet_nature_comm_bottle_neck_gc", "resnet_nature_comm_bottle_neck_nl",
     # TresNet
     "tresnetF", "tresnetP", "tresnetN", "tresnetS",
     "tresnetM", "tresnetL", "tresnetXL",
@@ -122,6 +127,7 @@ __all__ = [
     "non_local",
     "squeeze_excitation",
     "global_context",
+    "transformer",
 
 
     # downstream tasks

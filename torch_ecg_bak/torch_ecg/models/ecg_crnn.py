@@ -19,7 +19,10 @@ from easydict import EasyDict as ED
 
 from ..cfg import DEFAULTS
 from ..model_configs.ecg_crnn import ECG_CRNN_CONFIG
-from ..utils.utils_nn import compute_conv_output_shape, compute_module_size
+from ..utils.utils_nn import (
+    compute_conv_output_shape, compute_module_size,
+    SizeMixin,
+)
 from ..utils.misc import dict_to_str
 from ._nets import (
     Mish, Swish, Activations,
@@ -41,6 +44,7 @@ from .cnn.xception import Xception
 # from .cnn import (
 #     VGG16, ResNet, MultiScopicCNN, DenseNet, Xception,
 # )
+from .transformers import Transformer
 
 
 if DEFAULTS.torch_dtype.lower() == "double":
@@ -52,7 +56,7 @@ __all__ = [
 ]
 
 
-class ECG_CRNN(nn.Module):
+class ECG_CRNN(SizeMixin, nn.Module):
     """ finished, continuously improving,
 
     C(R)NN models modified from the following refs.
@@ -187,6 +191,16 @@ class ECG_CRNN(nn.Module):
                 bias=self.config.attn.sa.bias,
             )
             clf_input_size = self.attn.compute_output_shape(None, None)[-1]
+        elif self.config.attn.name.lower() == "transformer":
+            self.attn = Transformer(
+                input_size=attn_input_size,
+                hidden_size=self.config.attn.transformer.hidden_size,
+                num_layers=self.config.attn.transformer.num_layers,
+                num_heads=self.config.attn.transformer.num_heads,
+                dropout=self.config.attn.transformer.dropout,
+                activation=self.config.attn.transformer.activation,
+            )
+            clf_input_size = self.attn.compute_output_shape(None, None)[-1]
         else:
             raise NotImplementedError
 
@@ -265,6 +279,10 @@ class ECG_CRNN(nn.Module):
             features = self.attn(features)  # (seq_len, batch_size, channels)
             # (seq_len, batch_size, channels) -> (batch_size, channels, seq_len)
             features = features.permute(1,2,0)
+        elif self.config.attn.name.lower() in ["transformer"]:
+            features = self.attn(features)
+            # (seq_len, batch_size, channels) -> (batch_size, channels, seq_len)
+            features = features.permute(1,2,0)
         return features
 
     def forward(self, input:Tensor) -> Tensor:
@@ -316,17 +334,6 @@ class ECG_CRNN(nn.Module):
             the array (with values 0, 1 for each class) of binary prediction
         """
         raise NotImplementedError(f"implement a task specific inference method")
-
-    @property
-    def module_size(self) -> int:
-        return compute_module_size(self)
-
-    @property
-    def module_size_(self) -> str:
-        return compute_module_size(
-            self, human=True, dtype=str(next(self.parameters()).dtype).replace("torch.", "")
-        )
-
 
     @staticmethod
     def from_checkpoint(path:str, device:Optional[torch.device]=None) -> Tuple[nn.Module, dict]:
