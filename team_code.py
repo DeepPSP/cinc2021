@@ -57,6 +57,7 @@ _TrainCfg = deepcopy(TrainCfg_ns)
 _ModelCfg = deepcopy(ModelCfg_ns)
 # _TrainCfg = deepcopy(TrainCfg)
 # _ModelCfg = deepcopy(ModelCfg)
+_TrainCfg.sig_slice_tol = None
 
 
 _ModelFilename = {
