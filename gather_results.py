@@ -41,7 +41,7 @@ def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
                           normalize:bool=False,
                           title:Optional[str]=None,
                           cmap:mpl.colors.Colormap=plt.cm.Blues,
-                          fmt:str="svg",) -> Any:
+                          fmts:Sequence[str]=["svg", "pdf"],) -> Any:
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
@@ -49,12 +49,12 @@ def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
     if not title:
         if normalize:
             title = "Normalized Confusion Matrix"
-            save_name = f"normalized_cm_{int(time.time())}.{fmt}"
+            save_name = f"normalized_cm_{int(time.time())}"
         else:
             title = "Confusion Matrix"
-            save_name = f"not_normalized_cm_{int(time.time())}.{fmt}"
+            save_name = f"not_normalized_cm_{int(time.time())}"
     else:
-        save_name = re.sub("[\s_-]+", "-", title.lower().replace(" ", "-")) + f".{fmt}"
+        save_name = re.sub("[\s_-]+", "-", title.lower().replace(" ", "-"))
 
     if normalize:
         cm = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
@@ -69,7 +69,7 @@ def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
            yticks=np.arange(cm.shape[0]),
            xticklabels=classes, yticklabels=classes,
         )
-    # ax.set_title(title, fontsize=24)
+    # ax.set_title(title, fontsize=24)  # currently turn off title
     ax.set_xlabel("Label",fontsize=18)
     ax.set_ylabel("Predicted",fontsize=18)
     ax.tick_params(axis = "both", which = "major", labelsize = 13)
@@ -89,13 +89,17 @@ def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
                     fontsize=12)
     fig.tight_layout()
     # plt.show()
-    plt.savefig(os.path.join(BaseCfg.log_dir, save_name), format=fmt, dpi=1200, bbox_inches="tight")
+    for f in fmts:
+        plt.savefig(
+            os.path.join(BaseCfg.log_dir, f"{save_name}.{f}"),
+            format=f, dpi=1200, bbox_inches="tight"
+        )
 
     return ax
 
 
 @torch.no_grad()
-def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=None) -> NoReturn:
+def gather_from_checkpoint(path:str, fmts:Sequence[str]=["svg", "pdf"], dataset:Optional[CINC2021]=None) -> NoReturn:
     """
     """
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -166,7 +170,7 @@ def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=N
         cm=cm_bin,
         classes=classes,
         title=title,
-        fmt=fmt,
+        fmts=fmts,
     )
 
     print("start computing the ``confusion`` matrix from the scalar predictions")
@@ -192,7 +196,7 @@ def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=N
         cm=cm_scalar_mean,
         classes=classes,
         title=title,
-        fmt=fmt,
+        fmts=fmts,
     )
 
     title = f"""STD Scalar Prediction Matrix - {train_config["cnn_name"].replace("_", "-")}"""
@@ -202,7 +206,7 @@ def gather_from_checkpoint(path:str, fmt:str="svg", dataset:Optional[CINC2021]=N
         cm=cm_scalar_std,
         classes=classes,
         title=title,
-        fmt=fmt,
+        fmts=fmts,
     )
 
 
