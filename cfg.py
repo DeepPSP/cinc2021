@@ -233,8 +233,8 @@ TrainCfg.eval_every = 20
 # configs of model selection
 # "resnet_nature_comm_se", "multi_scopic_leadwise", "vgg16", "vgg16_leadwise",
 TrainCfg.cnn_name = "resnet_nature_comm_bottle_neck_se"
-TrainCfg.rnn_name = "lstm"  # "none", "lstm"
-TrainCfg.attn_name = "se"  # "none", "se", "gc", "nl"
+TrainCfg.rnn_name = "none"  # "none", "lstm"
+TrainCfg.attn_name = "none"  # "none", "se", "gc", "nl"
 
 # configs of inputs and outputs
 # almost all records have duration >= 8s, most have duration >= 10s
