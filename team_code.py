@@ -57,7 +57,8 @@ _TrainCfg = deepcopy(TrainCfg_ns)
 _ModelCfg = deepcopy(ModelCfg_ns)
 # _TrainCfg = deepcopy(TrainCfg)
 # _ModelCfg = deepcopy(ModelCfg)
-_TrainCfg.sig_slice_tol = None
+# _TrainCfg.sig_slice_tol = None
+_TrainCfg.bandpass = None
 
 
 _ModelFilename = {
@@ -117,7 +118,8 @@ def training_code(data_directory, model_directory):
     train_config.n_epochs = 45
     train_config.batch_size = 20  # training 12-lead model sometimes requires GPU memory more than 16G (Tesla T4)
     train_config.log_step = 200
-    train_config.max_lr = 3e-3  # accelerate convergence
+    train_config.max_lr = 1.5e-3
+    train_config.early_stopping.patience = 12
 
     tranches = train_config.tranches_for_training
     if tranches:
