@@ -170,12 +170,12 @@ TrainCfg.normalize = ED(
     std=1.0,
 )
 # frequency band of the filter to apply, should be chosen very carefully
-# TrainCfg.bandpass = None  # [-np.inf, 45]
+TrainCfg.bandpass = None  # [-np.inf, 45]
 # TrainCfg.bandpass = [-np.inf, 45]
-TrainCfg.bandpass = ED(
-    lowcut=0.5,
-    highcut=60,
-)
+# TrainCfg.bandpass = ED(
+#     lowcut=0.5,
+#     highcut=60,
+# )
 
 # configs of data aumentation
 # TrainCfg.label_smooth = ED(
