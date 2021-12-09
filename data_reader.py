@@ -1313,7 +1313,7 @@ class CINC2021Reader(object):
                     axes[idx].axvspan(itv[0], itv[1], color=palette[w], alpha=plot_alpha)
             axes[idx].legend(loc="upper left", fontsize=14)
             axes[idx].set_xlim(t[0], t[-1])
-            axes[idx].set_ylim(-y_ranges[idx], y_ranges[idx])
+            axes[idx].set_ylim(min(-550,-y_ranges[idx]), max(550,y_ranges[idx]))
             axes[idx].set_xlabel("Time [s]", fontsize=16)
             axes[idx].set_ylabel("Voltage [μV]", fontsize=16)
         plt.subplots_adjust(hspace=0.05)
