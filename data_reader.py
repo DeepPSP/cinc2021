@@ -1286,7 +1286,7 @@ class CINC2021Reader(object):
         t = np.arange(_data.shape[1]) / self.fs[tranche]
         duration = len(t) / self.fs[tranche]
         fig_sz_w = int(round(4.8 * duration))
-        fig_sz_h = 6 * y_ranges / 1500
+        fig_sz_h = 6 * np.maximum(y_ranges,750) / 1500
         fig, axes = plt.subplots(nb_leads, 1, sharex=False, figsize=(fig_sz_w, np.sum(fig_sz_h)))
         if nb_leads == 1:
             axes = [axes]
@@ -1313,7 +1313,7 @@ class CINC2021Reader(object):
                     axes[idx].axvspan(itv[0], itv[1], color=palette[w], alpha=plot_alpha)
             axes[idx].legend(loc="upper left", fontsize=14)
             axes[idx].set_xlim(t[0], t[-1])
-            axes[idx].set_ylim(min(-550,-y_ranges[idx]), max(550,y_ranges[idx]))
+            axes[idx].set_ylim(min(-600,-y_ranges[idx]), max(600,y_ranges[idx]))
             axes[idx].set_xlabel("Time [s]", fontsize=16)
             axes[idx].set_ylabel("Voltage [μV]", fontsize=16)
         plt.subplots_adjust(hspace=0.05)
