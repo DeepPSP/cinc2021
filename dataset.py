@@ -362,7 +362,6 @@ class CINC2021(Dataset):
             records = list_sum([test_set[k] for k in _tranches])
         return records
 
-
     def _check_train_test_split_validity(self,
                                          train_set:List[str],
                                          test_set:List[str],
@@ -400,15 +399,12 @@ class CINC2021(Dataset):
         ))
         return is_valid
 
-
     def persistence(self) -> NoReturn:
         """ finished, checked,
 
         make the dataset persistent w.r.t. the tranches and the ratios in `self.config`
         """
         _TRANCHES = "ABEFG"
-        prev_state = self.__data_aug
-        self.disable_data_augmentation()
         if self.training:
             ratio = int(self.config.train_ratio*100)
         else:
@@ -435,25 +431,17 @@ class CINC2021(Dataset):
         np.save(os.path.join(self.reader.db_dir_base, filename), y)
         print(f"y saved to {filename}")
 
-        self.__data_aug = prev_state
-
-
     def _check_nan(self) -> NoReturn:
         """ finished, checked,
 
         during training, sometimes nan values are encountered,
         which ruins the whole training process
         """
-        prev_state = self.__data_aug
-        self.disable_data_augmentation()
-
         for idx, (values, labels) in enumerate(self):
             if np.isnan(values).any():
                 print(f"values of {self.records[idx]} have nan values")
             if np.isnan(labels).any():
                 print(f"labels of {self.records[idx]} have nan values")
-
-        self.__data_aug = prev_state
 
 
 class FastDataReader(Dataset):
