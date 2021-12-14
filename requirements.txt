@@ -17,3 +17,4 @@ torchsummary
 tensorboardX
 tqdm
 deprecated
+torch_optimizer
