@@ -14,5 +14,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        submodules: recursive
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag deeppsp-cinc2021-docker-image:$(date +%s)
