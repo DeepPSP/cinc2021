@@ -33,7 +33,7 @@ WORKDIR /physionet
 # latest version of biosppy uses opencv
 # https://stackoverflow.com/questions/55313610/importerror-libgl-so-1-cannot-open-shared-object-file-no-such-file-or-directo
 RUN apt update
-RUN apt install ffmpeg libsm6 libxext6  -y
+RUN apt install ffmpeg libsm6 libxext6 vim  -y
 
 # RUN apt update && apt install -y --no-install-recommends \
 #         build-essential \
@@ -59,11 +59,12 @@ RUN python docker_test.py
 
 
 # temporarily commented, await for the updates of the official phase
-RUN python test_model.py ./saved_models ./test_data/twelve_leads ./log/test_12leads
-RUN python test_model.py ./saved_models ./test_data/six_leads ./log/test_6leads
-RUN python test_model.py ./saved_models ./test_data/four_leads ./log/test_4leads
-RUN python test_model.py ./saved_models ./test_data/three_leads ./log/test_3leads
-RUN python test_model.py ./saved_models ./test_data/two_leads ./log/test_2leads
+RUN python test_team_code.py
+# RUN python test_model.py ./saved_models ./docker_test_dir/test_data/twelve_leads ./log/test_12leads
+# RUN python test_model.py ./saved_models ./docker_test_dir/test_data/six_leads ./log/test_6leads
+# RUN python test_model.py ./saved_models ./docker_test_dir/test_data/four_leads ./log/test_4leads
+# RUN python test_model.py ./saved_models ./docker_test_dir/test_data/three_leads ./log/test_3leads
+# RUN python test_model.py ./saved_models ./docker_test_dir/test_data/two_leads ./log/test_2leads
 
 
 

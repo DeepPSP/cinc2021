@@ -115,10 +115,10 @@ def training_code(data_directory, model_directory):
     train_config.cnn_name = "resnet_nature_comm_bottle_neck_se"
     train_config.rnn_name = "none"  # "none", "lstm"
     train_config.attn_name = "none"  # "none", "se", "gc", "nl"
-    train_config.n_epochs = 45
-    train_config.batch_size = 20  # training 12-lead model sometimes requires GPU memory more than 16G (Tesla T4)
+    train_config.n_epochs = 60
+    train_config.batch_size = 64  # training 12-lead model sometimes requires GPU memory more than 16G (Tesla T4)
     train_config.log_step = 200
-    train_config.max_lr = 1.5e-3
+    # train_config.max_lr = 1.5e-3
     train_config.early_stopping.patience = 12
 
     tranches = train_config.tranches_for_training
@@ -153,7 +153,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = six_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = _ModelFilename[6]
-    train_config.batch_size = 24
+    train_config.batch_size = 64
     model_config = deepcopy(_ModelCfg.six_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
@@ -174,7 +174,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = four_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = _ModelFilename[4]
-    train_config.batch_size = 28
+    train_config.batch_size = 64
     model_config = deepcopy(_ModelCfg.four_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
@@ -195,7 +195,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = three_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = _ModelFilename[3]
-    train_config.batch_size = 32
+    train_config.batch_size = 64
     model_config = deepcopy(_ModelCfg.three_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
@@ -216,7 +216,7 @@ def training_code(data_directory, model_directory):
     train_config.leads = two_leads
     train_config.n_leads = len(train_config.leads)
     train_config.final_model_name = _ModelFilename[2]
-    train_config.batch_size = 40
+    train_config.batch_size = 64
     model_config = deepcopy(_ModelCfg.two_leads)
     model_config.cnn.name = train_config.cnn_name
     model_config.rnn.name = train_config.rnn_name
@@ -263,10 +263,13 @@ def training_n_leads(train_config:ED, model_config:ED, train_dataset:CINC2021, v
     val_dataset.to(leads=train_config.leads)
     trainer._setup_dataloaders(train_dataset, val_dataset)
 
-    trainer.train()  # including saving model
+    best_state_dict = trainer.train()  # including saving model
 
     del trainer
     del model
+    del best_state_dict
+
+    torch.cuda.empty_cache()
 
 
 

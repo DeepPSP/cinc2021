@@ -88,7 +88,8 @@ if __name__=='__main__':
     except:
         from easydict import EasyDict as ED
         _base_dir = os.path.dirname(__file__)
-        input_directory = os.path.join(_base_dir, "test_data", "twelve_leads")
+        parent_dir = os.path.join(_base_dir, "docker_test_dir", "test_data")
+        input_directory = os.path.join(parent_dir, "twelve_leads")
         reduced_leads = {
             "six_leads": six_leads,
             "four_leads": four_leads,
@@ -96,7 +97,7 @@ if __name__=='__main__':
             "two_leads": two_leads,
         }
         output_directory = {
-            k: os.path.join(_base_dir, "test_data", k) for k in reduced_leads.keys()
+            k: os.path.join(parent_dir, k) for k in reduced_leads.keys()
         }
 
         for k, l in reduced_leads.items():
