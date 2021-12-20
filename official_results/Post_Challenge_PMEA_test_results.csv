@@ -1,0 +1,36 @@
+Team Name,Data Source,Lead Combination,Training UID,Test UID,AUROC,AUPRC,Accuracy,F_measure,Challenge Metric,Training Run Time,Hidden Test Run Time
+Revenger,validation,12,Revenger_32_PMEA,Revenger_32_PMEA_validation_DATASET_1_reruns_1,0.906,0.494,0.455,0.499,0.605,2163m2.499s,5m39.648s
+Revenger,validation,6,Revenger_32_PMEA,Revenger_32_PMEA_validation_DATASET_2_reruns_1,0.882,0.466,0.419,0.473,0.567,2163m2.499s,5m29.411s
+Revenger,validation,4,Revenger_32_PMEA,Revenger_32_PMEA_validation_DATASET_3_reruns_1,0.898,0.477,0.437,0.445,0.582,2163m2.499s,5m21.931s
+Revenger,validation,3,Revenger_32_PMEA,Revenger_32_PMEA_validation_DATASET_4_reruns_1,0.894,0.464,0.421,0.436,0.565,2163m2.499s,5m18.530s
+Revenger,validation,2,Revenger_32_PMEA,Revenger_32_PMEA_validation_DATASET_5_reruns_1,0.872,0.463,0.428,0.47,0.571,2163m2.499s,5m9.191s
+Revenger,training,12,Revenger_32_PMEA,Revenger_32_PMEA_training_DATASET_1_reruns_1,0.985,0.911,0.838,0.883,0.925,2163m2.499s,86m0.946s
+Revenger,training,6,Revenger_32_PMEA,Revenger_32_PMEA_training_DATASET_2_reruns_1,0.975,0.85,0.735,0.812,0.865,2163m2.499s,81m0.209s
+Revenger,training,4,Revenger_32_PMEA,Revenger_32_PMEA_training_DATASET_3_reruns_1,0.983,0.901,0.815,0.868,0.908,2163m2.499s,76m56.944s
+Revenger,training,3,Revenger_32_PMEA,Revenger_32_PMEA_training_DATASET_4_reruns_1,0.982,0.903,0.823,0.871,0.912,2163m2.499s,75m28.862s
+Revenger,training,2,Revenger_32_PMEA,Revenger_32_PMEA_training_DATASET_5_reruns_1,0.974,0.857,0.771,0.814,0.873,2163m2.499s,76m4.080s
+Revenger,CPSC2,12,Revenger_32_PMEA,Revenger_32_PMEA_CPSC2_DATASET_1_reruns_1,0.961,0.844,0.618,0.225,0.842,2163m2.499s,1m46.588s
+Revenger,CPSC2,6,Revenger_32_PMEA,Revenger_32_PMEA_CPSC2_DATASET_2_reruns_1,0.944,0.799,0.534,0.209,0.765,2163m2.499s,1m43.680s
+Revenger,CPSC2,4,Revenger_32_PMEA,Revenger_32_PMEA_CPSC2_DATASET_3_reruns_1,0.952,0.82,0.576,0.212,0.799,2163m2.499s,1m42.090s
+Revenger,CPSC2,3,Revenger_32_PMEA,Revenger_32_PMEA_CPSC2_DATASET_4_reruns_1,0.95,0.809,0.541,0.193,0.769,2163m2.499s,1m44.250s
+Revenger,CPSC2,2,Revenger_32_PMEA,Revenger_32_PMEA_CPSC2_DATASET_5_reruns_1,0.939,0.804,0.572,0.191,0.791,2163m2.499s,1m41.123s
+Revenger,G12EC,12,Revenger_32_PMEA,Revenger_32_PMEA_G12EC_DATASET_1_reruns_1,0.885,0.497,0.396,0.494,0.556,2163m2.499s,4m3.592s
+Revenger,G12EC,6,Revenger_32_PMEA,Revenger_32_PMEA_G12EC_DATASET_2_reruns_1,0.861,0.473,0.369,0.478,0.53,2163m2.499s,3m54.499s
+Revenger,G12EC,4,Revenger_32_PMEA,Revenger_32_PMEA_G12EC_DATASET_3_reruns_1,0.858,0.494,0.381,0.45,0.539,2163m2.499s,3m33.351s
+Revenger,G12EC,3,Revenger_32_PMEA,Revenger_32_PMEA_G12EC_DATASET_4_reruns_1,0.859,0.469,0.377,0.433,0.531,2163m2.499s,3m36.692s
+Revenger,G12EC,2,Revenger_32_PMEA,Revenger_32_PMEA_G12EC_DATASET_5_reruns_1,0.86,0.471,0.379,0.455,0.535,2163m2.499s,3m43.928s
+Revenger,Undisclosed,12,Revenger_32_PMEA,Revenger_32_PMEA_Undisclosed_DATASET_1_reruns_1,0.867,0.53,0.369,0.345,0.353,2163m2.499s,8m0.294s
+Revenger,Undisclosed,6,Revenger_32_PMEA,Revenger_32_PMEA_Undisclosed_DATASET_2_reruns_1,0.829,0.475,0.346,0.306,0.243,2163m2.499s,7m50.132s
+Revenger,Undisclosed,4,Revenger_32_PMEA,Revenger_32_PMEA_Undisclosed_DATASET_3_reruns_1,0.855,0.514,0.346,0.326,0.25,2163m2.499s,7m35.404s
+Revenger,Undisclosed,3,Revenger_32_PMEA,Revenger_32_PMEA_Undisclosed_DATASET_4_reruns_1,0.83,0.507,0.342,0.307,0.221,2163m2.499s,7m1.343s
+Revenger,Undisclosed,2,Revenger_32_PMEA,Revenger_32_PMEA_Undisclosed_DATASET_5_reruns_1,0.785,0.439,0.331,0.26,0.176,2163m2.499s,6m34.566s
+Revenger,UMich,12,Revenger_32_PMEA,Revenger_32_PMEA_UMich_DATASET_1_reruns_1,0.8,0.447,0.348,0.423,0.325,2163m2.499s,13m21.331s
+Revenger,UMich,6,Revenger_32_PMEA,Revenger_32_PMEA_UMich_DATASET_2_reruns_1,0.865,0.476,0.366,0.438,0.417,2163m2.499s,13m59.150s
+Revenger,UMich,4,Revenger_32_PMEA,Revenger_32_PMEA_UMich_DATASET_3_reruns_1,0.875,0.473,0.377,0.435,0.427,2163m2.499s,15m8.808s
+Revenger,UMich,3,Revenger_32_PMEA,Revenger_32_PMEA_UMich_DATASET_4_reruns_1,0.867,0.471,0.382,0.428,0.432,2163m2.499s,14m35.466s
+Revenger,UMich,2,Revenger_32_PMEA,Revenger_32_PMEA_UMich_DATASET_5_reruns_1,0.845,0.443,0.343,0.419,0.362,2163m2.499s,14m27.433s
+Revenger,Total Test,12,Revenger_32_PMEA,,,,,,0.382,2163m2.499s,
+Revenger,Total Test,6,Revenger_32_PMEA,,,,,,0.4,2163m2.499s,
+Revenger,Total Test,4,Revenger_32_PMEA,,,,,,0.41,2163m2.499s,
+Revenger,Total Test,3,Revenger_32_PMEA,,,,,,0.403,2163m2.499s,
+Revenger,Total Test,2,Revenger_32_PMEA,,,,,,0.354,2163m2.499s,
