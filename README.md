@@ -21,6 +21,11 @@ Other teams that are not among official entries, but among [unofficial entries](
 `Aizip-ECG-team` and `Proton` had high score on the hidden test set, but [did not submitted papers](https://docs.google.com/spreadsheets/d/1sSKA9jMp8oT2VqyX4CTirIT3m5lSohIuk5GWf-Cq8FU/edit?usp=sharing), hence not described here.
 
 
+## Post Challenge Test Results
+
+[Test results](https://docs.google.com/spreadsheets/d/1HQpBG-Q02ktYbo5VllP9bTUjQyHBklYco-x5aXr--lE/edit?usp=sharing) provided by the challenge organizers. The challenge score on most test sets is comparable to the other teams but is particularly lower on the UMich test set.
+
+
 ## Conference Website and Conference Programme
 [Website](http://www.cinc2021.org/), [Programme](https://www.cinc.org/2021/Program/accepted/PreliminaryProgram.html), [Poster](/images/CinC2021_poster.pdf)
 
