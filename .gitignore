@@ -149,6 +149,7 @@ log
 !inspect_data.ipynb
 !train_models.ipynb
 !ablation_study.ipynb
+!challenge_the_challenge_metric.ipynb
 
 docker_test_dir/models/
 docker_test_dir/test_output/
