@@ -1,8 +1,16 @@
 # [PhysioNet/CinC Challenge 2021](https://physionetchallenges.github.io/2021/)
 Will Two Do? Varying Dimensions in Electrocardiography: The PhysioNet/Computing in Cardiology Challenge 2021
 
+![docker-ci](https://github.com/DeepPSP/cinc2021/actions/workflows/docker-image.yml/badge.svg)
+
 
 NOTE that a part of the code for the official phase have been moved to the folder [official_phase_legacy](/official_phase_legacy/).
+
+
+## Updated Version
+[A benchmark in `torch_ecg`](https://github.com/DeepPSP/torch_ecg/tree/master/benchmarks/train_crnn_cinc2021).
+
+To reproduce the result **in this repository**, one should stick to [torch_ecg @ ed632d1](https://github.com/DeepPSP/torch_ecg/tree/ed632d1b1a12d79c94552e0972479e2fae4671df). `torch_ecg` has been evolving and the latest version has changed a lot.
 
 
 ## Digest of Top Solutions (ranked by [final challenge score](https://docs.google.com/spreadsheets/d/1cTLRmSLS1_TOwx-XnY-QVoUyO2rFyPUGTHRzNm3u8EM/edit?usp=sharing))
@@ -27,7 +35,7 @@ Other teams that are not among official entries, but among [unofficial entries](
 
 
 ## Conference Website and Conference Programme
-[Website](http://www.cinc2021.org/), [Programme](https://www.cinc.org/2021/Program/accepted/PreliminaryProgram.html), [Poster](/images/CinC2021_poster.pdf)
+[Website](http://www.cinc2021.org/), [Programme](https://cinc.org/archives/2021/), [IEEE Xplore](https://ieeexplore.ieee.org/xpl/conhome/9662654/proceeding), [Poster](/images/CinC2021_poster.pdf)
 
 
 ## Data Preparation
@@ -63,5 +71,19 @@ The last entry failed on the 12-lead UMich test data. It is probably because thi
 TO add....
 
 
+## Citation
+```latex
+@inproceedings{wen_cinc2021,
+      title = {{Hybrid Arrhythmia Detection on Varying-Dimensional Electrocardiography: Combining Deep Neural Networks and Clinical Rules}},
+     author = {Hao Wen and Jingsu Kang},
+  booktitle = {{2021 Computing in Cardiology (CinC)}},
+        doi = {10.23919/cinc53138.2021.9662801},
+       year = {2021},
+      month = {9},
+  publisher = {{IEEE}},
+}
+```
+
 ## Misc
-[Link](https://github.com/DeepPSP/cinc2020) to the unsuccessful attemps for CinC2020 of the previous year.
+1. [Link](https://github.com/DeepPSP/cinc2020) to the unsuccessful attemps for CinC2020 of the previous year.
+2. [bib_lookup](https://github.com/DeepPSP/bib_lookup) for looking up bib entries from `DOI`s obtained from [IEEE Xplore](https://ieeexplore.ieee.org/xpl/conhome/9662654/proceeding).
