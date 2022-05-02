@@ -10,6 +10,7 @@ from copy import deepcopy
 from typing import Union, Optional, List, Tuple, Dict, Sequence, Set, NoReturn
 
 import numpy as np
+
 np.set_printoptions(precision=5, suppress=True)
 from easydict import EasyDict as ED
 from tqdm import tqdm
@@ -18,8 +19,10 @@ from torch.utils.data.dataset import Dataset
 from sklearn.preprocessing import StandardScaler
 
 from .cfg import (
-    TrainCfg, ModelCfg,
+    TrainCfg,
+    ModelCfg,
 )
+
 # from .cfg_ns import (
 #     TrainCfg, ModelCfg,
 # )
@@ -42,13 +45,13 @@ _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class CINC2021(Dataset):
-    """
-    """
+    """ """
+
     __DEBUG__ = False
     __name__ = "CPSC2021"
 
-    def __init__(self, config:ED, training:bool=True) -> NoReturn:
-        """ finished, checked,
+    def __init__(self, config: ED, training: bool = True) -> NoReturn:
+        """finished, checked,
 
         Parameters
         ----------
@@ -60,7 +63,9 @@ class CINC2021(Dataset):
         """
         super().__init__()
         self.config = deepcopy(config)
-        self._TRANCHES = self.config.tranche_classes.keys()  # ["A", "B", "AB", "E", "F", "G",]
+        self._TRANCHES = (
+            self.config.tranche_classes.keys()
+        )  # ["A", "B", "AB", "E", "F", "G",]
         self.reader = CR(db_dir=config.db_dir)
         self.tranches = config.tranches_for_training
         self.training = training
@@ -81,7 +86,9 @@ class CINC2021(Dataset):
         cw = np.zeros((len(self.class_weights),), dtype=self.dtype)
         for idx, c in enumerate(self.all_classes):
             cw[idx] = self.class_weights[c]
-        self.class_weights = torch.from_numpy(cw.astype(self.dtype)).view(1, self.n_classes)
+        self.class_weights = torch.from_numpy(cw.astype(self.dtype)).view(
+            1, self.n_classes
+        )
         # if self.training:
         #     self.siglen = self.config.siglen
         # else:
@@ -92,20 +99,17 @@ class CINC2021(Dataset):
 
         self.records = self._train_test_split(config.train_ratio, force_recompute=False)
         # TODO: consider using `remove_spikes_naive` to treat these exceptional records
-        self.records = [r for r in self.records if r not in self.reader.exceptional_records]
+        self.records = [
+            r for r in self.records if r not in self.reader.exceptional_records
+        ]
 
         self.__data_aug = self.training
 
-
-    def __getitem__(self, index:int) -> Tuple[np.ndarray, np.ndarray]:
-        """ finished, checked,
-        """
+    def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
+        """finished, checked,"""
         rec = self.records[index]
         values = self.reader.load_resampled_data(
-            rec,
-            leads=self.config.leads,
-            data_format="channel_first",
-            siglen=None
+            rec, leads=self.config.leads, data_format="channel_first", siglen=None
         )
         if self.config.bandpass is not None:
             values = butter_bandpass_filter(
@@ -127,51 +131,43 @@ class CINC2021(Dataset):
                 sig_fmt="lead_first",
                 per_channel=False,
             )
-        labels = self.reader.get_labels(
-            rec, scored_only=True, fmt="a", normalize=True
-        )
+        labels = self.reader.get_labels(rec, scored_only=True, fmt="a", normalize=True)
         labels = np.isin(self.all_classes, labels).astype(int)
 
         if self.__data_aug:
             # data augmentation for input
             if self.config.random_mask > 0:
                 mask_len = randint(0, self.config.random_mask)
-                mask_start = randint(0, self.siglen-mask_len-1)
-                values[...,mask_start:mask_start+mask_len] = 0
+                mask_start = randint(0, self.siglen - mask_len - 1)
+                values[..., mask_start : mask_start + mask_len] = 0
             if self.config.stretch_compress != 1:
                 pass  # not implemented
             # data augmentation for labels
-            labels = (1 - self.config.label_smoothing) * labels \
-                + self.config.label_smoothing / self.n_classes
+            labels = (
+                1 - self.config.label_smoothing
+            ) * labels + self.config.label_smoothing / self.n_classes
 
         if self.config.data_format.lower() in ["channel_last", "lead_last"]:
             values = values.T
 
         return values, labels
 
-
     def __len__(self) -> int:
-        """
-        """
+        """ """
         return len(self.records)
 
-
     def disable_data_augmentation(self) -> NoReturn:
-        """
-        """
+        """ """
         self.__data_aug = False
 
-
     def enable_data_augmentation(self) -> NoReturn:
-        """
-        """
+        """ """
         self.__data_aug = True
 
-    
-    def _train_test_split(self,
-                          train_ratio:float=0.8,
-                          force_recompute:bool=False) -> List[str]:
-        """ finished, checked,
+    def _train_test_split(
+        self, train_ratio: float = 0.8, force_recompute: bool = False
+    ) -> List[str]:
+        """finished, checked,
 
         do train test split,
         it is ensured that both the train and the test set contain all classes
@@ -194,39 +190,50 @@ class CINC2021(Dataset):
         print("\nstart performing train test split...\n")
         time.sleep(1)
         _TRANCHES = list("ABEFG")
-        _train_ratio = int(train_ratio*100)
+        _train_ratio = int(train_ratio * 100)
         _test_ratio = 100 - _train_ratio
         assert _train_ratio * _test_ratio > 0
 
         ns = "_ns" if len(self.config.special_classes) == 0 else ""
         file_suffix = f"_siglen_{self.siglen}{ns}.json"
-        train_file = os.path.join(self.reader.db_dir_base, f"train_ratio_{_train_ratio}{file_suffix}")
-        test_file = os.path.join(self.reader.db_dir_base, f"test_ratio_{_test_ratio}{file_suffix}")
+        train_file = os.path.join(
+            self.reader.db_dir_base, f"train_ratio_{_train_ratio}{file_suffix}"
+        )
+        test_file = os.path.join(
+            self.reader.db_dir_base, f"test_ratio_{_test_ratio}{file_suffix}"
+        )
         print(test_file)
 
         if not all([os.path.isfile(train_file), os.path.isfile(test_file)]):
-            train_file = os.path.join(_BASE_DIR, "utils", f"train_ratio_{_train_ratio}{file_suffix}")
-            test_file = os.path.join(_BASE_DIR, "utils", f"test_ratio_{_test_ratio}{file_suffix}")
+            train_file = os.path.join(
+                _BASE_DIR, "utils", f"train_ratio_{_train_ratio}{file_suffix}"
+            )
+            test_file = os.path.join(
+                _BASE_DIR, "utils", f"test_ratio_{_test_ratio}{file_suffix}"
+            )
 
         # TODO: use self.reader.df_stats (precomputed and stored in utils/stats.csv)
         # to accelerate the validity examinations
-        if force_recompute or not all([os.path.isfile(train_file), os.path.isfile(test_file)]):
+        if force_recompute or not all(
+            [os.path.isfile(train_file), os.path.isfile(test_file)]
+        ):
             tranche_records = {t: [] for t in _TRANCHES}
             train_set = {t: [] for t in _TRANCHES}
             test_set = {t: [] for t in _TRANCHES}
             for t in _TRANCHES:
-                with tqdm(self.reader.all_records[t], total=len(self.reader.all_records[t])) as bar:
+                with tqdm(
+                    self.reader.all_records[t], total=len(self.reader.all_records[t])
+                ) as bar:
                     for rec in bar:
                         if rec in self.reader.exceptional_records:
                             # skip exceptional records
                             continue
                         rec_labels = self.reader.get_labels(
-                            rec,
-                            scored_only=True,
-                            fmt="a",
-                            normalize=True
+                            rec, scored_only=True, fmt="a", normalize=True
                         )
-                        rec_labels = [c for c in rec_labels if c in self.config.tranche_classes[t]]
+                        rec_labels = [
+                            c for c in rec_labels if c in self.config.tranche_classes[t]
+                        ]
                         if len(rec_labels) == 0:
                             # skip records with no scored class
                             continue
@@ -238,32 +245,45 @@ class CINC2021(Dataset):
                             continue
                         tranche_records[t].append(rec)
                 time.sleep(1)
-                print(f"tranche {t} has {len(tranche_records[t])} valid records for training")
+                print(
+                    f"tranche {t} has {len(tranche_records[t])} valid records for training"
+                )
             for t in _TRANCHES:
                 is_valid = False
                 while not is_valid:
                     shuffle(tranche_records[t])
-                    split_idx = int(len(tranche_records[t])*train_ratio)
+                    split_idx = int(len(tranche_records[t]) * train_ratio)
                     train_set[t] = tranche_records[t][:split_idx]
                     test_set[t] = tranche_records[t][split_idx:]
                     is_valid = self._check_train_test_split_validity(
                         train_set[t], test_set[t], set(self.config.tranche_classes[t])
                     )
-            train_file_1 = os.path.join(self.reader.db_dir_base, f"train_ratio_{_train_ratio}{file_suffix}")
-            train_file_2 = os.path.join(_BASE_DIR, "utils", f"train_ratio_{_train_ratio}{file_suffix}")
+            train_file_1 = os.path.join(
+                self.reader.db_dir_base, f"train_ratio_{_train_ratio}{file_suffix}"
+            )
+            train_file_2 = os.path.join(
+                _BASE_DIR, "utils", f"train_ratio_{_train_ratio}{file_suffix}"
+            )
             with open(train_file_1, "w") as f1, open(train_file_2, "w") as f2:
                 json.dump(train_set, f1, ensure_ascii=False)
                 json.dump(train_set, f2, ensure_ascii=False)
-            test_file_1 = os.path.join(self.reader.db_dir_base, f"test_ratio_{_test_ratio}{file_suffix}")
-            test_file_2 = os.path.join(_BASE_DIR, "utils", f"test_ratio_{_test_ratio}{file_suffix}")
+            test_file_1 = os.path.join(
+                self.reader.db_dir_base, f"test_ratio_{_test_ratio}{file_suffix}"
+            )
+            test_file_2 = os.path.join(
+                _BASE_DIR, "utils", f"test_ratio_{_test_ratio}{file_suffix}"
+            )
             with open(test_file_1, "w") as f1, open(test_file_2, "w") as f2:
                 json.dump(test_set, f1, ensure_ascii=False)
                 json.dump(test_set, f2, ensure_ascii=False)
-            print(textwrap.dedent(f"""
+            print(
+                textwrap.dedent(
+                    f"""
                 train set saved to \n\042{train_file_1}\042and\n\042{train_file_2}\042
                 test set saved to \n\042{test_file_1}\042and\n\042{test_file_2}\042
                 """
-            ))
+                )
+            )
         else:
             with open(train_file, "r") as f:
                 train_set = json.load(f)
@@ -279,12 +299,10 @@ class CINC2021(Dataset):
             records = list_sum([test_set[k] for k in _tranches])
         return records
 
-
-    def _check_train_test_split_validity(self,
-                                         train_set:List[str],
-                                         test_set:List[str],
-                                         all_classes:Set[str]) -> bool:
-        """ finished, checked,
+    def _check_train_test_split_validity(
+        self, train_set: List[str], test_set: List[str], all_classes: Set[str]
+    ) -> bool:
+        """finished, checked,
 
         the train-test split is valid iff
         records in both `train_set` and `test` contain all classes in `all_classes`
@@ -303,23 +321,29 @@ class CINC2021(Dataset):
         is_valid: bool,
             the split is valid or not
         """
-        train_classes = set(list_sum([self.reader.get_labels(rec, fmt="a") for rec in train_set]))
+        train_classes = set(
+            list_sum([self.reader.get_labels(rec, fmt="a") for rec in train_set])
+        )
         train_classes.intersection_update(all_classes)
-        test_classes = set(list_sum([self.reader.get_labels(rec, fmt="a") for rec in test_set]))
+        test_classes = set(
+            list_sum([self.reader.get_labels(rec, fmt="a") for rec in test_set])
+        )
         test_classes.intersection_update(all_classes)
-        is_valid = (len(all_classes) == len(train_classes) == len(test_classes))
-        print(textwrap.dedent(f"""
+        is_valid = len(all_classes) == len(train_classes) == len(test_classes)
+        print(
+            textwrap.dedent(
+                f"""
             all_classes:     {all_classes}
             train_classes:   {train_classes}
             test_classes:    {test_classes}
             is_valid:        {is_valid}
             """
-        ))
+            )
+        )
         return is_valid
 
-
     def persistence(self) -> NoReturn:
-        """ finished, checked,
+        """finished, checked,
 
         make the dataset persistent w.r.t. the tranches and the ratios in `self.config`
         """
@@ -327,13 +351,13 @@ class CINC2021(Dataset):
         prev_state = self.__data_aug
         self.disable_data_augmentation()
         if self.training:
-            ratio = int(self.config.train_ratio*100)
+            ratio = int(self.config.train_ratio * 100)
         else:
-            ratio = 100 - int(self.config.train_ratio*100)
+            ratio = 100 - int(self.config.train_ratio * 100)
         fn_suffix = f"tranches_{self.tranches or _TRANCHES}_ratio_{ratio}"
         if self.config.bandpass is not None:
             bp_low = max(0, self.config.bandpass[0])
-            bp_high = min(self.config.bandpass[1], self.config.fs//2)
+            bp_high = min(self.config.bandpass[1], self.config.fs // 2)
             fn_suffix = fn_suffix + f"_bp_{bp_low:.1f}_{bp_high:.1f}"
         fn_suffix = fn_suffix + f"_siglen_{self.siglen}"
 
@@ -354,9 +378,8 @@ class CINC2021(Dataset):
 
         self.__data_aug = prev_state
 
-
     def _check_nan(self) -> NoReturn:
-        """ finished, checked,
+        """finished, checked,
 
         during training, sometimes nan values are encountered,
         which ruins the whole training process
@@ -371,7 +394,6 @@ class CINC2021(Dataset):
                 print(f"labels of {self.records[idx]} have nan values")
 
         self.__data_aug = prev_state
-
 
     @property
     def use_augmentation(self) -> bool:

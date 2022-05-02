@@ -37,6 +37,7 @@ from typing import Any, Union, Optional, Tuple, Sequence, NoReturn
 from numbers import Real, Number
 
 import numpy as np
+
 np.set_printoptions(precision=5, suppress=True)
 # try:
 #     from tqdm.auto import tqdm
@@ -56,8 +57,12 @@ from easydict import EasyDict as ED
 from torch_ecg.torch_ecg.models.loss import BCEWithLogitsWithClassWeightLoss
 from torch_ecg.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
 from torch_ecg.torch_ecg.utils.misc import (
-    init_logger, get_date_str, dict_to_str, str2bool,
+    init_logger,
+    get_date_str,
+    dict_to_str,
+    str2bool,
 )
+
 # from torch_ecg_bak.torch_ecg.models.loss import BCEWithLogitsWithClassWeightLoss
 # from torch_ecg_bak.torch_ecg.utils.utils_nn import default_collate_fn as collate_fn
 # from torch_ecg_bak.torch_ecg.utils.misc import (
@@ -80,13 +85,15 @@ __all__ = [
 ]
 
 
-def train(model:nn.Module,
-          model_config:dict,
-          device:torch.device,
-          config:dict,
-          logger:Optional[logging.Logger]=None,
-          debug:bool=False) -> OrderedDict:
-    """ finished, checked,
+def train(
+    model: nn.Module,
+    model_config: dict,
+    device: torch.device,
+    config: dict,
+    logger: Optional[logging.Logger] = None,
+    debug: bool = False,
+) -> OrderedDict:
+    """finished, checked,
 
     Parameters
     ----------
@@ -101,7 +108,7 @@ def train(model:nn.Module,
     logger: Logger, optional,
         logger
     debug: bool, default False,
-        if True, the training set itself would be evaluated 
+        if True, the training set itself would be evaluated
         to check if the model really learns from the training set
 
     Returns
@@ -115,7 +122,9 @@ def train(model:nn.Module,
     else:
         print(msg)
 
-    if type(model).__name__ in ["DataParallel",]:  # TODO: further consider "DistributedDataParallel"
+    if type(model).__name__ in [
+        "DataParallel",
+    ]:  # TODO: further consider "DistributedDataParallel"
         _model = model.module
     else:
         _model = model
@@ -172,10 +181,11 @@ def train(model:nn.Module,
         filename_suffix=f"OPT_{_model.__name__}_{config.cnn_name}_{config.train_optimizer}_LR_{lr}_BS_{batch_size}_tranche_{config.tranches_for_training or 'all'}",
         comment=f"OPT_{_model.__name__}_{config.cnn_name}_{config.train_optimizer}_LR_{lr}_BS_{batch_size}_tranche_{config.tranches_for_training or 'all'}",
     )
-    
+
     # max_itr = n_epochs * n_train
 
-    msg = textwrap.dedent(f"""
+    msg = textwrap.dedent(
+        f"""
         Starting training:
         ------------------
         Epochs:          {n_epochs}
@@ -188,7 +198,8 @@ def train(model:nn.Module,
         Dataset classes: {train_dataset.all_classes}
         Class weights:   {train_dataset.class_weights}
         -----------------------------------------
-        """)
+        """
+    )
     # print(msg)  # in case no logger
     if logger:
         logger.info(msg)
@@ -197,8 +208,7 @@ def train(model:nn.Module,
 
     # learning rate setup
     def burnin_schedule(i):
-        """
-        """
+        """ """
         if i < config.burn_in:
             factor = pow(i / config.burn_in, 4)
         elif i < config.steps[0]:
@@ -233,7 +243,9 @@ def train(model:nn.Module,
             weight_decay=config.decay,
         )
     else:
-        raise NotImplementedError(f"optimizer `{config.train_optimizer}` not implemented!")
+        raise NotImplementedError(
+            f"optimizer `{config.train_optimizer}` not implemented!"
+        )
     # scheduler = optim.lr_scheduler.LambdaLR(optimizer, burnin_schedule)
 
     if config.lr_scheduler is None:
@@ -241,8 +253,13 @@ def train(model:nn.Module,
     elif config.lr_scheduler.lower() == "plateau":
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "max", patience=2)
     elif config.lr_scheduler.lower() == "step":
-        scheduler = optim.lr_scheduler.StepLR(optimizer, config.lr_step_size, config.lr_gamma)
-    elif config.lr_scheduler.lower() in ["one_cycle", "onecycle",]:
+        scheduler = optim.lr_scheduler.StepLR(
+            optimizer, config.lr_step_size, config.lr_gamma
+        )
+    elif config.lr_scheduler.lower() in [
+        "one_cycle",
+        "onecycle",
+    ]:
         scheduler = optim.lr_scheduler.OneCycleLR(
             optimizer=optimizer,
             max_lr=config.max_lr,
@@ -250,7 +267,9 @@ def train(model:nn.Module,
             steps_per_epoch=len(train_loader),
         )
     else:
-        raise NotImplementedError(f"lr scheduler `{config.lr_scheduler.lower()}` not implemented for training")
+        raise NotImplementedError(
+            f"lr scheduler `{config.lr_scheduler.lower()}` not implemented for training"
+        )
 
     if config.loss == "BCEWithLogitsLoss":
         criterion = nn.BCEWithLogitsLoss()
@@ -283,7 +302,9 @@ def train(model:nn.Module,
         model.train()
         epoch_loss = 0
 
-        with tqdm(total=n_train, desc=f"Epoch {epoch + 1}/{n_epochs}", ncols=100) as pbar:
+        with tqdm(
+            total=n_train, desc=f"Epoch {epoch + 1}/{n_epochs}", ncols=100
+        ) as pbar:
             for epoch_step, (signals, labels) in enumerate(train_loader):
                 global_step += 1
                 signals = signals.to(device=device, dtype=_DTYPE)
@@ -306,15 +327,19 @@ def train(model:nn.Module,
                     writer.add_scalar("train/loss", loss.item(), global_step)
                     if scheduler:
                         writer.add_scalar("lr", scheduler.get_lr()[0], global_step)
-                        pbar.set_postfix(**{
-                            "loss (batch)": loss.item(),
-                            "lr": scheduler.get_lr()[0],
-                        })
+                        pbar.set_postfix(
+                            **{
+                                "loss (batch)": loss.item(),
+                                "lr": scheduler.get_lr()[0],
+                            }
+                        )
                         msg = f"Train step_{global_step}: loss : {loss.item()}, lr : {scheduler.get_lr()[0] * batch_size}"
                     else:
-                        pbar.set_postfix(**{
-                            "loss (batch)": loss.item(),
-                        })
+                        pbar.set_postfix(
+                            **{
+                                "loss (batch)": loss.item(),
+                            }
+                        )
                         msg = f"Train step_{global_step}: loss : {loss.item()}"
                     # print(msg)  # in case no logger
                     if config.flooding_level > 0:
@@ -330,14 +355,22 @@ def train(model:nn.Module,
 
             # eval for each epoch using `evaluate`
             if debug:
-                eval_train_res = evaluate(model, val_train_loader, config, device, debug, logger=logger)
+                eval_train_res = evaluate(
+                    model, val_train_loader, config, device, debug, logger=logger
+                )
                 writer.add_scalar("train/auroc", eval_train_res[0], global_step)
                 writer.add_scalar("train/auprc", eval_train_res[1], global_step)
                 writer.add_scalar("train/accuracy", eval_train_res[2], global_step)
                 writer.add_scalar("train/f_measure", eval_train_res[3], global_step)
-                writer.add_scalar("train/f_beta_measure", eval_train_res[4], global_step)
-                writer.add_scalar("train/g_beta_measure", eval_train_res[5], global_step)
-                writer.add_scalar("train/challenge_metric", eval_train_res[6], global_step)
+                writer.add_scalar(
+                    "train/f_beta_measure", eval_train_res[4], global_step
+                )
+                writer.add_scalar(
+                    "train/g_beta_measure", eval_train_res[5], global_step
+                )
+                writer.add_scalar(
+                    "train/challenge_metric", eval_train_res[6], global_step
+                )
 
             eval_res = evaluate(model, val_loader, config, device, debug, logger=logger)
             model.train()
@@ -355,7 +388,10 @@ def train(model:nn.Module,
                 scheduler.step(metrics=eval_res[6])
             elif config.lr_scheduler.lower() == "step":
                 scheduler.step()
-            elif config.lr_scheduler.lower() in ["one_cycle", "onecycle",]:
+            elif config.lr_scheduler.lower() in [
+                "one_cycle",
+                "onecycle",
+            ]:
                 scheduler.step()
 
             if debug:
@@ -370,7 +406,8 @@ def train(model:nn.Module,
                 """
             else:
                 eval_train_msg = ""
-            msg = textwrap.dedent(f"""
+            msg = textwrap.dedent(
+                f"""
                 Train epoch_{epoch + 1}:
                 --------------------
                 train/epoch_loss:        {epoch_loss}{eval_train_msg}
@@ -382,7 +419,8 @@ def train(model:nn.Module,
                 test/g_beta_measure:     {eval_res[5]}
                 test/challenge_metric:   {eval_res[6]}
                 ---------------------------------
-                """)
+                """
+            )
             # print(msg)  # in case no logger
             if logger:
                 logger.info(msg)
@@ -396,7 +434,10 @@ def train(model:nn.Module,
                 best_epoch = epoch + 1
                 pseudo_best_epoch = epoch + 1
             elif config.early_stopping:
-                if eval_res[6] >= best_challenge_metric - config.early_stopping.min_delta:
+                if (
+                    eval_res[6]
+                    >= best_challenge_metric - config.early_stopping.min_delta
+                ):
                     pseudo_best_epoch = epoch + 1
                 elif epoch - pseudo_best_epoch >= config.early_stopping.patience:
                     msg = f"early stopping is triggered at epoch {epoch + 1}"
@@ -406,10 +447,12 @@ def train(model:nn.Module,
                         print(msg)
                     break
 
-            msg = textwrap.dedent(f"""
+            msg = textwrap.dedent(
+                f"""
                 best challenge metric = {best_challenge_metric},
                 obtained at epoch {best_epoch}
-            """)
+            """
+            )
             if logger:
                 logger.info(msg)
             else:
@@ -422,15 +465,20 @@ def train(model:nn.Module,
             except OSError:
                 pass
             save_suffix = f"epochloss_{epoch_loss:.5f}_fb_{eval_res[4]:.2f}_gb_{eval_res[5]:.2f}_cm_{eval_res[6]:.2f}"
-            save_filename = f"{save_prefix}{epoch + 1}_{get_date_str()}_{save_suffix}.pth.tar"
+            save_filename = (
+                f"{save_prefix}{epoch + 1}_{get_date_str()}_{save_suffix}.pth.tar"
+            )
             save_path = os.path.join(config.checkpoints, save_filename)
-            torch.save({
-                "model_state_dict": _model.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-                "model_config": model_config,
-                "train_config": config,
-                "epoch": epoch+1,
-            }, save_path)
+            torch.save(
+                {
+                    "model_state_dict": _model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "model_config": model_config,
+                    "train_config": config,
+                    "epoch": epoch + 1,
+                },
+                save_path,
+            )
             if logger:
                 logger.info(f"Checkpoint {epoch + 1} saved!")
             saved_models.append(save_path)
@@ -450,12 +498,15 @@ def train(model:nn.Module,
             save_suffix = f"BestModel_fb_{best_eval_res[4]:.2f}_gb_{best_eval_res[5]:.2f}_cm_{best_eval_res[6]:.2f}"
             save_filename = f"{save_prefix}_{get_date_str()}_{save_suffix}.pth.tar"
         save_path = os.path.join(config.model_dir, save_filename)
-        torch.save({
-            "model_state_dict": best_state_dict,
-            "model_config": model_config,
-            "train_config": config,
-            "epoch": best_epoch,
-        }, save_path)
+        torch.save(
+            {
+                "model_state_dict": best_state_dict,
+                "model_config": model_config,
+                "train_config": config,
+                "epoch": best_epoch,
+            },
+            save_path,
+        )
         if logger:
             logger.info(f"Best model saved to {save_path}!")
 
@@ -477,13 +528,15 @@ def train(model:nn.Module,
 
 
 @torch.no_grad()
-def evaluate(model:nn.Module,
-             data_loader:DataLoader,
-             config:dict,
-             device:torch.device,
-             debug:bool=True,
-             logger:Optional[logging.Logger]=None) -> Tuple[float,...]:
-    """ finished, checked,
+def evaluate(
+    model: nn.Module,
+    data_loader: DataLoader,
+    config: dict,
+    device: torch.device,
+    debug: bool = True,
+    logger: Optional[logging.Logger] = None,
+) -> Tuple[float, ...]:
+    """finished, checked,
 
     Parameters
     ----------
@@ -511,7 +564,9 @@ def evaluate(model:nn.Module,
     prev_aug_status = data_loader.dataset.use_augmentation
     data_loader.dataset.disable_data_augmentation()
 
-    if type(model).__name__ in ["DataParallel",]:  # TODO: further consider "DistributedDataParallel"
+    if type(model).__name__ in [
+        "DataParallel",
+    ]:  # TODO: further consider "DistributedDataParallel"
         _model = model.module
     else:
         _model = model
@@ -530,7 +585,7 @@ def evaluate(model:nn.Module,
         preds, bin_preds = _model.inference(signals)
         all_scalar_preds.append(preds)
         all_bin_preds.append(bin_preds)
-    
+
     all_scalar_preds = np.concatenate(all_scalar_preds, axis=0)
     all_bin_preds = np.concatenate(all_bin_preds, axis=0)
     all_labels = np.concatenate(all_labels, axis=0)
@@ -543,13 +598,16 @@ def evaluate(model:nn.Module,
         else:
             print(msg)
         head_num = 5
-        head_scalar_preds = all_scalar_preds[:head_num,...]
-        head_bin_preds = all_bin_preds[:head_num,...]
-        head_preds_classes = [np.array(classes)[np.where(row)] for row in head_bin_preds]
-        head_labels = all_labels[:head_num,...]
+        head_scalar_preds = all_scalar_preds[:head_num, ...]
+        head_bin_preds = all_bin_preds[:head_num, ...]
+        head_preds_classes = [
+            np.array(classes)[np.where(row)] for row in head_bin_preds
+        ]
+        head_labels = all_labels[:head_num, ...]
         head_labels_classes = [np.array(classes)[np.where(row)] for row in head_labels]
         for n in range(head_num):
-            msg = textwrap.dedent(f"""
+            msg = textwrap.dedent(
+                f"""
             ----------------------------------------------
             scalar prediction:    {[round(n, 3) for n in head_scalar_preds[n].tolist()]}
             binary prediction:    {head_bin_preds[n].tolist()}
@@ -557,20 +615,36 @@ def evaluate(model:nn.Module,
             predicted classes:    {head_preds_classes[n].tolist()}
             label classes:        {head_labels_classes[n].tolist()}
             ----------------------------------------------
-            """)
+            """
+            )
             if logger:
                 logger.debug(msg)
             else:
                 print(msg)
 
-    auroc, auprc, accuracy, f_measure, f_beta_measure, g_beta_measure, challenge_metric = \
-        evaluate_scores(
-            classes=classes,
-            truth=all_labels,
-            scalar_pred=all_scalar_preds,
-            binary_pred=all_bin_preds,
-        )
-    eval_res = auroc, auprc, accuracy, f_measure, f_beta_measure, g_beta_measure, challenge_metric
+    (
+        auroc,
+        auprc,
+        accuracy,
+        f_measure,
+        f_beta_measure,
+        g_beta_measure,
+        challenge_metric,
+    ) = evaluate_scores(
+        classes=classes,
+        truth=all_labels,
+        scalar_pred=all_scalar_preds,
+        binary_pred=all_bin_preds,
+    )
+    eval_res = (
+        auroc,
+        auprc,
+        accuracy,
+        f_measure,
+        f_beta_measure,
+        g_beta_measure,
+        challenge_metric,
+    )
 
     model.train()
 
@@ -580,62 +654,80 @@ def evaluate(model:nn.Module,
     return eval_res
 
 
-def get_args(**kwargs:Any):
-    """
-    """
+def get_args(**kwargs: Any):
+    """ """
     cfg = deepcopy(kwargs)
     parser = argparse.ArgumentParser(
         description="Train the Model on CINC2021",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
-        "-l", "--leads",
-        type=int, default=12,
-        help="number of leads",
-        dest="n_leads")
+        "-l", "--leads", type=int, default=12, help="number of leads", dest="n_leads"
+    )
     parser.add_argument(
-        "-t", "--tranches",
-        type=str, default="",
+        "-t",
+        "--tranches",
+        type=str,
+        default="",
         help="the tranches for training",
-        dest="tranches_for_training")
+        dest="tranches_for_training",
+    )
     parser.add_argument(
-        "-b", "--batch-size",
-        type=int, default=128,
+        "-b",
+        "--batch-size",
+        type=int,
+        default=128,
         help="the batch size for training",
-        dest="batch_size")
+        dest="batch_size",
+    )
     parser.add_argument(
-        "-c", "--cnn-name",
-        type=str, default="multi_scopic_leadwise",
+        "-c",
+        "--cnn-name",
+        type=str,
+        default="multi_scopic_leadwise",
         help="choice of cnn feature extractor",
-        dest="cnn_name")
+        dest="cnn_name",
+    )
     parser.add_argument(
-        "-r", "--rnn-name",
-        type=str, default="none",
+        "-r",
+        "--rnn-name",
+        type=str,
+        default="none",
         help="choice of rnn structures",
-        dest="rnn_name")
+        dest="rnn_name",
+    )
     parser.add_argument(
-        "-a", "--attn-name",
-        type=str, default="se",
+        "-a",
+        "--attn-name",
+        type=str,
+        default="se",
         help="choice of attention structures",
-        dest="attn_name")
+        dest="attn_name",
+    )
     parser.add_argument(
-        "--keep-checkpoint-max", type=int, default=20,
+        "--keep-checkpoint-max",
+        type=int,
+        default=20,
         help="maximum number of checkpoints to keep. If set 0, all checkpoints will be kept",
-        dest="keep_checkpoint_max")
+        dest="keep_checkpoint_max",
+    )
     # parser.add_argument(
     #     "--optimizer", type=str, default="adam",
     #     help="training optimizer",
     #     dest="train_optimizer")
     parser.add_argument(
-        "-d", "--debug", action="store_true",
+        "-d",
+        "--debug",
+        action="store_true",
         help="train with more debugging information",
-        dest="debug")
-    
+        dest="debug",
+    )
+
     args = vars(parser.parse_args())
 
     cfg.update(args)
-    
-    return ED(cfg)
 
+    return ED(cfg)
 
 
 if __name__ == "__main__":
@@ -689,11 +781,14 @@ if __name__ == "__main__":
             debug=config.debug,
         )
     except KeyboardInterrupt:
-        torch.save({
-            "model_state_dict": model.state_dict(),
-            "model_config": model_config,
-            "train_config": config,
-        }, os.path.join(config.checkpoints, "INTERRUPTED.pth.tar"))
+        torch.save(
+            {
+                "model_state_dict": model.state_dict(),
+                "model_config": model_config,
+                "train_config": config,
+            },
+            os.path.join(config.checkpoints, "INTERRUPTED.pth.tar"),
+        )
         logger.info("Saved interrupt")
         try:
             sys.exit(0)

@@ -8,7 +8,10 @@ TODO
 ----
 add functionality of downloading the .tar.gz files from GCP using `download_blob`
 """
-import os, subprocess, shutil, argparse, tarfile, time
+import os
+import argparse
+import tarfile
+import time
 from glob import glob
 from copy import deepcopy
 from typing import Optional, Sequence, NoReturn
@@ -47,31 +50,38 @@ _source_blob_name = "physionetchallenge2021-public-datasets"
 
 
 def get_parser() -> dict:
-    """
-    """
+    """ """
     description = "Prepare the dataset, uncompressing the .tar.gz files, and replacing the header files."
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "-i", "--input_directory", type=str,
+        "-i",
+        "--input_directory",
+        type=str,
         help="input directory, containing .tar.gz files of records and headers",
         dest="input_directory",
     )
     parser.add_argument(
-        "-o", "--output_directory", type=str,
+        "-o",
+        "--output_directory",
+        type=str,
         help="output directory",
         dest="output_directory",
     )
     parser.add_argument(
-        "-t", "--tranches", type=str,
+        "-t",
+        "--tranches",
+        type=str,
         help=f"""list of tranches, a subset of {",".join(_tranches)}, separated by comma""",
         dest="tranches",
     )
     parser.add_argument(
-        "-v", "--verbose", action="store_true",
-        help=f"verbosity",
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="verbosity",
         dest="verbose",
     )
 
@@ -89,7 +99,7 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
 
     try:
         from google.cloud import storage
-    except:
+    except Exception:
         raise ModuleNotFoundError("one should install the package \042google\042")
 
     storage_client = storage.Client()
@@ -103,18 +113,16 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
     blob = bucket.blob(source_blob_name)
     blob.download_to_filename(destination_file_name)
 
-    print(
-        "Blob {} downloaded to {}.".format(
-            source_blob_name, destination_file_name
-        )
-    )
+    print("Blob {} downloaded to {}.".format(source_blob_name, destination_file_name))
 
 
-def run(input_directory:str,
-        output_directory:Optional[str]=None,
-        tranches:Optional[Sequence[str]]=None,
-        verbose:bool=False) -> NoReturn:
-    """ finished, checked,
+def run(
+    input_directory: str,
+    output_directory: Optional[str] = None,
+    tranches: Optional[Sequence[str]] = None,
+    verbose: bool = False,
+) -> NoReturn:
+    """finished, checked,
 
     Parameters
     ----------
@@ -134,19 +142,26 @@ def run(input_directory:str,
     # ShaoxingUniv (CUSPHNFH) is the union of ChapmanShaoxing and Ningbo
     if data_files[-3] in os.listdir(input_directory):
         flag_CUSPHNFH = False
-        _data_files =  data_files[:-2]
+        _data_files = data_files[:-2]
         _header_files = header_files[:-2]
     else:
         flag_CUSPHNFH = True
         _data_files = deepcopy(data_files)
         _header_files = deepcopy(header_files)
-    _data_files = \
-        [os.path.basename(item) for item in glob(os.path.join(_dir, "WFDB_*.tar.gz")) if os.path.basename(item) in _data_files]
-    _header_files = \
-        [os.path.basename(item) for item in glob(os.path.join(_dir, "*Headers.tar.gz")) if os.path.basename(item) in _header_files]
+    _data_files = [
+        os.path.basename(item)
+        for item in glob(os.path.join(_dir, "WFDB_*.tar.gz"))
+        if os.path.basename(item) in _data_files
+    ]
+    _header_files = [
+        os.path.basename(item)
+        for item in glob(os.path.join(_dir, "*Headers.tar.gz"))
+        if os.path.basename(item) in _header_files
+    ]
     _output_directory = output_directory or input_directory
-    assert all([header_files[data_files.index(item)] in _header_files for item in _data_files]), \
-        "header files corresponding to some data files not found"
+    assert all(
+        [header_files[data_files.index(item)] in _header_files for item in _data_files]
+    ), "header files corresponding to some data files not found"
 
     if flag_CUSPHNFH:
         os.makedirs(os.path.join(_output_directory, "WFDB_CUSPHNFH"), exist_ok=True)
@@ -156,7 +171,10 @@ def run(input_directory:str,
         if tranches and _tranches[data_files.index(df)] not in tranches:
             continue
         acc += 1
-        if df in ["WFDB_ChapmanShaoxing.tar.gz", "WFDB_Ningbo.tar.gz",]:
+        if df in [
+            "WFDB_ChapmanShaoxing.tar.gz",
+            "WFDB_Ningbo.tar.gz",
+        ]:
             df_name = "WFDB_CUSPHNFH"
         else:
             df_name = df.replace(".tar.gz", "")
@@ -173,7 +191,9 @@ def run(input_directory:str,
                             continue
                         tar.extract(member, os.path.join(_output_directory, df_name))
                         if verbose:
-                            print(f"extracted '{os.path.join(_output_directory, df_name, member.name)}'")
+                            print(
+                                f"extracted '{os.path.join(_output_directory, df_name, member.name)}'"
+                            )
         print(f"finish extracting {df}")
         time.sleep(3)
         # corresponding header files
@@ -184,12 +204,15 @@ def run(input_directory:str,
                     member.name = os.path.basename(member.name)
                     tar.extract(member, os.path.join(_output_directory, df_name))
                     if verbose:
-                        print(f"extracted '{os.path.join(_output_directory, df_name, member.name)}'")
+                        print(
+                            f"extracted '{os.path.join(_output_directory, df_name, member.name)}'"
+                        )
         print(f"finish extracting {hf}")
-        print(f"{df_name} done! --- {acc}/{len(tranches) if tranches else len(_data_files)}")
+        print(
+            f"{df_name} done! --- {acc}/{len(tranches) if tranches else len(_data_files)}"
+        )
         if i < len(_data_files) - 1:
             time.sleep(3)
-
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ Training strategy:
 3. models will be trained for each tranche separatly:
 
 4. one model will be trained using the whole dataset (consider excluding tranche C? good news is that tranche C mainly consists of "Brady" and "STach", which can be classified using the special detectors)
-        
+
 References: (mainly tips for faster and better training)
 -----------
 1. https://efficientdl.com/faster-deep-learning-in-pytorch-a-guide/
@@ -21,17 +21,23 @@ References: (mainly tips for faster and better training)
 4. more....
 """
 
-import os, sys, time, textwrap, argparse, logging
+import os
+import sys
+import textwrap
+import argparse
+import logging
 from copy import deepcopy
 from typing import Tuple, Dict, Any, List, NoReturn, Optional
 
 import numpy as np
+
 np.set_printoptions(precision=5, suppress=True)
 import torch
 from torch import nn
-from torch import Tensor
-import torch.nn.functional as F
-from torch.nn.parallel import DistributedDataParallel as DDP, DataParallel as DP
+from torch.nn.parallel import (  # noqa: F401
+    DistributedDataParallel as DDP,
+    DataParallel as DP,
+)  # noqa: F401
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
 from easydict import EasyDict as ED
@@ -45,6 +51,7 @@ from model import ECG_CRNN_CINC2021
 from utils.scoring_metrics import evaluate_scores
 from cfg import BaseCfg, TrainCfg, ModelCfg
 from dataset import CINC2021
+
 CINC2021.__DEBUG__ = False
 
 if BaseCfg.torch_dtype.lower() == "double":
@@ -55,18 +62,20 @@ else:
 
 
 class CINC2021Trainer(BaseTrainer):
-    """
-    """
+    """ """
+
     __name__ = "CINC2021Trainer"
 
-    def __init__(self,
-                 model:nn.Module,
-                 model_config:dict,
-                 train_config:dict,
-                 device:Optional[torch.device]=None,
-                 lazy:bool=True,
-                 **kwargs:Any,) -> NoReturn:
-        """ finished, checked,
+    def __init__(
+        self,
+        model: nn.Module,
+        model_config: dict,
+        train_config: dict,
+        device: Optional[torch.device] = None,
+        lazy: bool = True,
+        **kwargs: Any,
+    ) -> NoReturn:
+        """finished, checked,
 
         Parameters
         ----------
@@ -99,9 +108,13 @@ class CINC2021Trainer(BaseTrainer):
         """
         super().__init__(model, CINC2021, model_config, train_config, device, lazy)
 
-    def _setup_dataloaders(self, train_dataset:Optional[Dataset]=None, val_dataset:Optional[Dataset]=None) -> NoReturn:
-        """ finished, checked,
-        
+    def _setup_dataloaders(
+        self,
+        train_dataset: Optional[Dataset] = None,
+        val_dataset: Optional[Dataset] = None,
+    ) -> NoReturn:
+        """finished, checked,
+
         setup the dataloaders for training and validation
 
         Parameters
@@ -112,16 +125,20 @@ class CINC2021Trainer(BaseTrainer):
             the validation dataset
         """
         if train_dataset is None:
-            train_dataset = self.dataset_cls(config=self.train_config, training=True, lazy=False)
+            train_dataset = self.dataset_cls(
+                config=self.train_config, training=True, lazy=False
+            )
 
         if self.train_config.debug:
             val_train_dataset = train_dataset
         else:
             val_train_dataset = None
         if val_dataset is None:
-            val_dataset = self.dataset_cls(config=self.train_config, training=False, lazy=False)
+            val_dataset = self.dataset_cls(
+                config=self.train_config, training=False, lazy=False
+            )
 
-         # https://discuss.pytorch.org/t/guidelines-for-assigning-num-workers-to-dataloader/813/4
+        # https://discuss.pytorch.org/t/guidelines-for-assigning-num-workers-to-dataloader/813/4
         num_workers = 4
 
         self.train_loader = DataLoader(
@@ -156,7 +173,9 @@ class CINC2021Trainer(BaseTrainer):
             collate_fn=collate_fn,
         )
 
-    def run_one_step(self, *data:Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
+    def run_one_step(
+        self, *data: Tuple[torch.Tensor, torch.Tensor]
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Parameters
@@ -180,9 +199,8 @@ class CINC2021Trainer(BaseTrainer):
         return preds, labels
 
     @torch.no_grad()
-    def evaluate(self, data_loader:DataLoader) -> Dict[str, float]:
-        """
-        """
+    def evaluate(self, data_loader: DataLoader) -> Dict[str, float]:
+        """ """
         self.model.eval()
 
         all_scalar_preds = []
@@ -199,7 +217,7 @@ class CINC2021Trainer(BaseTrainer):
             preds, bin_preds = self._model.inference(signals)
             all_scalar_preds.append(preds)
             all_bin_preds.append(bin_preds)
-        
+
         all_scalar_preds = np.concatenate(all_scalar_preds, axis=0)
         all_bin_preds = np.concatenate(all_bin_preds, axis=0)
         all_labels = np.concatenate(all_labels, axis=0)
@@ -209,13 +227,18 @@ class CINC2021Trainer(BaseTrainer):
             msg = f"all_scalar_preds.shape = {all_scalar_preds.shape}, all_labels.shape = {all_labels.shape}"
             self.log_manager.log_message(msg, level=logging.DEBUG)
             head_num = 5
-            head_scalar_preds = all_scalar_preds[:head_num,...]
-            head_bin_preds = all_bin_preds[:head_num,...]
-            head_preds_classes = [np.array(classes)[np.where(row)] for row in head_bin_preds]
-            head_labels = all_labels[:head_num,...]
-            head_labels_classes = [np.array(classes)[np.where(row)] for row in head_labels]
+            head_scalar_preds = all_scalar_preds[:head_num, ...]
+            head_bin_preds = all_bin_preds[:head_num, ...]
+            head_preds_classes = [
+                np.array(classes)[np.where(row)] for row in head_bin_preds
+            ]
+            head_labels = all_labels[:head_num, ...]
+            head_labels_classes = [
+                np.array(classes)[np.where(row)] for row in head_labels
+            ]
             for n in range(head_num):
-                msg = textwrap.dedent(f"""
+                msg = textwrap.dedent(
+                    f"""
                 ----------------------------------------------
                 scalar prediction:    {[round(n, 3) for n in head_scalar_preds[n].tolist()]}
                 binary prediction:    {head_bin_preds[n].tolist()}
@@ -223,16 +246,24 @@ class CINC2021Trainer(BaseTrainer):
                 predicted classes:    {head_preds_classes[n].tolist()}
                 label classes:        {head_labels_classes[n].tolist()}
                 ----------------------------------------------
-                """)
+                """
+                )
                 self.log_manager.log_message(msg)
 
-        auroc, auprc, accuracy, f_measure, f_beta_measure, g_beta_measure, challenge_metric = \
-            evaluate_scores(
-                classes=classes,
-                truth=all_labels,
-                scalar_pred=all_scalar_preds,
-                binary_pred=all_bin_preds,
-            )
+        (
+            auroc,
+            auprc,
+            accuracy,
+            f_measure,
+            f_beta_measure,
+            g_beta_measure,
+            challenge_metric,
+        ) = evaluate_scores(
+            classes=classes,
+            truth=all_labels,
+            scalar_pred=all_scalar_preds,
+            binary_pred=all_bin_preds,
+        )
         eval_res = dict(
             auroc=auroc,
             auprc=auprc,
@@ -259,8 +290,7 @@ class CINC2021Trainer(BaseTrainer):
 
     @property
     def extra_required_train_config_fields(self) -> List[str]:
-        """
-        """
+        """ """
         return []
 
     @property
@@ -271,60 +301,79 @@ class CINC2021Trainer(BaseTrainer):
         return super().extra_log_suffix() + f"_{self.model_config.cnn.name}"
 
 
-def get_args(**kwargs:Any):
-    """
-    """
+def get_args(**kwargs: Any):
+    """ """
     cfg = deepcopy(kwargs)
     parser = argparse.ArgumentParser(
         description="Train the Model on CINC2021",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
-        "-l", "--leads",
-        type=int, default=12,
-        help="number of leads",
-        dest="n_leads")
+        "-l", "--leads", type=int, default=12, help="number of leads", dest="n_leads"
+    )
     parser.add_argument(
-        "-t", "--tranches",
-        type=str, default="",
+        "-t",
+        "--tranches",
+        type=str,
+        default="",
         help="the tranches for training",
-        dest="tranches_for_training")
+        dest="tranches_for_training",
+    )
     parser.add_argument(
-        "-b", "--batch-size",
-        type=int, default=128,
+        "-b",
+        "--batch-size",
+        type=int,
+        default=128,
         help="the batch size for training",
-        dest="batch_size")
+        dest="batch_size",
+    )
     parser.add_argument(
-        "-c", "--cnn-name",
-        type=str, default="multi_scopic_leadwise",
+        "-c",
+        "--cnn-name",
+        type=str,
+        default="multi_scopic_leadwise",
         help="choice of cnn feature extractor",
-        dest="cnn_name")
+        dest="cnn_name",
+    )
     parser.add_argument(
-        "-r", "--rnn-name",
-        type=str, default="none",
+        "-r",
+        "--rnn-name",
+        type=str,
+        default="none",
         help="choice of rnn structures",
-        dest="rnn_name")
+        dest="rnn_name",
+    )
     parser.add_argument(
-        "-a", "--attn-name",
-        type=str, default="se",
+        "-a",
+        "--attn-name",
+        type=str,
+        default="se",
         help="choice of attention structures",
-        dest="attn_name")
+        dest="attn_name",
+    )
     parser.add_argument(
-        "--keep-checkpoint-max", type=int, default=20,
+        "--keep-checkpoint-max",
+        type=int,
+        default=20,
         help="maximum number of checkpoints to keep. If set 0, all checkpoints will be kept",
-        dest="keep_checkpoint_max")
+        dest="keep_checkpoint_max",
+    )
     # parser.add_argument(
     #     "--optimizer", type=str, default="adam",
     #     help="training optimizer",
     #     dest="train_optimizer")
     parser.add_argument(
-        "-d", "--debug", action="store_true",
+        "-d",
+        "--debug",
+        action="store_true",
         help="train with more debugging information",
-        dest="debug")
-    
+        dest="debug",
+    )
+
     args = vars(parser.parse_args())
 
     cfg.update(args)
-    
+
     return ED(cfg)
 
 

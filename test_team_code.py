@@ -1,16 +1,15 @@
 """
 """
-#!/usr/bin/env python
+# !/usr/bin/env python
 
 # Edit this script to add your team's training code.
 # Some functions are *required*, but you can edit most parts of required functions, remove non-required functions, and add your own function.
 
-from helper_code import *
-import os, sys
+from helper_code import *  # noqa: F403
+import os
 import time
 from datetime import datetime
 from copy import deepcopy
-from logging import Logger
 from typing import NoReturn
 import traceback
 import warnings
@@ -19,24 +18,26 @@ import numpy as np
 import pandas as pd
 import torch
 from easydict import EasyDict as ED
-from scipy.signal import resample, resample_poly
+from scipy.signal import resample_poly
 
 # from torch_ecg.torch_ecg._preprocessors import PreprocManager
 from torch_ecg_bak.torch_ecg._preprocessors import PreprocManager
 
 from trainer import CINC2021Trainer
 from dataset import CINC2021
+
 # from helper_code import twelve_leads, six_leads, four_leads, three_leads, two_leads, lead_sets
-from cfg import (
-    TrainCfg, ModelCfg,
-    TrainCfg_ns, ModelCfg_ns,
+from cfg import (  # noqa: F401
+    TrainCfg,
+    ModelCfg,
+    TrainCfg_ns,
+    ModelCfg_ns,
     SpecialDetectorCfg,
 )
 from model import ECG_CRNN_CINC2021
 from utils.special_detectors import special_detectors
 from utils.utils_nn import extend_predictions
-from utils.misc import rdheader
-from utils.utils_signal import ensure_siglen
+from utils.misc import rdheader, dict_to_str
 from utils.scoring_aux_data import abbr_to_snomed_ct_code
 from signal_processing.ecg_denoise import remove_spikes_naive
 
@@ -46,11 +47,24 @@ CINC2021Trainer.__DEBUG__ = False
 
 
 # Define the Challenge lead sets. These variables are not required. You can change or remove them.
-twelve_leads = ('I', 'II', 'III', 'aVR', 'aVL', 'aVF', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6')
-six_leads = ('I', 'II', 'III', 'aVR', 'aVL', 'aVF')
-four_leads = ('I', 'II', 'III', 'V2')
-three_leads = ('I', 'II', 'V2')
-two_leads = ('I', 'II')
+twelve_leads = (
+    "I",
+    "II",
+    "III",
+    "aVR",
+    "aVL",
+    "aVF",
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6",
+)
+six_leads = ("I", "II", "III", "aVR", "aVL", "aVF")
+four_leads = ("I", "II", "III", "V2")
+three_leads = ("I", "II", "V2")
+two_leads = ("I", "II")
 lead_sets = (twelve_leads, six_leads, four_leads, three_leads, two_leads)
 
 
@@ -64,7 +78,14 @@ _TrainCfg.bandpass = None
 
 
 _ModelFilename = {
-    n: f"{n}_lead_model.pth.tar" for n in [12, 6, 4, 3, 2,]
+    n: f"{n}_lead_model.pth.tar"
+    for n in [
+        12,
+        6,
+        4,
+        3,
+        2,
+    ]
 }
 # twelve_lead_model_filename = "12_lead_model.pth.tar"
 # six_lead_model_filename = "6_lead_model.pth.tar"
@@ -81,7 +102,7 @@ else:
 
 clf_1linear = ED()
 clf_1linear.out_channels = [
-  # not including the last linear layer, whose out channels equals n_classes
+    # not including the last linear layer, whose out channels equals n_classes
 ]
 clf_1linear.bias = True
 clf_1linear.dropouts = 0.0
@@ -101,8 +122,7 @@ PPM.rearrange(["bandpass", "normalize"])
 
 # Train your model. This function is *required*. You should edit this function to add your code, but do *not* change the arguments of this function.
 def training_code(data_directory, model_directory):
-    """
-    """
+    """ """
     # Create a folder for the model if it does not already exist.
     if not os.path.isdir(model_directory):
         os.mkdir(model_directory)
@@ -148,7 +168,6 @@ def training_code(data_directory, model_directory):
 
     training_n_leads(train_config, model_config, ds_train_cache, ds_val_cache)
 
-
     # Train 6-lead ECG model.
     print("Training 6-lead ECG model...")
 
@@ -169,7 +188,6 @@ def training_code(data_directory, model_directory):
 
     del ds_train, ds_val
 
-
     # Train 4-lead ECG model.
     print("Training 4-lead ECG model...")
 
@@ -189,7 +207,6 @@ def training_code(data_directory, model_directory):
     training_n_leads(train_config, model_config, ds_train, ds_val)
 
     del ds_train, ds_val
-    
 
     # Train 3-lead ECG model.
     print("Training 3-lead ECG model...")
@@ -210,7 +227,6 @@ def training_code(data_directory, model_directory):
     training_n_leads(train_config, model_config, ds_train, ds_val)
 
     del ds_train, ds_val
-    
 
     # Train 2-lead ECG model.
     print("Training 2-lead ECG model...")
@@ -232,13 +248,15 @@ def training_code(data_directory, model_directory):
 
     del ds_train, ds_val, ds_train_cache, ds_val_cache
 
-    print(f"Training finishes! Total time usage is {((time.time() - start_time) / 3600):.3f} hours.")
+    print(
+        f"Training finishes! Total time usage is {((time.time() - start_time) / 3600):.3f} hours."
+    )
 
 
-
-def training_n_leads(train_config:ED, model_config:ED, train_dataset:CINC2021, val_dataset:CINC2021) -> NoReturn:
-    """
-    """
+def training_n_leads(
+    train_config: ED, model_config: ED, train_dataset: CINC2021, val_dataset: CINC2021
+) -> NoReturn:
+    """ """
     tranches = train_config.tranches_for_training
     if tranches:
         train_classes = train_config.tranche_classes[tranches]
@@ -276,7 +294,6 @@ def training_n_leads(train_config:ED, model_config:ED, train_dataset:CINC2021, v
     torch.cuda.empty_cache()
 
 
-
 ################################################################################
 #
 # File I/O functions
@@ -287,6 +304,7 @@ def training_n_leads(train_config:ED, model_config:ED, train_dataset:CINC2021, v
 def save_model(filename, classes, leads, imputer, classifier):
     # Construct a data structure for the model and save it.
     raise NotImplementedError
+
 
 # Load a trained model. This function is *required*. You should edit this function to add your code, but do *not* change the arguments of this function.
 def load_model(model_directory, leads):
@@ -301,8 +319,11 @@ def load_model(model_directory, leads):
     )
     model.eval()
     if len(model.classes) != len(_TrainCfg.classes):
-        warnings.warn(f"""checkpoint model has {len(model.classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}""")
+        warnings.warn(
+            f"""checkpoint model has {len(model.classes)} classes, while _TrainCfg has {len(_TrainCfg.classes)}"""
+        )
     return model
+
 
 ################################################################################
 #
@@ -312,8 +333,7 @@ def load_model(model_directory, leads):
 
 # Run your trained model. This function is *required*. You should edit this function to add your code, but do *not* change the arguments of this function.
 def run_model(model, header, recording, verbose=0):
-    """ finished, checked,
-    """
+    """finished, checked,"""
     raw_data, ann_dict = preprocess_data(header, recording)
 
     for lead in range(raw_data.shape[0]):
@@ -329,16 +349,16 @@ def run_model(model, header, recording, verbose=0):
                 sig_fmt="lead_first",
                 leads=ann_dict["df_leads"]["lead_name"],
                 axis_method="3-lead",
-                verbose=verbose
+                verbose=verbose,
             )
         except Exception as e:
             partial_conclusion = dict(
-                is_brady = False,
-                is_tachy = False,
-                is_LAD = False,
-                is_RAD = False,
-                is_PR = False,
-                is_LQRSV = False,
+                is_brady=False,
+                is_tachy=False,
+                is_LAD=False,
+                is_RAD=False,
+                is_PR=False,
+                is_LQRSV=False,
             )
             print("special_detectors raises errors, as follows")
             traceback.print_exc()
@@ -353,7 +373,13 @@ def run_model(model, header, recording, verbose=0):
         if verbose >= 1:
             print(f"results from special detectors: {dict_to_str(partial_conclusion)}")
 
-        tmp = np.zeros(shape=(len(_ModelCfg.full_classes,)))
+        tmp = np.zeros(
+            shape=(
+                len(
+                    _ModelCfg.full_classes,
+                )
+            )
+        )
         tmp[_ModelCfg.full_classes.index("Brady")] = int(is_brady)
         tmp[_ModelCfg.full_classes.index("LAD")] = int(is_LAD)
         tmp[_ModelCfg.full_classes.index("RAD")] = int(is_RAD)
@@ -363,7 +389,7 @@ def run_model(model, header, recording, verbose=0):
 
         final_scores.append(partial_conclusion)
         final_conclusions.append(partial_conclusion)
-    
+
     # DL part
     dl_data = raw_data.copy()
     dl_data, _ = PPM(dl_data, fs=ann_dict["fs"])
@@ -380,9 +406,7 @@ def run_model(model, header, recording, verbose=0):
     # dl_scores, dl_conclusions each of shape (1,n_classes)
     try:
         dl_scores, dl_conclusions = model.inference(
-            dl_data,
-            class_names=False,
-            bin_pred_thr=0.5
+            dl_data, class_names=False, bin_pred_thr=0.5
         )
     except Exception as e:
         # in case of errors, set the prediction to "NSR"
@@ -429,14 +453,21 @@ def run_model(model, header, recording, verbose=0):
     return classes, labels, probabilities
 
 
-def preprocess_data(header:str, recording:np.ndarray):
+def preprocess_data(header: str, recording: np.ndarray):
     """
     modified from data_reader.py
     """
     header_data = header.splitlines()
     header_reader = rdheader(header_data)
     ann_dict = {}
-    ann_dict["rec_name"], ann_dict["nb_leads"], ann_dict["fs"], ann_dict["nb_samples"], ann_dict["datetime"], daytime = header_data[0].split(" ")
+    (
+        ann_dict["rec_name"],
+        ann_dict["nb_leads"],
+        ann_dict["fs"],
+        ann_dict["nb_samples"],
+        ann_dict["datetime"],
+        daytime,
+    ) = header_data[0].split(" ")
 
     ann_dict["nb_leads"] = int(ann_dict["nb_leads"])
     ann_dict["fs"] = int(ann_dict["fs"])
@@ -447,13 +478,28 @@ def preprocess_data(header:str, recording:np.ndarray):
 
     df_leads = pd.DataFrame()
     cols = [
-        "file_name", "fmt", "byte_offset",
-        "adc_gain", "units", "adc_res", "adc_zero",
-        "baseline", "init_value", "checksum", "block_size", "sig_name",
+        "file_name",
+        "fmt",
+        "byte_offset",
+        "adc_gain",
+        "units",
+        "adc_res",
+        "adc_zero",
+        "baseline",
+        "init_value",
+        "checksum",
+        "block_size",
+        "sig_name",
     ]
     for k in cols:
         df_leads[k] = header_reader.__dict__[k]
-    df_leads = df_leads.rename(columns={"sig_name":"lead_name", "units":"adc_units", "file_name":"filename",})
+    df_leads = df_leads.rename(
+        columns={
+            "sig_name": "lead_name",
+            "units": "adc_units",
+            "file_name": "filename",
+        }
+    )
     df_leads.index = df_leads["lead_name"]
     df_leads.index.name = None
     ann_dict["df_leads"] = df_leads
@@ -466,7 +512,7 @@ def preprocess_data(header:str, recording:np.ndarray):
         data = data.T
     baselines = header_info["baseline"].values.reshape(data.shape[0], -1)
     adc_gain = header_info["adc_gain"].values.reshape(data.shape[0], -1)
-    data = np.asarray(data-baselines) / adc_gain
+    data = np.asarray(data - baselines) / adc_gain
 
     if ann_dict["fs"] != _TrainCfg.fs:
         data = resample_poly(data, _TrainCfg.fs, ann_dict["fs"], axis=1)
@@ -474,20 +520,18 @@ def preprocess_data(header:str, recording:np.ndarray):
     return data, ann_dict
 
 
-
-
 def test_model(model_directory, data_directory, output_directory):
     """
     the function from test_model.py
     """
     # Find header and recording files.
-    print('Finding header and recording files...')
+    print("Finding header and recording files...")
 
-    header_files, recording_files = find_challenge_files(data_directory)
+    header_files, recording_files = find_challenge_files(data_directory)  # noqa: F405
     num_recordings = len(recording_files)
 
     if not num_recordings:
-        raise Exception('No data was provided.')
+        raise Exception("No data was provided.")
 
     # Create a folder for the outputs if it does not already exist.
     if not os.path.isdir(output_directory):
@@ -496,49 +540,51 @@ def test_model(model_directory, data_directory, output_directory):
     # Identify the required lead sets.
     required_lead_sets = set()
     for i in range(num_recordings):
-        header = load_header(header_files[i])
-        leads = get_leads(header)
-        sorted_leads = sort_leads(leads)
+        header = load_header(header_files[i])  # noqa: F405
+        leads = get_leads(header)  # noqa: F405
+        sorted_leads = sort_leads(leads)  # noqa: F405
         required_lead_sets.add(sorted_leads)
 
     # Load models.
     leads_to_model = dict()
-    print('Loading models...')
+    print("Loading models...")
     for leads in required_lead_sets:
-        model = load_model(model_directory, leads) ### Implement this function!
+        model = load_model(model_directory, leads)  # Implement this function!
         leads_to_model[leads] = model
 
     # Run model for each recording.
-    print('Running model...')
+    print("Running model...")
 
     for i in range(num_recordings):
-        print('    {}/{}...'.format(i+1, num_recordings))
+        print("    {}/{}...".format(i + 1, num_recordings))
 
         # Load header and recording.
-        header = load_header(header_files[i])
-        recording = load_recording(recording_files[i])
-        leads = get_leads(header)
-        sorted_leads = sort_leads(leads)
+        header = load_header(header_files[i])  # noqa: F405
+        recording = load_recording(recording_files[i])  # noqa: F405
+        leads = get_leads(header)  # noqa: F405
+        sorted_leads = sort_leads(leads)  # noqa: F405
 
         # Apply model to recording.
         model = leads_to_model[sorted_leads]
         try:
-            classes, labels, probabilities = run_model(model, header, recording) ### Implement this function!
+            classes, labels, probabilities = run_model(
+                model, header, recording
+            )  # Implement this function!
         except Exception as e:
             print(e)
-            print('... failed.')
+            print("... failed.")
             classes, labels, probabilities = list(), list(), list()
 
         # Save model outputs.
-        recording_id = get_recording_id(header)
+        recording_id = get_recording_id(header)  # noqa: F405
         head, tail = os.path.split(header_files[i])
         root, extension = os.path.splitext(tail)
-        output_file = os.path.join(output_directory, root + '.csv')
-        save_outputs(output_file, recording_id, classes, labels, probabilities)
+        output_file = os.path.join(output_directory, root + ".csv")
+        save_outputs(  # noqa: F405
+            output_file, recording_id, classes, labels, probabilities
+        )  # noqa: F405
 
-    print('Done.')
-
-
+    print("Done.")
 
 
 BASE_DIR = os.path.dirname(TrainCfg_ns.model_dir)
@@ -551,44 +597,48 @@ os.makedirs(TEST_OUTPUT_DIR, exist_ok=True)
 
 
 def test_load_model() -> NoReturn:
-    """
-    """
-    for l in lead_sets:
+    """ """
+    for ld in lead_sets:
         try:
-            model = load_model(MODEL_DIR, l)
-        except:
-            model = load_model(TrainCfg_ns.model_dir, l)
-        print(f"n_leads = {len(l)}")
+            model = load_model(MODEL_DIR, ld)
+        except Exception:
+            model = load_model(TrainCfg_ns.model_dir, ld)
+        print(f"n_leads = {len(ld)}")
         print(model)
-        print("#"*80 + "\n\n")
+        print("#" * 80 + "\n\n")
 
 
 def test_run_model() -> NoReturn:
-    """
-    """
-    for l in ["twelve", "six", "four", "three", "two",]:
+    """ """
+    for ld in [
+        "twelve",
+        "six",
+        "four",
+        "three",
+        "two",
+    ]:
         try:
             test_model(
                 MODEL_DIR,
-                os.path.join(TEST_DATA_DIR, f"{l}_leads"),
-                os.path.join(TEST_OUTPUT_DIR, f"test_results_{l}_leads"),
+                os.path.join(TEST_DATA_DIR, f"{ld}_leads"),
+                os.path.join(TEST_OUTPUT_DIR, f"test_results_{ld}_leads"),
             )
-        except:
+        except Exception:
             test_model(
                 TrainCfg_ns.model_dir,
-                os.path.join(TEST_DATA_DIR, f"{l}_leads"),
-                os.path.join(TEST_OUTPUT_DIR, f"test_results_{l}_leads"),
+                os.path.join(TEST_DATA_DIR, f"{ld}_leads"),
+                os.path.join(TEST_OUTPUT_DIR, f"test_results_{ld}_leads"),
             )
 
 
 if __name__ == "__main__":
-    print("#"*80)
+    print("#" * 80)
     print("train models...")
     training_code(TRAINING_DATA_DIR, MODEL_DIR)
-    print("#"*80)
+    print("#" * 80)
     print("test_load_model...")
     test_load_model()
-    print("\n"*3)
-    print("#"*80)
+    print("\n" * 3)
+    print("#" * 80)
     print("test_run_model...")
     test_run_model()

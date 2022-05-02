@@ -1,6 +1,7 @@
 """
 """
-import os, sys
+import os
+import sys
 import re
 import logging
 import datetime
@@ -8,18 +9,17 @@ from functools import reduce
 from collections import namedtuple
 from glob import glob
 from copy import deepcopy
-from typing import Union, Optional, List, Dict, Tuple, Sequence, Iterable, NoReturn, Any
+from typing import Union, Optional, List, Dict, Sequence, Iterable, NoReturn, Any
 from numbers import Real, Number
 
 import numpy as np
+
 np.set_printoptions(precision=5, suppress=True)
 import pandas as pd
-from scipy import interpolate
 from wfdb.io import _header
 from wfdb import Record, MultiRecord
 from easydict import EasyDict as ED
 from sklearn.utils import compute_class_weight
-
 
 
 __all__ = [
@@ -37,16 +37,18 @@ __all__ = [
     "init_logger",
     "get_date_str",
     "rdheader",
-    "ECGWaveForm", "masks_to_waveforms",
+    "ECGWaveForm",
+    "masks_to_waveforms",
     "mask_to_intervals",
     "nildent",
     "list_sum",
-    "read_log_txt", "read_event_scalars",
+    "read_log_txt",
+    "read_event_scalars",
 ]
 
 
-def get_record_list_recursive(db_dir:str, rec_ext:str) -> List[str]:
-    """ finished, checked,
+def get_record_list_recursive(db_dir: str, rec_ext: str) -> List[str]:
+    """finished, checked,
 
     get the list of records in `db_dir` recursively,
     for example, there are two folders "patient1", "patient2" in `db_dir`,
@@ -67,7 +69,9 @@ def get_record_list_recursive(db_dir:str, rec_ext:str) -> List[str]:
         list of records, in lexicographical order
     """
     res = []
-    db_dir = os.path.join(db_dir, "tmp").replace("tmp", "")  # make sure `db_dir` ends with a sep
+    db_dir = os.path.join(db_dir, "tmp").replace(
+        "tmp", ""
+    )  # make sure `db_dir` ends with a sep
     roots = [db_dir]
     while len(roots) > 0:
         new_roots = []
@@ -76,14 +80,18 @@ def get_record_list_recursive(db_dir:str, rec_ext:str) -> List[str]:
             res += [item for item in tmp if os.path.isfile(item)]
             new_roots += [item for item in tmp if os.path.isdir(item)]
         roots = deepcopy(new_roots)
-    res = [os.path.splitext(item)[0].replace(db_dir, "") for item in res if item.endswith(rec_ext)]
+    res = [
+        os.path.splitext(item)[0].replace(db_dir, "")
+        for item in res
+        if item.endswith(rec_ext)
+    ]
     res = sorted(res)
 
     return res
 
 
-def get_record_list_recursive2(db_dir:str, rec_pattern:str) -> List[str]:
-    """ finished, checked,
+def get_record_list_recursive2(db_dir: str, rec_pattern: str) -> List[str]:
+    """finished, checked,
 
     get the list of records in `db_dir` recursively,
     for example, there are two folders "patient1", "patient2" in `db_dir`,
@@ -104,7 +112,9 @@ def get_record_list_recursive2(db_dir:str, rec_pattern:str) -> List[str]:
         list of records, in lexicographical order
     """
     res = []
-    db_dir = os.path.join(db_dir, "tmp").replace("tmp", "")  # make sure `db_dir` ends with a sep
+    db_dir = os.path.join(db_dir, "tmp").replace(
+        "tmp", ""
+    )  # make sure `db_dir` ends with a sep
     roots = [db_dir]
     while len(roots) > 0:
         new_roots = []
@@ -120,8 +130,10 @@ def get_record_list_recursive2(db_dir:str, rec_pattern:str) -> List[str]:
     return res
 
 
-def get_record_list_recursive3(db_dir:str, rec_patterns:Union[str,Dict[str,str]]) -> Union[List[str], Dict[str, List[str]]]:
-    """ finished, checked,
+def get_record_list_recursive3(
+    db_dir: str, rec_patterns: Union[str, Dict[str, str]]
+) -> Union[List[str], Dict[str, List[str]]]:
+    r"""finished, checked,
 
     get the list of records in `db_dir` recursively,
     for example, there are two folders "patient1", "patient2" in `db_dir`,
@@ -145,8 +157,10 @@ def get_record_list_recursive3(db_dir:str, rec_patterns:Union[str,Dict[str,str]]
     if isinstance(rec_patterns, str):
         res = []
     elif isinstance(rec_patterns, dict):
-        res = {k:[] for k in rec_patterns.keys()}
-    db_dir = os.path.join(db_dir, "tmp").replace("tmp", "")  # make sure `db_dir` ends with a sep
+        res = {k: [] for k in rec_patterns.keys()}
+    db_dir = os.path.join(db_dir, "tmp").replace(
+        "tmp", ""
+    )  # make sure `db_dir` ends with a sep
     roots = [db_dir]
     while len(roots) > 0:
         new_roots = []
@@ -161,7 +175,11 @@ def get_record_list_recursive3(db_dir:str, rec_patterns:Union[str,Dict[str,str]]
                 for k in rec_patterns.keys():
                     to_add = list(filter(re.compile(rec_patterns[k]).search, tmp))
                     res[k] += [os.path.join(r, item) for item in to_add]
-            new_roots += [os.path.join(r, item) for item in tmp if os.path.isdir(os.path.join(r, item))]
+            new_roots += [
+                os.path.join(r, item)
+                for item in tmp
+                if os.path.isdir(os.path.join(r, item))
+            ]
         roots = deepcopy(new_roots)
     if isinstance(rec_patterns, str):
         res = [os.path.splitext(item)[0].replace(db_dir, "") for item in res]
@@ -173,8 +191,10 @@ def get_record_list_recursive3(db_dir:str, rec_patterns:Union[str,Dict[str,str]]
     return res
 
 
-def dict_to_str(d:Union[dict, list, tuple], current_depth:int=1, indent_spaces:int=4) -> str:
-    """ finished, checked,
+def dict_to_str(
+    d: Union[dict, list, tuple], current_depth: int = 1, indent_spaces: int = 4
+) -> str:
+    """finished, checked,
 
     convert a (possibly) nested dict into a `str` of json-like formatted form,
     this nested dict might also contain lists or tuples of dict (and of str, int, etc.)
@@ -195,18 +215,21 @@ def dict_to_str(d:Union[dict, list, tuple], current_depth:int=1, indent_spaces:i
     """
     assert isinstance(d, (dict, list, tuple))
     if len(d) == 0:
-        s = f"{{}}" if isinstance(d, dict) else f"[]"
+        s = f"{{}}" if isinstance(d, dict) else "[]"  # noqa: F541
         return s
     # flat_types = (Number, bool, str,)
-    flat_types = (Number, bool,)
+    flat_types = (
+        Number,
+        bool,
+    )
     flat_sep = ", "
     s = "\n"
-    unit_indent = " "*indent_spaces
-    prefix = unit_indent*current_depth
+    unit_indent = " " * indent_spaces
+    prefix = unit_indent * current_depth
     if isinstance(d, (list, tuple)):
         if all([isinstance(v, flat_types) for v in d]):
             len_per_line = 110
-            current_len = len(prefix) + 1  # + 1 for a comma 
+            current_len = len(prefix) + 1  # + 1 for a comma
             val = []
             for idx, v in enumerate(d):
                 add_v = f"\042{v}\042" if isinstance(v, str) else str(v)
@@ -245,13 +268,13 @@ def dict_to_str(d:Union[dict, list, tuple], current_depth:int=1, indent_spaces:i
                 s += ",\n"
             else:
                 s += "\n"
-    s += unit_indent*(current_depth-1)
+    s += unit_indent * (current_depth - 1)
     s = f"{{{s}}}" if isinstance(d, dict) else f"[{s}]"
     return s
 
 
-def str2bool(v:Union[str, bool]) -> bool:
-    """ finished, checked,
+def str2bool(v: Union[str, bool]) -> bool:
+    """finished, checked,
 
     converts a "boolean" value possibly in the format of str to bool
 
@@ -270,7 +293,7 @@ def str2bool(v:Union[str, bool]) -> bool:
     https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse
     """
     if isinstance(v, bool):
-       b = v
+        b = v
     elif v.lower() in ("yes", "true", "t", "y", "1"):
         b = True
     elif v.lower() in ("no", "false", "f", "n", "0"):
@@ -280,8 +303,8 @@ def str2bool(v:Union[str, bool]) -> bool:
     return b
 
 
-def diff_with_step(a:np.ndarray, step:int=1, **kwargs) -> np.ndarray:
-    """ finished, checked,
+def diff_with_step(a: np.ndarray, step: int = 1, **kwargs) -> np.ndarray:
+    """finished, checked,
 
     compute a[n+step] - a[n] for all valid n
 
@@ -299,13 +322,15 @@ def diff_with_step(a:np.ndarray, step:int=1, **kwargs) -> np.ndarray:
         the difference array
     """
     if step >= len(a):
-        raise ValueError(f"step ({step}) should be less than the length ({len(a)}) of `a`")
+        raise ValueError(
+            f"step ({step}) should be less than the length ({len(a)}) of `a`"
+        )
     d = a[step:] - a[:-step]
     return d
 
 
-def ms2samples(t:Real, fs:Real) -> int:
-    """ finished, checked,
+def ms2samples(t: Real, fs: Real) -> int:
+    """finished, checked,
 
     convert time `t` with units in ms to number of samples
 
@@ -325,8 +350,8 @@ def ms2samples(t:Real, fs:Real) -> int:
     return n_samples
 
 
-def samples2ms(n_samples:int, fs:Real) -> Real:
-    """ finished, checked,
+def samples2ms(n_samples: int, fs: Real) -> Real:
+    """finished, checked,
 
     inverse function of `ms2samples`
 
@@ -346,12 +371,14 @@ def samples2ms(n_samples:int, fs:Real) -> Real:
     return t
 
 
-def get_mask(shape:Union[int, Sequence[int]],
-             critical_points:np.ndarray,
-             left_bias:int,
-             right_bias:int,
-             return_fmt:str="mask") -> Union[np.ndarray,list]:
-    """ finished, checked,
+def get_mask(
+    shape: Union[int, Sequence[int]],
+    critical_points: np.ndarray,
+    left_bias: int,
+    right_bias: int,
+    return_fmt: str = "mask",
+) -> Union[np.ndarray, list]:
+    """finished, checked,
 
     get the mask around the `critical_points`
 
@@ -376,18 +403,23 @@ def get_mask(shape:Union[int, Sequence[int]],
     """
     if isinstance(shape, int):
         shape = (shape,)
-    l_itv = [[max(0,cp-left_bias),min(shape[-1],cp+right_bias)] for cp in critical_points]
+    l_itv = [
+        [max(0, cp - left_bias), min(shape[-1], cp + right_bias)]
+        for cp in critical_points
+    ]
     if return_fmt.lower() == "mask":
         mask = np.zeros(shape=shape, dtype=int)
         for itv in l_itv:
-            mask[..., itv[0]:itv[1]] = 1
+            mask[..., itv[0] : itv[1]] = 1
     elif return_fmt.lower() == "intervals":
         mask = l_itv
     return mask
 
 
-def class_weight_to_sample_weight(y:np.ndarray, class_weight:Union[str,List[float],np.ndarray,dict]="balanced") -> np.ndarray:
-    """ finished, checked,
+def class_weight_to_sample_weight(
+    y: np.ndarray, class_weight: Union[str, List[float], np.ndarray, dict] = "balanced"
+) -> np.ndarray:
+    """finished, checked,
 
     transform class weight to sample weight
 
@@ -397,7 +429,7 @@ def class_weight_to_sample_weight(y:np.ndarray, class_weight:Union[str,List[floa
         the label (class) of each sample
     class_weight: str, or list, or ndarray, or dict, default "balanced",
         the weight for each sample class,
-        if is "balanced", the class weight will automatically be given by 
+        if is "balanced", the class weight will automatically be given by
         if `y` is of string type, then `class_weight` should be a dict,
         if `y` is of numeric type, and `class_weight` is array_like,
         then the labels (`y`) should be continuous and start from 0
@@ -405,14 +437,15 @@ def class_weight_to_sample_weight(y:np.ndarray, class_weight:Union[str,List[floa
     if not class_weight:
         sample_weight = np.ones_like(y, dtype=float)
         return sample_weight
-    
+
     try:
         sample_weight = y.copy().astype(int)
-    except:
+    except Exception:
         sample_weight = y.copy()
-        assert isinstance(class_weight, dict) or class_weight.lower()=="balanced", \
-            "if `y` are of type str, then class_weight should be 'balanced' or a dict"
-    
+        assert (
+            isinstance(class_weight, dict) or class_weight.lower() == "balanced"
+        ), "if `y` are of type str, then class_weight should be 'balanced' or a dict"
+
     if isinstance(class_weight, str) and class_weight.lower() == "balanced":
         classes = np.unique(y).tolist()
         cw = compute_class_weight("balanced", classes=classes, y=y)
@@ -424,12 +457,14 @@ def class_weight_to_sample_weight(y:np.ndarray, class_weight:Union[str,List[floa
     return sample_weight
 
 
-def plot_single_lead(t:np.ndarray,
-                     sig:np.ndarray,
-                     ax:Optional[Any]=None,
-                     ticks_granularity:int=0,
-                     **kwargs) -> NoReturn:
-    """ finished, NOT checked,
+def plot_single_lead(
+    t: np.ndarray,
+    sig: np.ndarray,
+    ax: Optional[Any] = None,
+    ticks_granularity: int = 0,
+    **kwargs,
+) -> NoReturn:
+    """finished, NOT checked,
 
     Parameters
     ----------
@@ -437,11 +472,15 @@ def plot_single_lead(t:np.ndarray,
     """
     if "plt" not in dir():
         import matplotlib.pyplot as plt
-    palette = {"p_waves": "green", "qrs": "red", "t_waves": "pink",}
+    palette = {
+        "p_waves": "green",
+        "qrs": "red",
+        "t_waves": "pink",
+    }
     plot_alpha = 0.4
     y_range = np.max(np.abs(sig)) + 100
     if ax is None:
-        fig_sz_w = int(round(4.8 * (t[-1]-t[0])))
+        fig_sz_w = int(round(4.8 * (t[-1] - t[0])))
         fig_sz_h = 6 * y_range / 1500
         fig, ax = plt.subplots(figsize=(fig_sz_w, fig_sz_h))
     label = kwargs.get("label", None)
@@ -459,8 +498,8 @@ def plot_single_lead(t:np.ndarray,
         ax.xaxis.set_minor_locator(plt.MultipleLocator(0.04))
         ax.yaxis.set_minor_locator(plt.MultipleLocator(100))
         ax.grid(which="minor", linestyle=":", linewidth="0.5", color="black")
-    
-    waves = kwargs.get("waves", {"p_waves":[], "qrs":[], "t_waves":[]})
+
+    waves = kwargs.get("waves", {"p_waves": [], "qrs": [], "t_waves": []})
     for w, l_itv in waves.items():
         for itv in l_itv:
             ax.axvspan(itv[0], itv[1], color=palette[w], alpha=plot_alpha)
@@ -472,8 +511,10 @@ def plot_single_lead(t:np.ndarray,
     ax.set_ylabel("Voltage [μV]")
 
 
-def init_logger(log_dir:str, log_file:Optional[str]=None, mode:str="a", verbose:int=0) -> logging.Logger:
-    """ finished, checked,
+def init_logger(
+    log_dir: str, log_file: Optional[str] = None, mode: str = "a", verbose: int = 0
+) -> logging.Logger:
+    """finished, checked,
 
     Parameters
     ----------
@@ -531,8 +572,8 @@ def init_logger(log_dir:str, log_file:Optional[str]=None, mode:str="a", verbose:
     return logger
 
 
-def get_date_str(fmt:Optional[str]=None):
-    """ finished, checked,
+def get_date_str(fmt: Optional[str] = None):
+    """finished, checked,
 
     Parameters
     ----------
@@ -549,9 +590,9 @@ def get_date_str(fmt:Optional[str]=None):
     return date_str
 
 
-def rdheader(header_data:Union[str, Sequence[str]]) -> Union[Record, MultiRecord]:
-    """ finished, checked,
-    
+def rdheader(header_data: Union[str, Sequence[str]]) -> Union[Record, MultiRecord]:
+    """finished, checked,
+
     modified from `wfdb.rdheader`
 
     Parameters
@@ -602,7 +643,7 @@ def rdheader(header_data:Union[str, Sequence[str]]) -> Union[Record, MultiRecord
         record = Record()
 
         # There are signals
-        if len(header_lines)>1:
+        if len(header_lines) > 1:
             # Read the fields from the signal lines
             signal_fields = _header._parse_signal_lines(header_lines[1:])
             # Set the object's signal fields
@@ -645,11 +686,13 @@ ECGWaveForm = namedtuple(
 )
 
 
-def masks_to_waveforms(masks:np.ndarray,
-                       class_map:Dict[str, int],
-                       fs:Real,
-                       mask_format:str="channel_first",
-                       leads:Optional[Sequence[str]]=None) -> Dict[str, List[ECGWaveForm]]:
+def masks_to_waveforms(
+    masks: np.ndarray,
+    class_map: Dict[str, int],
+    fs: Real,
+    mask_format: str = "channel_first",
+    leads: Optional[Sequence[str]] = None,
+) -> Dict[str, List[ECGWaveForm]]:
     """
 
     convert masks into lists of waveforms
@@ -680,50 +723,63 @@ def masks_to_waveforms(masks:np.ndarray,
         otherwise would be "lead_1", "lead_2", ..., "lead_n"
     """
     if masks.ndim == 1:
-        _masks = masks[np.newaxis,...]
+        _masks = masks[np.newaxis, ...]
     elif masks.ndim == 2:
-        if mask_format.lower() not in ["channel_first", "lead_first",]:
+        if mask_format.lower() not in [
+            "channel_first",
+            "lead_first",
+        ]:
             _masks = masks.T
         else:
             _masks = masks.copy()
     else:
-        raise ValueError(f"masks should be of dim 1 or 2, but got a {masks.ndim}d array")
+        raise ValueError(
+            f"masks should be of dim 1 or 2, but got a {masks.ndim}d array"
+        )
 
-    _leads = [f"lead_{idx+1}" for idx in range(_masks.shape[0])] if leads is None else leads
+    _leads = (
+        [f"lead_{idx+1}" for idx in range(_masks.shape[0])] if leads is None else leads
+    )
     assert len(_leads) == _masks.shape[0]
 
     _class_map = ED(deepcopy(class_map))
 
-    waves = ED({lead_name:[] for lead_name in _leads})
+    waves = ED({lead_name: [] for lead_name in _leads})
     for channel_idx, lead_name in enumerate(_leads):
-        current_mask = _masks[channel_idx,...]
+        current_mask = _masks[channel_idx, ...]
         for wave_name, wave_number in _class_map.items():
-            if wave_name.lower() not in ["pwave", "qrs", "twave",]:
+            if wave_name.lower() not in [
+                "pwave",
+                "qrs",
+                "twave",
+            ]:
                 continue
-            current_wave_inds = np.where(current_mask==wave_number)[0]
+            current_wave_inds = np.where(current_mask == wave_number)[0]
             if len(current_wave_inds) == 0:
                 continue
-            np.where(np.diff(current_wave_inds)>1)
-            split_inds = np.where(np.diff(current_wave_inds)>1)[0].tolist()
-            split_inds = sorted(split_inds+[i+1 for i in split_inds])
-            split_inds = [0] + split_inds + [len(current_wave_inds)-1]
-            for i in range(len(split_inds)//2):
-                itv_start = current_wave_inds[split_inds[2*i]]
-                itv_end = current_wave_inds[split_inds[2*i+1]]+1
+            np.where(np.diff(current_wave_inds) > 1)
+            split_inds = np.where(np.diff(current_wave_inds) > 1)[0].tolist()
+            split_inds = sorted(split_inds + [i + 1 for i in split_inds])
+            split_inds = [0] + split_inds + [len(current_wave_inds) - 1]
+            for i in range(len(split_inds) // 2):
+                itv_start = current_wave_inds[split_inds[2 * i]]
+                itv_end = current_wave_inds[split_inds[2 * i + 1]] + 1
                 w = ECGWaveForm(
                     name=wave_name.lower(),
                     onset=itv_start,
                     offset=itv_end,
                     peak=np.nan,
-                    duration=1000*(itv_end-itv_start)/fs,  # ms
+                    duration=1000 * (itv_end - itv_start) / fs,  # ms
                 )
                 waves[lead_name].append(w)
         waves[lead_name].sort(key=lambda w: w.onset)
     return waves
 
 
-def mask_to_intervals(mask:np.ndarray, vals:Optional[Union[int,Sequence[int]]]=None) -> Union[list, dict]:
-    """ finished, checked,
+def mask_to_intervals(
+    mask: np.ndarray, vals: Optional[Union[int, Sequence[int]]] = None
+) -> Union[list, dict]:
+    """finished, checked,
 
     Parameters
     ----------
@@ -747,58 +803,64 @@ def mask_to_intervals(mask:np.ndarray, vals:Optional[Union[int,Sequence[int]]]=N
         _vals = vals
     # assert set(_vals) & set(mask) == set(_vals)
 
-    intervals = {v:[] for v in _vals}
+    intervals = {v: [] for v in _vals}
     for v in _vals:
-        valid_inds = np.where(np.array(mask)==v)[0]
+        valid_inds = np.where(np.array(mask) == v)[0]
         if len(valid_inds) == 0:
             continue
-        split_indices = np.where(np.diff(valid_inds)>1)[0]
-        split_indices = split_indices.tolist() + (split_indices+1).tolist()
-        split_indices = sorted([0] + split_indices + [len(valid_inds)-1])
-        for idx in range(len(split_indices)//2):
+        split_indices = np.where(np.diff(valid_inds) > 1)[0]
+        split_indices = split_indices.tolist() + (split_indices + 1).tolist()
+        split_indices = sorted([0] + split_indices + [len(valid_inds) - 1])
+        for idx in range(len(split_indices) // 2):
             intervals[v].append(
-                [valid_inds[split_indices[2*idx]], valid_inds[split_indices[2*idx+1]]+1]
+                [
+                    valid_inds[split_indices[2 * idx]],
+                    valid_inds[split_indices[2 * idx + 1]] + 1,
+                ]
             )
-    
+
     if isinstance(vals, int):
         intervals = intervals[vals]
 
     return intervals
 
 
-def nildent(text:str) -> str:
-    """ finished, checked,
+def nildent(text: str) -> str:
+    """finished, checked,
 
     kill all leading white spaces in each line of `text`,
     while keeping all lines (including empty)
     """
-    new_text = "\n".join([l.lstrip() for l in text.splitlines()]) \
-        + ("\n" if text.endswith("\n") else "")
+    new_text = "\n".join([line.lstrip() for line in text.splitlines()]) + (
+        "\n" if text.endswith("\n") else ""
+    )
     return new_text
 
 
-def list_sum(l:Sequence[list]) -> list:
-    """ finished, checked,
+def list_sum(lst: Sequence[list]) -> list:
+    """finished, checked,
 
     Parameters
     ----------
-    l: sequence of list,
+    lst: sequence of list,
         the sequence of lists to obtain the summation
 
     Returns
     -------
     l_sum: list,
-        sum of `l`,
-        i.e. if l = [list1, list2, ...], then l_sum = list1 + list2 + ...
+        sum of `lst`,
+        i.e. if lst = [list1, list2, ...], then l_sum = list1 + list2 + ...
     """
-    l_sum = reduce(lambda a,b: a+b, l, [])
+    l_sum = reduce(lambda a, b: a + b, lst, [])
     return l_sum
 
 
-def read_log_txt(fp:str,
-                 epoch_startswith:str="Train epoch_",
-                 scalar_startswith:Union[str,Iterable[str]]="train/|test/") -> pd.DataFrame:
-    """ finished, checked,
+def read_log_txt(
+    fp: str,
+    epoch_startswith: str = "Train epoch_",
+    scalar_startswith: Union[str, Iterable[str]] = "train/|test/",
+) -> pd.DataFrame:
+    """finished, checked,
 
     read from log txt file, in case tensorboard not working
 
@@ -811,7 +873,7 @@ def read_log_txt(fp:str,
     scalar_startswith: str or iterable of str,
         indicators of the scalar recordings,
         if is str, should be indicators separated by "|"
-    
+
 
     Returns
     -------
@@ -826,14 +888,14 @@ def read_log_txt(fp:str,
         field_pattern = f"""^({"|".join(scalar_startswith)})"""
     summary = []
     new_line = None
-    for l in content:
-        if l.startswith(epoch_startswith):
+    for line in content:
+        if line.startswith(epoch_startswith):
             if new_line:
                 summary.append(new_line)
-            epoch = re.findall("[\d]+", l)[0]
+            epoch = re.findall("[\\d]+", line)[0]
             new_line = {"epoch": epoch}
-        if re.findall(field_pattern, l):
-            field, val = l.split(":")
+        if re.findall(field_pattern, line):
+            field, val = line.split(":")
             field = field.strip()
             val = float(val.strip())
             new_line[field] = val
@@ -842,8 +904,10 @@ def read_log_txt(fp:str,
     return summary
 
 
-def read_event_scalars(fp:str, keys:Optional[Union[str,Iterable[str]]]=None) -> Union[pd.DataFrame,Dict[str,pd.DataFrame]]:
-    """ finished, checked,
+def read_event_scalars(
+    fp: str, keys: Optional[Union[str, Iterable[str]]] = None
+) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
+    """finished, checked,
 
     read scalars from event file, in case tensorboard not working
 
@@ -862,8 +926,10 @@ def read_event_scalars(fp:str, keys:Optional[Union[str,Iterable[str]]]=None) -> 
     """
     try:
         from tensorflow.python.summary.event_accumulator import EventAccumulator
-    except:
-        from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+    except Exception:
+        from tensorboard.backend.event_processing.event_accumulator import (
+            EventAccumulator,
+        )
     event_acc = EventAccumulator(fp)
     event_acc.Reload()
     if keys:
@@ -875,7 +941,12 @@ def read_event_scalars(fp:str, keys:Optional[Union[str,Iterable[str]]]=None) -> 
         _keys = event_acc.scalars.Keys()
     summary = {}
     for k in _keys:
-        df = pd.DataFrame([[item.wall_time, item.step, item.value] for item in event_acc.scalars.Items(k)])
+        df = pd.DataFrame(
+            [
+                [item.wall_time, item.step, item.value]
+                for item in event_acc.scalars.Items(k)
+            ]
+        )
         df.columns = ["wall_time", "step", "value"]
         summary[k] = df
     if isinstance(keys, str):

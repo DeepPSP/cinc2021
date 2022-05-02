@@ -21,13 +21,15 @@ __all__ = [
 
 
 class ECG_CRNN_CINC2021(ECG_CRNN):
-    """
-    """
+    """ """
+
     __DEBUG__ = False
     __name__ = "ECG_CRNN_CINC2021"
 
-    def __init__(self, classes:Sequence[str], n_leads:int, config:Optional[ED]=None) -> NoReturn:
-        """ finished, checked,
+    def __init__(
+        self, classes: Sequence[str], n_leads: int, config: Optional[ED] = None
+    ) -> NoReturn:
+        """finished, checked,
 
         Parameters
         ----------
@@ -43,13 +45,14 @@ class ECG_CRNN_CINC2021(ECG_CRNN):
         model_config.update(deepcopy(config) or {})
         super().__init__(classes, n_leads, model_config)
 
-
     @torch.no_grad()
-    def inference(self,
-                  input:Union[np.ndarray,Tensor],
-                  class_names:bool=False,
-                  bin_pred_thr:float=0.5) -> Tuple[Union[np.ndarray,pd.DataFrame],np.ndarray]:
-        """ finished, checked,
+    def inference(
+        self,
+        input: Union[np.ndarray, Tensor],
+        class_names: bool = False,
+        bin_pred_thr: float = 0.5,
+    ) -> Tuple[Union[np.ndarray, pd.DataFrame], np.ndarray]:
+        """finished, checked,
 
         auxiliary function to `forward`, for CINC2021,
 
@@ -87,16 +90,21 @@ class ECG_CRNN_CINC2021(ECG_CRNN):
         # batch_size, channels, seq_len = _input.shape
         pred = self.forward(_input)
         pred = self.sigmoid(pred)
-        bin_pred = (pred>=bin_pred_thr).int()
+        bin_pred = (pred >= bin_pred_thr).int()
         pred = pred.cpu().detach().numpy()
         bin_pred = bin_pred.cpu().detach().numpy()
         for row_idx, row in enumerate(bin_pred):
-            row_max_prob = pred[row_idx,...].max()
+            row_max_prob = pred[row_idx, ...].max()
             if row_max_prob < ModelCfg.bin_pred_nsr_thr and nsr_cid is not None:
                 bin_pred[row_idx, nsr_cid] = 1
             elif row.sum() == 0:
-                bin_pred[row_idx,...] = \
-                    (((pred[row_idx,...]+ModelCfg.bin_pred_look_again_tol) >= row_max_prob) & (pred[row_idx,...] >= ModelCfg.bin_pred_nsr_thr)).astype(int)
+                bin_pred[row_idx, ...] = (
+                    (
+                        (pred[row_idx, ...] + ModelCfg.bin_pred_look_again_tol)
+                        >= row_max_prob
+                    )
+                    & (pred[row_idx, ...] >= ModelCfg.bin_pred_nsr_thr)
+                ).astype(int)
         if class_names:
             pred = pd.DataFrame(pred)
             pred.columns = self.classes
@@ -106,24 +114,27 @@ class ECG_CRNN_CINC2021(ECG_CRNN):
             # )
             pred["bin_pred"] = ""
             for row_idx in range(len(pred)):
-                pred.at[row_idx, "bin_pred"] = \
-                    np.array(self.classes)[np.where(bin_pred[row_idx]==1)[0]].tolist()
+                pred.at[row_idx, "bin_pred"] = np.array(self.classes)[
+                    np.where(bin_pred[row_idx] == 1)[0]
+                ].tolist()
         return pred, bin_pred
 
-
     @torch.no_grad()
-    def inference_CINC2021(self,
-                           input:Union[np.ndarray,Tensor],
-                           class_names:bool=False,
-                           bin_pred_thr:float=0.5) -> Tuple[Union[np.ndarray,pd.DataFrame],np.ndarray]:
+    def inference_CINC2021(
+        self,
+        input: Union[np.ndarray, Tensor],
+        class_names: bool = False,
+        bin_pred_thr: float = 0.5,
+    ) -> Tuple[Union[np.ndarray, pd.DataFrame], np.ndarray]:
         """
         alias for `self.inference`
         """
         return self.inference(input, class_names, bin_pred_thr)
 
-
     @staticmethod
-    def from_checkpoint(path:str, device:Optional[torch.device]=None) -> Tuple[nn.Module, dict]:
+    def from_checkpoint(
+        path: str, device: Optional[torch.device] = None
+    ) -> Tuple[nn.Module, dict]:
         """
 
         Parameters
@@ -141,10 +152,14 @@ class ECG_CRNN_CINC2021(ECG_CRNN):
         aux_config: dict,
             auxiliary configs that are needed for data preprocessing, etc.
         """
-        _device = device or (torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"))
+        _device = device or (
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        )
         ckpt = torch.load(path, map_location=_device)
         aux_config = ckpt.get("train_config", None) or ckpt.get("config", None)
-        assert aux_config is not None, "input checkpoint has no sufficient data to recover a model"
+        assert (
+            aux_config is not None
+        ), "input checkpoint has no sufficient data to recover a model"
         model = ECG_CRNN_CINC2021(
             classes=aux_config["classes"],
             n_leads=aux_config["n_leads"],

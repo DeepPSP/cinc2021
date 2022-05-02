@@ -1,7 +1,9 @@
 """
 """
 
-import os, re, time
+import os
+import re
+import time
 from copy import deepcopy
 from typing import Sequence, NoReturn, Optional, Any
 
@@ -10,7 +12,11 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
-from torch.nn.parallel import DistributedDataParallel as DDP, DataParallel as DP
+from torch.nn.parallel import (  # noqa: F401
+    DistributedDataParallel as DDP,
+    DataParallel as DP,
+)  # noqa: F401
+
 try:
     from tqdm.auto import tqdm
 except ModuleNotFoundError:
@@ -37,11 +43,14 @@ __all__ = [
 ECG_CRNN_CINC2021.__DEBUG__ = False
 
 
-def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
-                          normalize:bool=False,
-                          title:Optional[str]=None,
-                          cmap:mpl.colors.Colormap=plt.cm.Blues,
-                          fmts:Sequence[str]=["svg", "pdf"],) -> Any:
+def plot_confusion_matrix(
+    cm: np.ndarray,
+    classes: Sequence[str],
+    normalize: bool = False,
+    title: Optional[str] = None,
+    cmap: mpl.colors.Colormap = plt.cm.Blues,
+    fmts: Sequence[str] = ["svg", "pdf"],
+) -> Any:
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
@@ -54,7 +63,7 @@ def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
             title = "Confusion Matrix"
             save_name = f"not_normalized_cm_{int(time.time())}"
     else:
-        save_name = re.sub("[\s_-]+", "-", title.lower().replace(" ", "-"))
+        save_name = re.sub("[\\s_-]+", "-", title.lower().replace(" ", "-"))
 
     if normalize:
         cm = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
@@ -65,43 +74,52 @@ def plot_confusion_matrix(cm:np.ndarray, classes:Sequence[str],
     fig, ax = plt.subplots(figsize=(15, 15))
     im = ax.imshow(cm, interpolation="nearest", cmap=cmap)
     # We want to show all ticks...
-    ax.set(xticks=np.arange(cm.shape[1]),
-           yticks=np.arange(cm.shape[0]),
-           xticklabels=classes, yticklabels=classes,
-        )
+    ax.set(
+        xticks=np.arange(cm.shape[1]),
+        yticks=np.arange(cm.shape[0]),
+        xticklabels=classes,
+        yticklabels=classes,
+    )
     # ax.set_title(title, fontsize=24)  # currently turn off title
-    ax.set_xlabel("Label",fontsize=18)
-    ax.set_ylabel("Predicted",fontsize=18)
-    ax.tick_params(axis = "both", which = "major", labelsize = 13)
+    ax.set_xlabel("Label", fontsize=18)
+    ax.set_ylabel("Predicted", fontsize=18)
+    ax.tick_params(axis="both", which="major", labelsize=13)
 
     # Rotate the tick labels and set their alignment.
-    plt.setp(ax.get_xticklabels(), rotation=30, ha="right",
-             rotation_mode="anchor")
+    plt.setp(ax.get_xticklabels(), rotation=30, ha="right", rotation_mode="anchor")
 
     # Loop over data dimensions and create text annotations.
-    text_fmt = ".2f" if (normalize or cm.dtype=="float") else "d"
-    thresh = cm.max() / 2.
+    text_fmt = ".2f" if (normalize or cm.dtype == "float") else "d"
+    thresh = cm.max() / 2.0
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
-            ax.text(j, i, format(cm[i, j], text_fmt),
-                    ha="center", va="center",
-                    color="white" if cm[i, j] > thresh else "black",
-                    fontsize=12)
+            ax.text(
+                j,
+                i,
+                format(cm[i, j], text_fmt),
+                ha="center",
+                va="center",
+                color="white" if cm[i, j] > thresh else "black",
+                fontsize=12,
+            )
     fig.tight_layout()
     # plt.show()
     for f in fmts:
         plt.savefig(
             os.path.join(BaseCfg.log_dir, f"{save_name}.{f}"),
-            format=f, dpi=1200, bbox_inches="tight"
+            format=f,
+            dpi=1200,
+            bbox_inches="tight",
         )
 
     return ax
 
 
 @torch.no_grad()
-def gather_from_checkpoint(path:str, fmts:Sequence[str]=["svg", "pdf"], dataset:Optional[CINC2021]=None) -> NoReturn:
-    """
-    """
+def gather_from_checkpoint(
+    path: str, fmts: Sequence[str] = ["svg", "pdf"], dataset: Optional[CINC2021] = None
+) -> NoReturn:
+    """ """
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model, train_config = ECG_CRNN_CINC2021.from_checkpoint(path, device=device)
     if torch.cuda.device_count() > 1:
@@ -115,7 +133,7 @@ def gather_from_checkpoint(path:str, fmts:Sequence[str]=["svg", "pdf"], dataset:
     print(f"model loaded from {path}")
     if dataset is None:
         dataset = CINC2021(train_config, training=False, lazy=False)
-    dl =  DataLoader(
+    dl = DataLoader(
         dataset=dataset,
         batch_size=256,
         shuffle=False,
@@ -130,7 +148,7 @@ def gather_from_checkpoint(path:str, fmts:Sequence[str]=["svg", "pdf"], dataset:
     all_labels = []
 
     start = time.time()
-    print(f"start evaluating the model on the train-validation set...")
+    print("start evaluating the model on the train-validation set...")
     with tqdm(total=len(dataset), unit="signals") as pbar:
         for step, (signals, labels) in enumerate(dl):
             signals = signals.to(device=device)
@@ -153,15 +171,15 @@ def gather_from_checkpoint(path:str, fmts:Sequence[str]=["svg", "pdf"], dataset:
     print(f"evaluation used {time.time()-start:.2f} seconds")
     print("start computing the confusion matrix from the binary predictions")
 
-    cm_bin = np.zeros((len(classes),len(classes)), dtype="int")
+    cm_bin = np.zeros((len(classes), len(classes)), dtype="int")
     for idx in range(all_labels.shape[0]):
         lb = set(all_labels[idx].nonzero()[0].tolist())
         bp = set(all_bin_preds[idx].nonzero()[0].tolist())
         for i in lb.intersection(bp):
-            cm_bin[i,i] += 1
+            cm_bin[i, i] += 1
         for i in bp - lb:
             for j in lb:
-                cm_bin[j,i] += 1
+                cm_bin[j, i] += 1
         print(f"{idx+1} / {len(all_labels)}", end="\r")
     title = f"""Confusion Matrix - {train_config["cnn_name"].replace("_", "-")}"""
     if len(train_config["special_classes"]) == 0:
@@ -180,14 +198,18 @@ def gather_from_checkpoint(path:str, fmts:Sequence[str]=["svg", "pdf"], dataset:
         for i in all_labels[idx].nonzero()[0]:
             cm_scalar[int(i)].append(all_scalar_preds[idx])
         print(f"{idx+1} / {len(all_labels)}", end="\r")
-    scalar_mean = {idx: np.mean(np.column_stack(v), axis=1) for idx,v in cm_scalar.items()}
-    scalar_std = {idx: np.std(np.column_stack(v), axis=1) for idx,v in cm_scalar.items()}
-    cm_scalar_mean = np.zeros((len(classes),len(classes)))
-    cm_scalar_std = np.zeros((len(classes),len(classes)))
+    scalar_mean = {
+        idx: np.mean(np.column_stack(v), axis=1) for idx, v in cm_scalar.items()
+    }
+    scalar_std = {
+        idx: np.std(np.column_stack(v), axis=1) for idx, v in cm_scalar.items()
+    }
+    cm_scalar_mean = np.zeros((len(classes), len(classes)))
+    cm_scalar_std = np.zeros((len(classes), len(classes)))
     for idx, v in scalar_mean.items():
-        cm_scalar_mean[idx,...] = v
+        cm_scalar_mean[idx, ...] = v
     for idx, v in scalar_std.items():
-        cm_scalar_std[idx,...] = v
+        cm_scalar_std[idx, ...] = v
 
     title = f"""Mean Scalar Prediction Matrix - {train_config["cnn_name"].replace("_", "-")}"""
     if len(train_config["special_classes"]) == 0:
@@ -211,9 +233,8 @@ def gather_from_checkpoint(path:str, fmts:Sequence[str]=["svg", "pdf"], dataset:
 
 
 @torch.no_grad()
-def test_inference_speed(path:str, dataset:Optional[CINC2021]=None) -> int:
-    """
-    """
+def test_inference_speed(path: str, dataset: Optional[CINC2021] = None) -> int:
+    """ """
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model, train_config = ECG_CRNN_CINC2021.from_checkpoint(path, device=device)
     model.to(device=device)
@@ -221,7 +242,7 @@ def test_inference_speed(path:str, dataset:Optional[CINC2021]=None) -> int:
     print(f"model loaded from {path}")
     if dataset is None:
         dataset = CINC2021(train_config, training=False, lazy=False)
-    dl =  DataLoader(
+    dl = DataLoader(
         dataset=dataset,
         batch_size=64,
         shuffle=False,
@@ -232,7 +253,7 @@ def test_inference_speed(path:str, dataset:Optional[CINC2021]=None) -> int:
     )
 
     start = time.time()
-    print(f"start evaluating the model...")
+    print("start evaluating the model...")
     with tqdm(total=len(dataset), unit="signals") as pbar:
         for step, (signals, labels) in enumerate(dl):
             signals = signals.to(device=device)
@@ -242,7 +263,7 @@ def test_inference_speed(path:str, dataset:Optional[CINC2021]=None) -> int:
             _ = model(signals)
             pbar.update(signals.shape[0])
 
-    speed = round(len(dataset) / (time.time()-start))
+    speed = round(len(dataset) / (time.time() - start))
 
     print(f"evaluation used {time.time()-start:.2f} seconds")
 
@@ -253,21 +274,20 @@ def test_inference_speed(path:str, dataset:Optional[CINC2021]=None) -> int:
 
 
 def append_model_config_if_needed() -> NoReturn:
-    """
-    """
+    """ """
     results_dir = os.path.join(os.path.dirname(BaseCfg.log_dir), "results")
-    results_txt_files = get_record_list_recursive3(results_dir, "TorchECG.*\.txt")
+    results_txt_files = get_record_list_recursive3(results_dir, "TorchECG.*\\.txt")
     for fp in results_txt_files:
-        fp = os.path.join(results_dir, fp+".txt")
+        fp = os.path.join(results_dir, fp + ".txt")
         with open(fp, "r") as f:
             lines = f.read().splitlines()[-1000:]
         model_fp = None
         flag = False
-        for l in lines:
-            tmp = re.findall("/.*BestModel.*\.pth\.tar", l)
+        for line in lines:
+            tmp = re.findall("/.*BestModel.*\\.pth\\.tar", line)
             if len(tmp) > 0:
                 model_fp = tmp[0]
-            tmp = re.findall("model configurations", l)
+            tmp = re.findall("model configurations", line)
             if len(tmp) > 0:
                 flag = True
                 break

@@ -15,23 +15,27 @@ TODO:
 -----
 currently all are binary detectors, --> detectors producing a probability?
 """
-import multiprocessing as mp
+
 from itertools import repeat
 from numbers import Real
-from typing import Union, Optional, Any, List, Dict, Callable, Sequence
+from typing import Optional, Any, Sequence
 
 import numpy as np
+
 np.set_printoptions(precision=5, suppress=True)
-from scipy.signal import peak_prominences, peak_widths
+from scipy.signal import peak_prominences, peak_widths  # noqa: F401
 from biosppy.signals.tools import filter_signal
 from easydict import EasyDict as ED
 from deprecated import deprecated
 
-from cfg import (
+from cfg import (  # noqa: F401
     SpecialDetectorCfg,
-    Standard12Leads, ChestLeads, PrecordialLeads, LimbLeads
+    Standard12Leads,
+    ChestLeads,
+    PrecordialLeads,
+    LimbLeads,
 )
-from signal_processing import (
+from signal_processing import (  # noqa: F401
     preprocess_multi_lead_signal,
     rpeaks_detect_multi_leads,
 )
@@ -49,13 +53,15 @@ __all__ = [
 ]
 
 
-def special_detectors(raw_sig:np.ndarray,
-                      fs:Real,
-                      sig_fmt:str="channel_first",
-                      leads:Sequence[str]=Standard12Leads,
-                      verbose:int=0,
-                      **kwargs:Any) -> dict:
-    """ finished, checked,
+def special_detectors(
+    raw_sig: np.ndarray,
+    fs: Real,
+    sig_fmt: str = "channel_first",
+    leads: Sequence[str] = Standard12Leads,
+    verbose: int = 0,
+    **kwargs: Any,
+) -> dict:
+    """finished, checked,
 
     Parameters
     ----------
@@ -87,10 +93,12 @@ def special_detectors(raw_sig:np.ndarray,
         probability or binary conclusion for each arrhythm
     """
     preprocess = preprocess_multi_lead_signal(
-        raw_sig, fs, sig_fmt,
+        raw_sig,
+        fs,
+        sig_fmt,
         rpeak_fn=kwargs.get("rpeak_fn", "xqrs"),
         # rpeak_fn=kwargs.get("rpeak_fn", "seq_lab"),
-        verbose=verbose
+        verbose=verbose,
     )
     filtered_sig = preprocess["filtered_ecg"]
     rpeaks = preprocess["rpeaks"]
@@ -98,22 +106,22 @@ def special_detectors(raw_sig:np.ndarray,
         raw_sig, fs, sig_fmt, leads, ret_prob=False, verbose=verbose
     )
     axis = electrical_axis_detector(
-        filtered_sig, rpeaks, fs, sig_fmt, leads,
+        filtered_sig,
+        rpeaks,
+        fs,
+        sig_fmt,
+        leads,
         method=kwargs.get("axis_method", "2-lead"),
-        verbose=verbose
+        verbose=verbose,
     )
-    brady_tachy = brady_tachy_detector(
-        rpeaks, fs, verbose=verbose
-    )
-    is_LQRSV = LQRSV_detector(
-        filtered_sig, rpeaks, fs, sig_fmt, leads, verbose=verbose
-    )
+    brady_tachy = brady_tachy_detector(rpeaks, fs, verbose=verbose)
+    is_LQRSV = LQRSV_detector(filtered_sig, rpeaks, fs, sig_fmt, leads, verbose=verbose)
     is_PRWP = PRWP_detector(filtered_sig, rpeaks, fs, sig_fmt, leads, verbose=verbose)
 
-    is_LAD = (axis=="LAD")
-    is_RAD = (axis=="RAD")
-    is_brady = (brady_tachy=="B")
-    is_tachy = (brady_tachy=="T")
+    is_LAD = axis == "LAD"
+    is_RAD = axis == "RAD"
+    is_brady = brady_tachy == "B"
+    is_tachy = brady_tachy == "T"
     conclusion = ED(
         is_brady=is_brady,
         is_tachy=is_tachy,
@@ -126,13 +134,15 @@ def special_detectors(raw_sig:np.ndarray,
     return conclusion
 
 
-def pacing_rhythm_detector(raw_sig:np.ndarray,
-                           fs:Real,
-                           sig_fmt:str="channel_first",
-                           leads:Sequence[str]=Standard12Leads,
-                           ret_prob:bool=True,
-                           verbose:int=0) -> Real:
-    """ finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
+def pacing_rhythm_detector(
+    raw_sig: np.ndarray,
+    fs: Real,
+    sig_fmt: str = "channel_first",
+    leads: Sequence[str] = Standard12Leads,
+    ret_prob: bool = True,
+    verbose: int = 0,
+) -> Real:
+    """finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
 
     Parameters
     ----------
@@ -162,25 +172,28 @@ def pacing_rhythm_detector(raw_sig:np.ndarray,
         s = raw_sig.copy()
     else:
         s = raw_sig.T
-    
-    data_hp = np.array([
-        filter_signal(
-            s[lead,...],
-            ftype="butter",
-            band="highpass",
-            order=20,
-            frequency=SpecialDetectorCfg.pr_fs_lower_bound,
-            sampling_rate=fs)["signal"] \
-                for lead in range(s.shape[0])
-    ])
+
+    data_hp = np.array(
+        [
+            filter_signal(
+                s[lead, ...],
+                ftype="butter",
+                band="highpass",
+                order=20,
+                frequency=SpecialDetectorCfg.pr_fs_lower_bound,
+                sampling_rate=fs,
+            )["signal"]
+            for lead in range(s.shape[0])
+        ]
+    )
 
     potential_spikes = []
     # sig_len = data_hp.shape[-1]
     n_leads, sig_len = data_hp.shape
     assert n_leads == len(leads)
 
-    for l in range(n_leads):
-        lead_hp = np.abs(data_hp[l,...])
+    for ld in range(n_leads):
+        lead_hp = np.abs(data_hp[ld, ...])
         mph = SpecialDetectorCfg.pr_spike_mph_ratio * np.sum(lead_hp) / sig_len
         lead_spikes = detect_peaks(
             x=lead_hp,
@@ -191,25 +204,32 @@ def pacing_rhythm_detector(raw_sig:np.ndarray,
             verbose=0,
         )
         if verbose >= 2:
-            print(f"for the {l}-th lead, its spike detecting mph = {mph:.4f} mV")
+            print(f"for the {ld}-th lead, its spike detecting mph = {mph:.4f} mV")
             print(f"lead_spikes = {lead_spikes.tolist()}")
-            print(f"with prominences = {np.round(peak_prominences(lead_hp, lead_spikes, wlen=ms2samples(SpecialDetectorCfg.pr_spike_prominence_wlen, fs))[0], 5).tolist()}")
+            print(
+                f"with prominences = {np.round(peak_prominences(lead_hp, lead_spikes, wlen=ms2samples(SpecialDetectorCfg.pr_spike_prominence_wlen, fs))[0], 5).tolist()}"
+            )
         potential_spikes.append(lead_spikes)
-    
+
     # make decision using `potential_spikes`
     sig_duration_ms = samples2ms(sig_len, fs)
-    # lead_has_enough_spikes = [False if len(potential_spikes[l]) ==0 else sig_duration_ms / len(potential_spikes[l]) < SpecialDetectorCfg.pr_spike_inv_density_threshold for l in range(n_leads)]
+    # lead_has_enough_spikes = [False if len(potential_spikes[ld]) ==0 else sig_duration_ms / len(potential_spikes[ld]) < SpecialDetectorCfg.pr_spike_inv_density_threshold for ld in range(n_leads)]
     lead_has_enough_spikes = list(repeat(0, n_leads))
-    for l in range(n_leads):
-        if len(potential_spikes[l]) > 0:
-            relative_inv_density = SpecialDetectorCfg.pr_spike_inv_density_threshold - sig_duration_ms / len(potential_spikes[l])
+    for ld in range(n_leads):
+        if len(potential_spikes[ld]) > 0:
+            relative_inv_density = (
+                SpecialDetectorCfg.pr_spike_inv_density_threshold
+                - sig_duration_ms / len(potential_spikes[ld])
+            )
             # sigmoid
-            lead_has_enough_spikes[l] = 1 / (1+np.exp(-relative_inv_density/100))
+            lead_has_enough_spikes[ld] = 1 / (1 + np.exp(-relative_inv_density / 100))
             if not ret_prob:
-                lead_has_enough_spikes[l] = int(lead_has_enough_spikes[l]>=0.5)
+                lead_has_enough_spikes[ld] = int(lead_has_enough_spikes[ld] >= 0.5)
     if verbose >= 1:
         print(f"lead_has_enough_spikes = {lead_has_enough_spikes}")
-        print(f"leads spikes density (units in ms) = {[len(potential_spikes[l]) / sig_duration_ms for l in range(n_leads)]}")
+        print(
+            f"leads spikes density (units in ms) = {[len(potential_spikes[ld]) / sig_duration_ms for ld in range(n_leads)]}"
+        )
 
     _threshold = int(round(SpecialDetectorCfg.pr_spike_leads_threshold * n_leads))
     if ret_prob:
@@ -217,18 +237,20 @@ def pacing_rhythm_detector(raw_sig:np.ndarray,
         is_PR = sorted(lead_has_enough_spikes, reverse=True)[:_threshold]
         is_PR = np.mean(is_PR)
     else:
-        is_PR = (sum(lead_has_enough_spikes) >= _threshold)
+        is_PR = sum(lead_has_enough_spikes) >= _threshold
     return is_PR
 
 
-def electrical_axis_detector(filtered_sig:np.ndarray,
-                             rpeaks:np.ndarray,
-                             fs:Real,
-                             sig_fmt:str="channel_first",
-                             leads:Sequence[str]=Standard12Leads,
-                             method:Optional[str]=None,
-                             verbose:int=0) -> str:
-    """ finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
+def electrical_axis_detector(
+    filtered_sig: np.ndarray,
+    rpeaks: np.ndarray,
+    fs: Real,
+    sig_fmt: str = "channel_first",
+    leads: Sequence[str] = Standard12Leads,
+    method: Optional[str] = None,
+    verbose: int = 0,
+) -> str:
+    """finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
 
     detector of the heart electrical axis by means of "2-lead" method or "3-lead" method,
     NOTE that the extreme axis is not checked and treated as "normal"
@@ -261,28 +283,31 @@ def electrical_axis_detector(filtered_sig:np.ndarray,
     """
     decision_method = method or SpecialDetectorCfg.axis_method
     decision_method = decision_method.lower()
-    assert decision_method in ["2-lead", "3-lead",], f"Method `{decision_method}` not supported!"
+    assert decision_method in [
+        "2-lead",
+        "3-lead",
+    ], f"Method `{decision_method}` not supported!"
 
     if sig_fmt.lower() in ["channel_first", "lead_first"]:
         s = filtered_sig.copy()
     else:
         s = filtered_sig.T
-    
+
     if len(set(["I", "aVF"]).intersection(leads)) < 2:
         # impossible to make decision
         # return "normal" by default
         axis = "normal"
         return axis
-    
+
     lead_I = s[list(leads).index("I")]
     lead_aVF = s[list(leads).index("aVF")]
     try:
         lead_II = s[list(leads).index("II")]
-    except:
+    except Exception:
         # no lead II, degenerates to the "2-lead" method
         method = "2-lead"
 
-    if len(rpeaks==0):
+    if len(rpeaks == 0):
         # degenerate case
         # voltage might be too low to detect rpeaks
         lead_I_positive = np.max(lead_I) > np.abs(np.min(lead_I))
@@ -309,29 +334,47 @@ def electrical_axis_detector(filtered_sig:np.ndarray,
     radius = ms2samples(SpecialDetectorCfg.axis_qrs_mask_radius, fs)
     l_qrs = []
     for r in rpeaks:
-        l_qrs.append([max(0,r-radius), min(sig_len-1,r+radius)])
+        l_qrs.append([max(0, r - radius), min(sig_len - 1, r + radius)])
 
     if verbose >= 1:
         print(f"qrs mask radius = {radius}, sig_len = {sig_len}")
         print(f"l_qrs = {l_qrs}")
-    
+
     # lead I
-    lead_I_positive = sum([
-        np.max(lead_I[qrs_itv[0]:qrs_itv[1]]) > np.abs(np.min(lead_I[qrs_itv[0]:qrs_itv[1]])) \
-            for qrs_itv in l_qrs
-    ]) >= len(l_qrs)//2 + 1
+    lead_I_positive = (
+        sum(
+            [
+                np.max(lead_I[qrs_itv[0] : qrs_itv[1]])
+                > np.abs(np.min(lead_I[qrs_itv[0] : qrs_itv[1]]))
+                for qrs_itv in l_qrs
+            ]
+        )
+        >= len(l_qrs) // 2 + 1
+    )
 
     # lead aVF
-    lead_aVF_positive = sum([
-        np.max(lead_aVF[qrs_itv[0]:qrs_itv[1]]) > np.abs(np.min(lead_aVF[qrs_itv[0]:qrs_itv[1]])) \
-            for qrs_itv in l_qrs
-    ]) >= len(l_qrs)//2 + 1
-    
+    lead_aVF_positive = (
+        sum(
+            [
+                np.max(lead_aVF[qrs_itv[0] : qrs_itv[1]])
+                > np.abs(np.min(lead_aVF[qrs_itv[0] : qrs_itv[1]]))
+                for qrs_itv in l_qrs
+            ]
+        )
+        >= len(l_qrs) // 2 + 1
+    )
+
     # lead II
-    lead_II_positive = sum([
-        np.max(lead_II[qrs_itv[0]:qrs_itv[1]]) > np.abs(np.min(lead_II[qrs_itv[0]:qrs_itv[1]])) \
-            for qrs_itv in l_qrs
-    ]) >= len(l_qrs)//2 + 1
+    lead_II_positive = (
+        sum(
+            [
+                np.max(lead_II[qrs_itv[0] : qrs_itv[1]])
+                > np.abs(np.min(lead_II[qrs_itv[0] : qrs_itv[1]]))
+                for qrs_itv in l_qrs
+            ]
+        )
+        >= len(l_qrs) // 2 + 1
+    )
 
     # decision making
     if decision_method == "2-lead":
@@ -352,11 +395,13 @@ def electrical_axis_detector(filtered_sig:np.ndarray,
     return axis
 
 
-def brady_tachy_detector(rpeaks:np.ndarray,
-                         fs:Real,
-                         normal_rr_range:Optional[Sequence[Real]]=None,
-                         verbose:int=0) -> str:
-    """ finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
+def brady_tachy_detector(
+    rpeaks: np.ndarray,
+    fs: Real,
+    normal_rr_range: Optional[Sequence[Real]] = None,
+    verbose: int = 0,
+) -> str:
+    """finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
 
     detemine if the ecg is bradycadia or tachycardia or normal,
     only by the mean rr interval.
@@ -390,10 +435,15 @@ def brady_tachy_detector(rpeaks:np.ndarray,
     mean_rr = np.mean(rr_intervals)
     if verbose >= 1:
         if len(rr_intervals) > 0:
-            print(f"mean_rr = {round(samples2ms(mean_rr, fs), 1)} ms, with detailed rr_intervals (with units in ms) = {(np.vectorize(lambda item:samples2ms(item, fs))(rr_intervals)).tolist()}")
+            print(
+                f"mean_rr = {round(samples2ms(mean_rr, fs), 1)} ms, with detailed rr_intervals (with units in ms) = {(np.vectorize(lambda item:samples2ms(item, fs))(rr_intervals)).tolist()}"
+            )
         else:
-            print(f"not enough r peaks for computing rr intervals")
-    nrr = normal_rr_range or [SpecialDetectorCfg.tachy_threshold, SpecialDetectorCfg.brady_threshold]
+            print("not enough r peaks for computing rr intervals")
+    nrr = normal_rr_range or [
+        SpecialDetectorCfg.tachy_threshold,
+        SpecialDetectorCfg.brady_threshold,
+    ]
     nrr = sorted(nrr)
     assert len(nrr) >= 2
     nrr = [ms2samples(nrr[0], fs), ms2samples(nrr[-1], fs)]
@@ -407,13 +457,15 @@ def brady_tachy_detector(rpeaks:np.ndarray,
     return conclusion
 
 
-def LQRSV_detector(filtered_sig:np.ndarray,
-                   rpeaks:np.ndarray,
-                   fs:Real,
-                   sig_fmt:str="channel_first",
-                   leads:Sequence[str]=Standard12Leads,
-                   verbose:int=0) -> bool:
-    """ finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
+def LQRSV_detector(
+    filtered_sig: np.ndarray,
+    rpeaks: np.ndarray,
+    fs: Real,
+    sig_fmt: str = "channel_first",
+    leads: Sequence[str] = Standard12Leads,
+    verbose: int = 0,
+) -> bool:
+    """finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
 
     Parameters
     ----------
@@ -441,28 +493,40 @@ def LQRSV_detector(filtered_sig:np.ndarray,
         sig=filtered_sig,
         fs=fs,
         fmt=sig_fmt,
-        window=2*SpecialDetectorCfg.lqrsv_qrs_mask_radius/1000,  # ms to s
+        window=2 * SpecialDetectorCfg.lqrsv_qrs_mask_radius / 1000,  # ms to s
         critical_points=rpeaks,
     )
 
-    limb_leads = [l for l in leads if l in LimbLeads]
-    limb_lead_inds = [list(leads).index(l) for l in limb_leads]
-    precordial_leads = [l for l in leads if l in PrecordialLeads]
-    precordial_lead_inds = [list(leads).index(l) for l in precordial_leads]
+    limb_leads = [ld for ld in leads if ld in LimbLeads]
+    limb_lead_inds = [list(leads).index(ld) for ld in limb_leads]
+    precordial_leads = [ld for ld in leads if ld in PrecordialLeads]
+    precordial_lead_inds = [list(leads).index(ld) for ld in precordial_leads]
 
     if verbose >= 1:
-        print(f"limb_lead_inds = {limb_lead_inds}, precordial_lead_inds = {precordial_lead_inds}")
-    
-    low_qrs_limb_leads = [sig_ampl[idx] <= 0.5 + SpecialDetectorCfg.lqrsv_ampl_bias for idx in limb_lead_inds]
+        print(
+            f"limb_lead_inds = {limb_lead_inds}, precordial_lead_inds = {precordial_lead_inds}"
+        )
+
+    low_qrs_limb_leads = [
+        sig_ampl[idx] <= 0.5 + SpecialDetectorCfg.lqrsv_ampl_bias
+        for idx in limb_lead_inds
+    ]
     if len(low_qrs_limb_leads) > 0:
-        low_qrs_limb_leads = sum(low_qrs_limb_leads) / len(low_qrs_limb_leads)  # to ratio
+        low_qrs_limb_leads = sum(low_qrs_limb_leads) / len(
+            low_qrs_limb_leads
+        )  # to ratio
     else:  # no limb leads
         # determining LQRSV using limb leads and precordial leads, its relation is OR
         # hence default values are set 0 if no limb leads or precordial leads
         low_qrs_limb_leads = 0
-    low_qrs_precordial_leads = [sig_ampl[idx] <= 1 + SpecialDetectorCfg.lqrsv_ampl_bias for idx in precordial_lead_inds]
+    low_qrs_precordial_leads = [
+        sig_ampl[idx] <= 1 + SpecialDetectorCfg.lqrsv_ampl_bias
+        for idx in precordial_lead_inds
+    ]
     if len(low_qrs_precordial_leads) > 0:
-        low_qrs_precordial_leads = sum(low_qrs_precordial_leads) / len(low_qrs_precordial_leads)
+        low_qrs_precordial_leads = sum(low_qrs_precordial_leads) / len(
+            low_qrs_precordial_leads
+        )
     else:
         low_qrs_precordial_leads = 0
 
@@ -470,21 +534,23 @@ def LQRSV_detector(filtered_sig:np.ndarray,
         print(f"ratio of low qrs in limb leads = {low_qrs_limb_leads}")
         print(f"ratio of low qrs in precordial leads = {low_qrs_precordial_leads}")
 
-    is_LQRSV = \
-        (low_qrs_limb_leads >= SpecialDetectorCfg.lqrsv_ratio_threshold) \
-        or (low_qrs_precordial_leads >= SpecialDetectorCfg.lqrsv_ratio_threshold)
+    is_LQRSV = (low_qrs_limb_leads >= SpecialDetectorCfg.lqrsv_ratio_threshold) or (
+        low_qrs_precordial_leads >= SpecialDetectorCfg.lqrsv_ratio_threshold
+    )
 
     return is_LQRSV
 
 
 @deprecated
-def LQRSV_detector_backup(filtered_sig:np.ndarray,
-                   rpeaks:np.ndarray,
-                   fs:Real,
-                   sig_fmt:str="channel_first",
-                   leads:Sequence[str]=Standard12Leads,
-                   verbose:int=0) -> bool:
-    """ finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
+def LQRSV_detector_backup(
+    filtered_sig: np.ndarray,
+    rpeaks: np.ndarray,
+    fs: Real,
+    sig_fmt: str = "channel_first",
+    leads: Sequence[str] = Standard12Leads,
+    verbose: int = 0,
+) -> bool:
+    """finished, checked, to be improved (fine-tuning hyper-parameters in cfg.py),
 
     Parameters
     ----------
@@ -523,57 +589,83 @@ def LQRSV_detector_backup(filtered_sig:np.ndarray,
     if verbose >= 2:
         print(f"qrs intervals = {l_qrs}")
 
-    limb_leads = [l for l in leads if l in LimbLeads]
-    limb_lead_inds = [list(leads).index(l) for l in limb_leads]
-    precordial_leads = [l for l in leads if l in PrecordialLeads]
-    precordial_lead_inds = [list(leads).index(l) for l in precordial_leads]
+    limb_leads = [ld for ld in leads if ld in LimbLeads]
+    limb_lead_inds = [list(leads).index(ld) for ld in limb_leads]
+    precordial_leads = [ld for ld in leads if ld in PrecordialLeads]
+    precordial_lead_inds = [list(leads).index(ld) for ld in precordial_leads]
 
     l_qrs_limb_leads = []
     l_qrs_precordial_leads = []
-    
+
     if len(l_qrs) == 0:
         # no rpeaks detected
-        low_qrs_limb_leads = [np.max(sig_ampl[idx]) <= 0.5 + SpecialDetectorCfg.lqrsv_ampl_bias for idx in limb_lead_inds]
-        low_qrs_limb_leads = sum(low_qrs_limb_leads) / len(low_qrs_limb_leads)  # to ratio
-        low_qrs_precordial_leads = [np.max(sig_ampl[idx]) <= 1 + SpecialDetectorCfg.lqrsv_ampl_bias for idx in precordial_lead_inds]
-        low_qrs_precordial_leads = sum(low_qrs_precordial_leads) / len(low_qrs_precordial_leads)
+        low_qrs_limb_leads = [
+            np.max(sig_ampl[idx]) <= 0.5 + SpecialDetectorCfg.lqrsv_ampl_bias
+            for idx in limb_lead_inds
+        ]
+        low_qrs_limb_leads = sum(low_qrs_limb_leads) / len(
+            low_qrs_limb_leads
+        )  # to ratio
+        low_qrs_precordial_leads = [
+            np.max(sig_ampl[idx]) <= 1 + SpecialDetectorCfg.lqrsv_ampl_bias
+            for idx in precordial_lead_inds
+        ]
+        low_qrs_precordial_leads = sum(low_qrs_precordial_leads) / len(
+            low_qrs_precordial_leads
+        )
     else:
         for itv in l_qrs:
             for idx in limb_lead_inds:
-                l_qrs_limb_leads.append(sig_ampl[idx, itv[0]:itv[1]].flatten())
+                l_qrs_limb_leads.append(sig_ampl[idx, itv[0] : itv[1]].flatten())
             for idx in precordial_lead_inds:
-                l_qrs_precordial_leads.append(sig_ampl[idx, itv[0]:itv[1]].flatten())
+                l_qrs_precordial_leads.append(sig_ampl[idx, itv[0] : itv[1]].flatten())
 
         if verbose >= 2:
             print("for limb leads, the qrs amplitudes are as follows:")
             for idx, lead_name in enumerate(limb_leads):
-                print(f"for limb lead {lead_name}, the qrs amplitudes are {[np.max(item) for item in l_qrs_limb_leads[idx*len(l_qrs): (idx+1)*len(l_qrs)]]}")
+                print(
+                    f"for limb lead {lead_name}, the qrs amplitudes are {[np.max(item) for item in l_qrs_limb_leads[idx*len(l_qrs): (idx+1)*len(l_qrs)]]}"
+                )
             for idx, lead_name in enumerate(precordial_leads):
-                print(f"for precordial lead {lead_name}, the qrs amplitudes are {[np.max(item) for item in l_qrs_limb_leads[idx*len(l_qrs): (idx+1)*len(l_qrs)]]}")
+                print(
+                    f"for precordial lead {lead_name}, the qrs amplitudes are {[np.max(item) for item in l_qrs_limb_leads[idx*len(l_qrs): (idx+1)*len(l_qrs)]]}"
+                )
 
-        low_qrs_limb_leads = [np.max(item) <= 0.5 + SpecialDetectorCfg.lqrsv_ampl_bias for item in l_qrs_limb_leads]
-        low_qrs_limb_leads = sum(low_qrs_limb_leads) / len(low_qrs_limb_leads)  # to ratio
-        low_qrs_precordial_leads = [np.max(item) <= 1 + SpecialDetectorCfg.lqrsv_ampl_bias for item in l_qrs_precordial_leads]
-        low_qrs_precordial_leads = sum(low_qrs_precordial_leads) / len(low_qrs_precordial_leads)
+        low_qrs_limb_leads = [
+            np.max(item) <= 0.5 + SpecialDetectorCfg.lqrsv_ampl_bias
+            for item in l_qrs_limb_leads
+        ]
+        low_qrs_limb_leads = sum(low_qrs_limb_leads) / len(
+            low_qrs_limb_leads
+        )  # to ratio
+        low_qrs_precordial_leads = [
+            np.max(item) <= 1 + SpecialDetectorCfg.lqrsv_ampl_bias
+            for item in l_qrs_precordial_leads
+        ]
+        low_qrs_precordial_leads = sum(low_qrs_precordial_leads) / len(
+            low_qrs_precordial_leads
+        )
 
     if verbose >= 2:
         print(f"ratio of low qrs in limb leads = {low_qrs_limb_leads}")
         print(f"ratio of low qrs in precordial leads = {low_qrs_precordial_leads}")
 
-    is_LQRSV = \
-        (low_qrs_limb_leads >= SpecialDetectorCfg.lqrsv_ratio_threshold) \
-        or (low_qrs_precordial_leads >= SpecialDetectorCfg.lqrsv_ratio_threshold)
+    is_LQRSV = (low_qrs_limb_leads >= SpecialDetectorCfg.lqrsv_ratio_threshold) or (
+        low_qrs_precordial_leads >= SpecialDetectorCfg.lqrsv_ratio_threshold
+    )
 
     return is_LQRSV
 
 
-def PRWP_detector(filtered_sig:np.ndarray,
-                  rpeaks:np.ndarray,
-                  fs:Real,
-                  sig_fmt:str="channel_first",
-                  leads:Sequence[str]=Standard12Leads,
-                  verbose:int=0) -> bool:
-    """ finished, checked, to be improved
+def PRWP_detector(
+    filtered_sig: np.ndarray,
+    rpeaks: np.ndarray,
+    fs: Real,
+    sig_fmt: str = "channel_first",
+    leads: Sequence[str] = Standard12Leads,
+    verbose: int = 0,
+) -> bool:
+    """finished, checked, to be improved
 
     Parameters
     ----------
@@ -603,27 +695,32 @@ def PRWP_detector(filtered_sig:np.ndarray,
         # all change to lead_first
         r_ampl = filtered_sig[rpeaks, ...].T
 
-    if len(set([f"V{n}" for n in range(1,5)]).intersection(leads)) < 2 and "V3" not in leads:
+    if (
+        len(set([f"V{n}" for n in range(1, 5)]).intersection(leads)) < 2
+        and "V3" not in leads
+    ):
         # leads insufficient to make decision
         is_PRWP = False
         return is_PRWP
 
-    limb_leads = [l for l in leads if l in LimbLeads]
-    limb_lead_inds = [list(leads).index(l) for l in limb_leads]
+    limb_leads = [ld for ld in leads if ld in LimbLeads]
+    limb_lead_inds = [list(leads).index(ld) for ld in limb_leads]
 
     try:
         lead_V3_ind = list(leads).index("V3")
-    except:
+    except Exception:
         lead_V3_ind = None
 
-    leads_V1_4 = [l for l in leads if l in ["V1", "V2", "V3", "V4"]]
-    leads_V1_4_inds = [list(leads).index(l) for l in leads_V1_4]
+    leads_V1_4 = [ld for ld in leads if ld in ["V1", "V2", "V3", "V4"]]
+    leads_V1_4_inds = [list(leads).index(ld) for ld in leads_V1_4]
 
     # condition 1: R<3mm in V3
     if lead_V3_ind is not None:
-        cond1 = (np.mean(r_ampl[lead_V3_ind, ...]) < SpecialDetectorCfg.prwp_v3_thr)
+        cond1 = np.mean(r_ampl[lead_V3_ind, ...]) < SpecialDetectorCfg.prwp_v3_thr
         if verbose >= 1:
-            print(f"PRWP condition 1: R amplitude in lead V3 = {np.mean(r_ampl[lead_V3_ind, ...])}")
+            print(
+                f"PRWP condition 1: R amplitude in lead V3 = {np.mean(r_ampl[lead_V3_ind, ...])}"
+            )
     else:
         cond1 = False
 
@@ -631,7 +728,9 @@ def PRWP_detector(filtered_sig:np.ndarray,
     cond2 = (np.diff(np.mean(r_ampl[leads_V1_4_inds, ...], axis=-1)) < 0).any()
     if verbose >= 1:
         diff = np.diff(np.mean(r_ampl[leads_V1_4_inds, ...], axis=-1))
-        print(f"PRWP condition 2: reversed R wave progression, diff of mean R amplitude in V1-4 = {diff}")
+        print(
+            f"PRWP condition 2: reversed R wave progression, diff of mean R amplitude in V1-4 = {diff}"
+        )
 
     # condition 3: delayed transition beyond V4
     # currently, exact meaning of condition 3 is not clear

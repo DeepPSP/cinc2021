@@ -1,6 +1,9 @@
 """
 """
-import os, io, sys
+
+import os
+import io
+import sys
 import re
 import json
 import time
@@ -8,20 +11,20 @@ import logging
 import warnings
 from copy import deepcopy
 from datetime import datetime
-from typing import Union, Optional, Any, List, Dict, Tuple, Set, Sequence, NoReturn
-from numbers import Real, Number
-from collections.abc import Iterable
+from typing import Union, Optional, Any, List, Dict, Tuple, Sequence, NoReturn
+from numbers import Real
 
 import numpy as np
+
 np.set_printoptions(precision=5, suppress=True)
 import pandas as pd
 import wfdb
 from scipy.io import loadmat
-from scipy.signal import resample, resample_poly
+from scipy.signal import resample_poly
 from easydict import EasyDict as ED
 
 import utils
-from utils.misc import (
+from utils.misc import (  # noqa: F401
     get_record_list_recursive,
     get_record_list_recursive2,
     get_record_list_recursive3,
@@ -30,16 +33,24 @@ from utils.misc import (
     list_sum,
 )
 from utils.utils_signal import ensure_siglen
-from utils.scoring_aux_data import (
-    dx_mapping_all, dx_mapping_scored, dx_mapping_unscored,
-    normalize_class, abbr_to_snomed_ct_code,
+from utils.scoring_aux_data import (  # noqa: F401
+    dx_mapping_all,
+    dx_mapping_scored,
+    dx_mapping_unscored,
+    normalize_class,
+    abbr_to_snomed_ct_code,
     df_weights_abbr,
     equiv_class_dict,
 )
-from utils import ecg_arrhythmia_knowledge as EAK
-from cfg import (
-    PlotCfg, Standard12Leads, BaseCfg,
-    six_leads, four_leads, three_leads, two_leads,
+from utils import ecg_arrhythmia_knowledge as EAK  # noqa: F401
+from cfg import (  # noqa: F401
+    PlotCfg,
+    Standard12Leads,
+    BaseCfg,
+    six_leads,
+    four_leads,
+    three_leads,
+    two_leads,
 )
 
 
@@ -55,7 +66,7 @@ __all__ = [
 
 
 class CINC2021Reader(object):
-    """ finished, checked, to improve,
+    """finished, checked, to improve,
 
     Will Two Do? Varying Dimensions in Electrocardiography:
     The PhysioNet/Computing in Cardiology Challenge 2021
@@ -180,11 +191,14 @@ class CINC2021Reader(object):
     [6] (deprecated) https://storage.cloud.google.com/physionet-challenge-2020-12-lead-ecg-public/
     [7] (recommended) https://storage.cloud.google.com/physionetchallenge2021-public-datasets/
     """
-    def __init__(self,
-                 db_dir:str,
-                 working_dir:Optional[str]=None,
-                 verbose:int=2,
-                 **kwargs:Any) -> NoReturn:
+
+    def __init__(
+        self,
+        db_dir: str,
+        working_dir: Optional[str] = None,
+        verbose: int = 2,
+        **kwargs: Any,
+    ) -> NoReturn:
         """
         Parameters
         ----------
@@ -206,29 +220,47 @@ class CINC2021Reader(object):
         self.ann_ext = "hea"
 
         self.db_tranches = list("ABCDEFG")
-        self.tranche_names = ED({
-            "A": "CPSC",
-            "B": "CPSC_Extra",
-            "C": "StPetersburg",
-            "D": "PTB",
-            "E": "PTB_XL",
-            "F": "Georgia",
-            "G": "CUSPHNFH",
-        })
-        self.rec_prefix = ED({
-            "A": "A", "B": "Q", "C": "I", "D": "S", "E": "HR", "F": "E", "G": "JS",
-        })
+        self.tranche_names = ED(
+            {
+                "A": "CPSC",
+                "B": "CPSC_Extra",
+                "C": "StPetersburg",
+                "D": "PTB",
+                "E": "PTB_XL",
+                "F": "Georgia",
+                "G": "CUSPHNFH",
+            }
+        )
+        self.rec_prefix = ED(
+            {
+                "A": "A",
+                "B": "Q",
+                "C": "I",
+                "D": "S",
+                "E": "HR",
+                "F": "E",
+                "G": "JS",
+            }
+        )
 
         self.db_dir_base = db_dir
-        self.db_dirs = ED({tranche:"" for tranche in self.db_tranches})
+        self.db_dirs = ED({tranche: "" for tranche in self.db_tranches})
         self._all_records = None
         self._stats = pd.DataFrame()
         self._stats_columns = {
-            "record", "tranche", "tranche_name",
-            "nb_leads", "fs", "nb_samples",
-            "age", "sex",
-            "medical_prescription", "history", "symptom_or_surgery",
-            "diagnosis", "diagnosis_scored",  # in the form of abbreviations
+            "record",
+            "tranche",
+            "tranche_name",
+            "nb_leads",
+            "fs",
+            "nb_samples",
+            "age",
+            "sex",
+            "medical_prescription",
+            "history",
+            "symptom_or_surgery",
+            "diagnosis",
+            "diagnosis_scored",  # in the form of abbreviations
         }
         self._ls_rec()  # loads file system structures into self.db_dirs and self._all_records
         self._aggregate_stats(fast=True)
@@ -236,46 +268,151 @@ class CINC2021Reader(object):
         self._diagnoses_records_list = None
         # self._ls_diagnoses_records()
 
-        self.fs = ED({
-            "A": 500, "B": 500, "C": 257, "D": 1000, "E": 500, "F": 500, "G": 500,
-        })
-        self.spacing = ED({t: 1000 / f for t,f in self.fs.items()})
+        self.fs = ED(
+            {
+                "A": 500,
+                "B": 500,
+                "C": 257,
+                "D": 1000,
+                "E": 500,
+                "F": 500,
+                "G": 500,
+            }
+        )
+        self.spacing = ED({t: 1000 / f for t, f in self.fs.items()})
 
         self.all_leads = deepcopy(Standard12Leads)
         self._all_leads_set = set(self.all_leads)
 
         self.df_ecg_arrhythmia = dx_mapping_all[["Dx", "SNOMEDCTCode", "Abbreviation"]]
         self.ann_items = [
-            "rec_name", "nb_leads", "fs", "nb_samples", "datetime", "age", "sex",
-            "diagnosis", "df_leads",
-            "medical_prescription", "history", "symptom_or_surgery",
+            "rec_name",
+            "nb_leads",
+            "fs",
+            "nb_samples",
+            "datetime",
+            "age",
+            "sex",
+            "diagnosis",
+            "df_leads",
+            "medical_prescription",
+            "history",
+            "symptom_or_surgery",
         ]
         self.label_trans_dict = equiv_class_dict.copy()
 
         # self.value_correction_factor = ED({tranche:1 for tranche in self.db_tranches})
         # self.value_correction_factor.F = 4.88  # ref. ISSUES 3
 
-        self.exceptional_records = ["I0002", "I0069", "E04603", "E06072", "E06909", "E07675", "E07941", "E08321",]  # ref. ISSUES 4
+        self.exceptional_records = [
+            "I0002",
+            "I0069",
+            "E04603",
+            "E06072",
+            "E06909",
+            "E07675",
+            "E07941",
+            "E08321",
+        ]  # ref. ISSUES 4
         self.exceptional_records += [  # ref. ISSUE 8
-            "JS10765", "JS10767", "JS10890", "JS10951", "JS11887", "JS11897", "JS11956", "JS12751", "JS13181",
-            "JS14161", "JS14343", "JS14627", "JS14659", "JS15624", "JS16169", "JS16222", "JS16813", "JS19309",
-            "JS19708", "JS20330", "JS20656", "JS21144", "JS21617", "JS21668", "JS21701", "JS21853", "JS21881",
-            "JS23116", "JS23450", "JS23482", "JS23588", "JS23786", "JS23950", "JS24016", "JS25106", "JS25322",
-            "JS25458", "JS26009", "JS26130", "JS26145", "JS26245", "JS26605", "JS26793", "JS26843", "JS26977",
-            "JS27034", "JS27170", "JS27271", "JS27278", "JS27407", "JS27460", "JS27835", "JS27985", "JS28075",
-            "JS28648", "JS28757", "JS33280", "JS34479", "JS34509", "JS34788", "JS34868", "JS34879", "JS35050",
-            "JS35065", "JS35192", "JS35654", "JS35727", "JS36015", "JS36018", "JS36189", "JS36244", "JS36568",
-            "JS36731", "JS37105", "JS37173", "JS37176", "JS37439", "JS37592", "JS37609", "JS37781", "JS38231",
-            "JS38252", "JS41844", "JS41908", "JS41935", "JS42026", "JS42330",
+            "JS10765",
+            "JS10767",
+            "JS10890",
+            "JS10951",
+            "JS11887",
+            "JS11897",
+            "JS11956",
+            "JS12751",
+            "JS13181",
+            "JS14161",
+            "JS14343",
+            "JS14627",
+            "JS14659",
+            "JS15624",
+            "JS16169",
+            "JS16222",
+            "JS16813",
+            "JS19309",
+            "JS19708",
+            "JS20330",
+            "JS20656",
+            "JS21144",
+            "JS21617",
+            "JS21668",
+            "JS21701",
+            "JS21853",
+            "JS21881",
+            "JS23116",
+            "JS23450",
+            "JS23482",
+            "JS23588",
+            "JS23786",
+            "JS23950",
+            "JS24016",
+            "JS25106",
+            "JS25322",
+            "JS25458",
+            "JS26009",
+            "JS26130",
+            "JS26145",
+            "JS26245",
+            "JS26605",
+            "JS26793",
+            "JS26843",
+            "JS26977",
+            "JS27034",
+            "JS27170",
+            "JS27271",
+            "JS27278",
+            "JS27407",
+            "JS27460",
+            "JS27835",
+            "JS27985",
+            "JS28075",
+            "JS28648",
+            "JS28757",
+            "JS33280",
+            "JS34479",
+            "JS34509",
+            "JS34788",
+            "JS34868",
+            "JS34879",
+            "JS35050",
+            "JS35065",
+            "JS35192",
+            "JS35654",
+            "JS35727",
+            "JS36015",
+            "JS36018",
+            "JS36189",
+            "JS36244",
+            "JS36568",
+            "JS36731",
+            "JS37105",
+            "JS37173",
+            "JS37176",
+            "JS37439",
+            "JS37592",
+            "JS37609",
+            "JS37781",
+            "JS38231",
+            "JS38252",
+            "JS41844",
+            "JS41908",
+            "JS41935",
+            "JS42026",
+            "JS42330",
         ]
-        self.exceptional_records += ["Q0400", "Q2961",]  # ref. ISSUE 9
+        self.exceptional_records += [
+            "Q0400",
+            "Q2961",
+        ]  # ref. ISSUE 9
         # TODO: exceptional records can be resolved via reading using `scipy` backend,
         # with noise removal using `remove_spikes_naive` from `signal_processing` module
         # currently for simplicity, exceptional records would be ignored
 
-
-    def get_subject_id(self, rec:str) -> int:
-        """ finished, checked,
+    def get_subject_id(self, rec: str) -> int:
+        """finished, checked,
 
         Parameters
         ----------
@@ -287,16 +424,23 @@ class CINC2021Reader(object):
         sid: int,
             the `subject_id` corr. to `rec`
         """
-        s2d = {"A":"11", "B":"12", "C":"21", "D":"31", "E":"32", "F":"41", "G":"51",}
-        s2d = {self.rec_prefix[k]:v for k,v in s2d.items()}
+        s2d = {
+            "A": "11",
+            "B": "12",
+            "C": "21",
+            "D": "31",
+            "E": "32",
+            "F": "41",
+            "G": "51",
+        }
+        s2d = {self.rec_prefix[k]: v for k, v in s2d.items()}
         prefix = "".join(re.findall(r"[A-Z]", rec))
-        n = rec.replace(prefix,"")
+        n = rec.replace(prefix, "")
         sid = int(f"{s2d[prefix]}{'0'*(8-len(n))}{n}")
         return sid
 
-    
     def _ls_rec(self) -> NoReturn:
-        """ finished, checked,
+        """finished, checked,
 
         list all the records and load into `self._all_records`,
         facilitating further uses
@@ -312,34 +456,50 @@ class CINC2021Reader(object):
                 # self.db_dirs[tranche] = os.path.join(
                 #     self.db_dir_base, os.path.dirname(self._all_records[tranche][0])
                 # )
-                self._all_records[tranche] = [os.path.basename(f) for f in self._all_records[tranche]]
+                self._all_records[tranche] = [
+                    os.path.basename(f) for f in self._all_records[tranche]
+                ]
                 self.db_dirs[tranche] = self._find_dir(self.db_dir_base, tranche, 0)
                 if not self.db_dirs[tranche]:
-                    print(f"failed to find the directory containing tranche {self.tranche_names[tranche]}")
+                    print(
+                        f"failed to find the directory containing tranche {self.tranche_names[tranche]}"
+                    )
                     # raise FileNotFoundError(f"failed to find the directory containing tranche {self.tranche_names[tranche]}")
-                self._all_records[tranche] = [os.path.basename(f) for f in self._all_records[tranche] \
-                        if os.path.isfile(os.path.join(self.db_dirs[tranche], f"{f}.{self.rec_ext}"))]
+                self._all_records[tranche] = [
+                    os.path.basename(f)
+                    for f in self._all_records[tranche]
+                    if os.path.isfile(
+                        os.path.join(self.db_dirs[tranche], f"{f}.{self.rec_ext}")
+                    )
+                ]
         else:
-            print("Please wait patiently to let the reader find all records of all the tranches...")
+            print(
+                "Please wait patiently to let the reader find all records of all the tranches..."
+            )
             start = time.time()
             rec_patterns_with_ext = {
-                tranche: f"^{self.rec_prefix[tranche]}(?:\d+).{self.rec_ext}$" \
-                    for tranche in self.db_tranches
+                tranche: f"^{self.rec_prefix[tranche]}(?:\\d+).{self.rec_ext}$"
+                for tranche in self.db_tranches
             }
-            self._all_records = \
-                get_record_list_recursive3(self.db_dir_base, rec_patterns_with_ext)
+            self._all_records = get_record_list_recursive3(
+                self.db_dir_base, rec_patterns_with_ext
+            )
             to_save = deepcopy(self._all_records)
             for tranche in self.db_tranches:
-                tmp_dirname = [ os.path.dirname(f) for f in self._all_records[tranche] ]
+                tmp_dirname = [os.path.dirname(f) for f in self._all_records[tranche]]
                 if len(set(tmp_dirname)) != 1:
                     if len(set(tmp_dirname)) > 1:
-                        print(f"records of tranche {tranche} are stored in several folders!")
+                        print(
+                            f"records of tranche {tranche} are stored in several folders!"
+                        )
                         # raise ValueError(f"records of tranche {tranche} are stored in several folders!")
                     else:
                         print(f"no record found for tranche {tranche}!")
                         # raise ValueError(f"no record found for tranche {tranche}!")
                 self.db_dirs[tranche] = os.path.join(self.db_dir_base, tmp_dirname[0])
-                self._all_records[tranche] = [os.path.basename(f) for f in self._all_records[tranche]]
+                self._all_records[tranche] = [
+                    os.path.basename(f) for f in self._all_records[tranche]
+                ]
             print(f"Done in {time.time() - start:.5f} seconds!")
             with open(os.path.join(self.db_dir_base, filename), "w") as f:
                 json.dump(to_save, f)
@@ -347,9 +507,8 @@ class CINC2021Reader(object):
                 json.dump(to_save, f)
         self._all_records = ED(self._all_records)
 
-
-    def _aggregate_stats(self, fast:bool=False) -> NoReturn:
-        """ finished, checked,
+    def _aggregate_stats(self, fast: bool = False) -> NoReturn:
+        """finished, checked,
 
         aggregate stats on the whole dataset
 
@@ -367,38 +526,76 @@ class CINC2021Reader(object):
             self._stats = pd.read_csv(stats_file_fp, keep_default_na=False)
         elif os.path.isfile(stats_file_fp_aux):
             self._stats = pd.read_csv(stats_file_fp_aux, keep_default_na=False)
-        if not fast and (self._stats.empty or self._stats_columns != set(self._stats.columns)):
-            print("Please wait patiently to let the reader collect statistics on the whole dataset...")
+        if not fast and (
+            self._stats.empty or self._stats_columns != set(self._stats.columns)
+        ):
+            print(
+                "Please wait patiently to let the reader collect statistics on the whole dataset..."
+            )
             start = time.time()
-            self._stats = pd.DataFrame(list_sum(self._all_records.values()), columns=["record"])
-            self._stats["tranche"] = self._stats["record"].apply(lambda rec: self._get_tranche(rec))
-            self._stats["tranche_name"] = self._stats["tranche"].apply(lambda t: self.tranche_names[t])
-            for k in ["diagnosis", "diagnosis_scored",]:
-                self._stats[k] = ""  # otherwise cells in the first row would be str instead of list
+            self._stats = pd.DataFrame(
+                list_sum(self._all_records.values()), columns=["record"]
+            )
+            self._stats["tranche"] = self._stats["record"].apply(
+                lambda rec: self._get_tranche(rec)
+            )
+            self._stats["tranche_name"] = self._stats["tranche"].apply(
+                lambda t: self.tranche_names[t]
+            )
+            for k in [
+                "diagnosis",
+                "diagnosis_scored",
+            ]:
+                self._stats[
+                    k
+                ] = ""  # otherwise cells in the first row would be str instead of list
             for idx, row in self._stats.iterrows():
                 ann_dict = self.load_ann(row["record"])
-                for k in ["nb_leads", "fs", "nb_samples", "age", "sex", "medical_prescription", "history", "symptom_or_surgery",]:
+                for k in [
+                    "nb_leads",
+                    "fs",
+                    "nb_samples",
+                    "age",
+                    "sex",
+                    "medical_prescription",
+                    "history",
+                    "symptom_or_surgery",
+                ]:
                     self._stats.at[idx, k] = ann_dict[k]
-                for k in ["diagnosis", "diagnosis_scored",]:
+                for k in [
+                    "diagnosis",
+                    "diagnosis_scored",
+                ]:
                     self._stats.at[idx, k] = ann_dict[k]["diagnosis_abbr"]
-                self.logger.debug(f"stats of {row.tranche_name} -- {row.record} --> ({idx+1} / {len(self._stats)}) gathered")
+                self.logger.debug(
+                    f"stats of {row.tranche_name} -- {row.record} --> ({idx+1} / {len(self._stats)}) gathered"
+                )
             for k in ["nb_leads", "fs", "nb_samples"]:
                 self._stats[k] = self._stats[k].astype(int)
             _stats_to_save = self._stats.copy()
-            for k in ["diagnosis", "diagnosis_scored",]:
-                _stats_to_save[k] = _stats_to_save[k].apply(lambda l: list_sep.join(l))
+            for k in [
+                "diagnosis",
+                "diagnosis_scored",
+            ]:
+                _stats_to_save[k] = _stats_to_save[k].apply(
+                    lambda ln: list_sep.join(ln)
+                )
             _stats_to_save.to_csv(stats_file_fp, index=False)
             _stats_to_save.to_csv(stats_file_fp_aux, index=False)
             print(f"Done in {time.time() - start:.5f} seconds!")
         else:
             print("converting dtypes of columns `diagnosis` and `diagnosis_scored`...")
-            for k in ["diagnosis", "diagnosis_scored",]:
+            for k in [
+                "diagnosis",
+                "diagnosis_scored",
+            ]:
                 for idx, row in self._stats.iterrows():
-                    self._stats.at[idx, k] = list(filter(lambda v:len(v)>0, row[k].split(list_sep)))
+                    self._stats.at[idx, k] = list(
+                        filter(lambda v: len(v) > 0, row[k].split(list_sep))
+                    )
 
-
-    def _find_dir(self, root:str, tranche:str, level:int=0) -> str:
-        """ finished, checked,
+    def _find_dir(self, root: str, tranche: str, level: int = 0) -> str:
+        """finished, checked,
 
         Parameters
         ----------
@@ -417,44 +614,45 @@ class CINC2021Reader(object):
         """
         # print(f"searching for dir for tranche {self.tranche_names[tranche]} with root {root} at level {level}")
         if level > 2:
-            print(f"failed to find the directory containing tranche {self.tranche_names[tranche]}")
+            print(
+                f"failed to find the directory containing tranche {self.tranche_names[tranche]}"
+            )
             return
             # raise FileNotFoundError(f"failed to find the directory containing tranche {self.tranche_names[tranche]}")
-        rec_pattern = f"^{self.rec_prefix[tranche]}(?:\d+).{self.rec_ext}$"
+        rec_pattern = f"^{self.rec_prefix[tranche]}(?:\\d+).{self.rec_ext}$"
         res = ""
         candidates = os.listdir(root)
         if len(list(filter(re.compile(rec_pattern).search, candidates))) > 0:
             res = root
             return res
-        new_roots = [os.path.join(root, item) for item in candidates if os.path.isdir(os.path.join(root, item))]
+        new_roots = [
+            os.path.join(root, item)
+            for item in candidates
+            if os.path.isdir(os.path.join(root, item))
+        ]
         for r in new_roots:
-            tmp = self._find_dir(r, tranche, level+1)
+            tmp = self._find_dir(r, tranche, level + 1)
             if tmp:
                 res = tmp
                 return res
         return res
 
-
     @property
     def all_records(self):
-        """ finished, checked
-        """
+        """finished, checked"""
         if self._all_records is None:
             self._ls_rec()
         return self._all_records
 
-
     @property
     def df_stats(self):
-        """
-        """
+        """ """
         if self._stats.empty:
             warnings.warn("the dataframe of stats is empty, try using _aggregate_stats")
         return self._stats
 
-
     def _ls_diagnoses_records(self) -> NoReturn:
-        """ finished, checked,
+        """finished, checked,
 
         list all the records for all diagnoses
         """
@@ -466,13 +664,20 @@ class CINC2021Reader(object):
             with open(dr_fp, "r") as f:
                 self._diagnoses_records_list = json.load(f)
         else:
-            print("Please wait several minutes patiently to let the reader list records for each diagnosis...")
+            print(
+                "Please wait several minutes patiently to let the reader list records for each diagnosis..."
+            )
             start = time.time()
-            self._diagnoses_records_list = {d: [] for d in df_weights_abbr.columns.values.tolist()}
+            self._diagnoses_records_list = {
+                d: [] for d in df_weights_abbr.columns.values.tolist()
+            }
             if not self._stats.empty:
                 for d in df_weights_abbr.columns.values.tolist():
-                    self._diagnoses_records_list[d] = \
-                        sorted(self._stats[self._stats["diagnosis_scored"].apply(lambda l: d in l)]["record"].tolist())
+                    self._diagnoses_records_list[d] = sorted(
+                        self._stats[
+                            self._stats["diagnosis_scored"].apply(lambda ln: d in ln)
+                        ]["record"].tolist()
+                    )
             else:
                 for tranche, l_rec in self.all_records.items():
                     for rec in l_rec:
@@ -487,18 +692,15 @@ class CINC2021Reader(object):
                 json.dump(self._diagnoses_records_list, f)
         self._diagnoses_records_list = ED(self._diagnoses_records_list)
 
-
     @property
     def diagnoses_records_list(self):
-        """ finished, checked
-        """
+        """finished, checked"""
         if self._diagnoses_records_list is None:
             self._ls_diagnoses_records()
         return self._diagnoses_records_list
 
-
-    def _set_logger(self, prefix:Optional[str]=None) -> NoReturn:
-        """ finished, checked,
+    def _set_logger(self, prefix: Optional[str] = None) -> NoReturn:
+        """finished, checked,
 
         config the logger,
         currently NOT used,
@@ -508,7 +710,7 @@ class CINC2021Reader(object):
         prefix: str, optional,
             prefix (for each line) of the logger, and its file name
         """
-        _prefix = prefix+"-" if prefix else ""
+        _prefix = prefix + "-" if prefix else ""
         self.logger = logging.getLogger(f"{_prefix}-{self.db_name}-logger")
         log_filepath = os.path.join(self.working_dir, f"{_prefix}{self.db_name}.log")
         print(f"log file path is set {log_filepath}")
@@ -533,16 +735,17 @@ class CINC2021Reader(object):
 
         # Create formatters and add it to handlers
         c_format = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
-        f_format = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        f_format = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
         c_handler.setFormatter(c_format)
         f_handler.setFormatter(f_format)
 
         self.logger.addHandler(c_handler)
         self.logger.addHandler(f_handler)
 
-
-    def _get_tranche(self, rec:str) -> str:
-        """ finished, checked,
+    def _get_tranche(self, rec: str) -> str:
+        """finished, checked,
 
         get the tranche's symbol (one of "A","B","C","D","E","F") of a record via its name
 
@@ -557,12 +760,11 @@ class CINC2021Reader(object):
             symbol of the tranche, ref. `self.rec_prefix`
         """
         prefix = "".join(re.findall(r"[A-Z]", rec))
-        tranche = {v:k for k,v in self.rec_prefix.items()}[prefix]
+        tranche = {v: k for k, v in self.rec_prefix.items()}[prefix]
         return tranche
 
-
-    def get_data_filepath(self, rec:str, with_ext:bool=True) -> str:
-        """ finished, checked,
+    def get_data_filepath(self, rec: str, with_ext: bool = True) -> str:
+        """finished, checked,
 
         get the absolute file path of the data file of `rec`
 
@@ -586,9 +788,8 @@ class CINC2021Reader(object):
             fp = os.path.splitext(fp)[0]
         return fp
 
-    
-    def get_header_filepath(self, rec:str, with_ext:bool=True) -> str:
-        """ finished, checked,
+    def get_header_filepath(self, rec: str, with_ext: bool = True) -> str:
+        """finished, checked,
 
         get the absolute file path of the header file of `rec`
 
@@ -612,23 +813,23 @@ class CINC2021Reader(object):
             fp = os.path.splitext(fp)[0]
         return fp
 
-    
-    def get_ann_filepath(self, rec:str, with_ext:bool=True) -> str:
-        """ finished, checked,
+    def get_ann_filepath(self, rec: str, with_ext: bool = True) -> str:
+        """finished, checked,
         alias for `get_header_filepath`
         """
         fp = self.get_header_filepath(rec, with_ext=with_ext)
         return fp
 
-
-    def load_data(self,
-                  rec:str,
-                  leads:Optional[Union[str, List[str]]]=None,
-                  data_format:str="channel_first",
-                  backend:str="wfdb",
-                  units:str="mV",
-                  fs:Optional[Real]=None) -> np.ndarray:
-        """ finished, checked,
+    def load_data(
+        self,
+        rec: str,
+        leads: Optional[Union[str, List[str]]] = None,
+        data_format: str = "channel_first",
+        backend: str = "wfdb",
+        units: str = "mV",
+        fs: Optional[Real] = None,
+    ) -> np.ndarray:
+        """finished, checked,
 
         load physical (converted from digital) ecg data,
         which is more understandable for humans
@@ -649,13 +850,18 @@ class CINC2021Reader(object):
             units of the output signal, can also be "μV", with an alias of "uV"
         fs: real number, optional,
             if not None, the loaded data will be resampled to this frequency
-        
+
         Returns
         -------
         data: ndarray,
             the ecg data
         """
-        assert data_format.lower() in ["channel_first", "lead_first", "channel_last", "lead_last"]
+        assert data_format.lower() in [
+            "channel_first",
+            "lead_first",
+            "channel_last",
+            "lead_last",
+        ]
         # tranche = self._get_tranche(rec)
         if leads is None or leads == "all":
             _leads = self.all_leads
@@ -678,13 +884,15 @@ class CINC2021Reader(object):
             header_info = self.load_ann(rec, raw=False)["df_leads"]
             baselines = header_info["baseline"].values.reshape(data.shape[0], -1)
             adc_gain = header_info["adc_gain"].values.reshape(data.shape[0], -1)
-            data = np.asarray(data-baselines, dtype=_DTYPE) / adc_gain
+            data = np.asarray(data - baselines, dtype=_DTYPE) / adc_gain
             leads_ind = [self.all_leads.index(item) for item in _leads]
-            data = data[leads_ind,:]
+            data = data[leads_ind, :]
             # lead_units = np.vectorize(lambda s: s.lower())(header_info["df_leads"]["adc_units"].values)
         else:
-            raise ValueError(f"backend `{backend.lower()}` not supported for loading data")
-        
+            raise ValueError(
+                f"backend `{backend.lower()}` not supported for loading data"
+            )
+
         # ref. ISSUES 3, for multiplying `value_correction_factor`
         # data = data * self.value_correction_factor[tranche]
 
@@ -702,12 +910,13 @@ class CINC2021Reader(object):
 
         return data
 
-    
-    def load_ann(self, rec:str, raw:bool=False, backend:str="wfdb") -> Union[dict,str]:
-        """ finished, checked,
+    def load_ann(
+        self, rec: str, raw: bool = False, backend: str = "wfdb"
+    ) -> Union[dict, str]:
+        """finished, checked,
 
         load annotations (header) stored in the .hea files
-        
+
         Parameters
         ----------
         rec: str,
@@ -717,7 +926,7 @@ class CINC2021Reader(object):
         backend: str, default "wfdb", case insensitive,
             if is "wfdb", `wfdb.rdheader` will be used to load the annotations;
             if is "naive", annotations will be parsed from the lines read from the header files
-        
+
         Returns
         -------
         ann_dict, dict or str,
@@ -727,7 +936,7 @@ class CINC2021Reader(object):
         ann_fp = self.get_ann_filepath(rec, with_ext=True)
         with open(ann_fp, "r") as f:
             header_data = f.read().splitlines()
-        
+
         if raw:
             ann_dict = "\n".join(header_data)
             return ann_dict
@@ -737,12 +946,13 @@ class CINC2021Reader(object):
         elif backend.lower() == "naive":
             ann_dict = self._load_ann_naive(header_data)
         else:
-            raise ValueError(f"backend `{backend.lower()}` not supported for loading annotations")
+            raise ValueError(
+                f"backend `{backend.lower()}` not supported for loading annotations"
+            )
         return ann_dict
 
-
-    def _load_ann_wfdb(self, rec:str, header_data:List[str]) -> dict:
-        """ finished, checked,
+    def _load_ann_wfdb(self, rec: str, header_data: List[str]) -> dict:
+        """finished, checked,
 
         Parameters
         ----------
@@ -761,7 +971,14 @@ class CINC2021Reader(object):
         header_fp = self.get_header_filepath(rec, with_ext=False)
         header_reader = wfdb.rdheader(header_fp)
         ann_dict = {}
-        ann_dict["rec_name"], ann_dict["nb_leads"], ann_dict["fs"], ann_dict["nb_samples"], ann_dict["datetime"], daytime = header_data[0].split(" ")
+        (
+            ann_dict["rec_name"],
+            ann_dict["nb_leads"],
+            ann_dict["fs"],
+            ann_dict["nb_samples"],
+            ann_dict["datetime"],
+            daytime,
+        ) = header_data[0].split(" ")
 
         ann_dict["nb_leads"] = int(ann_dict["nb_leads"])
         ann_dict["fs"] = int(ann_dict["fs"])
@@ -770,73 +987,117 @@ class CINC2021Reader(object):
             ann_dict["datetime"] = datetime.strptime(
                 " ".join([ann_dict["datetime"], daytime]), "%d-%b-%Y %H:%M:%S"
             )
-        except:
+        except Exception:
             pass
         try:  # see NOTE. 1.
-            ann_dict["age"] = \
-                int([l for l in header_reader.comments if "Age" in l][0].split(":")[-1].strip())
-        except:
+            ann_dict["age"] = int(
+                [ln for ln in header_reader.comments if "Age" in ln][0]
+                .split(":")[-1]
+                .strip()
+            )
+        except Exception:
             ann_dict["age"] = np.nan
         try:  # only "10726" has "NaN" sex
-            ann_dict["sex"] = \
-                [l for l in header_reader.comments if "Sex" in l][0].split(":")[-1].strip().replace("NaN", "Unknown")
-        except:
+            ann_dict["sex"] = (
+                [ln for ln in header_reader.comments if "Sex" in ln][0]
+                .split(":")[-1]
+                .strip()
+                .replace("NaN", "Unknown")
+            )
+        except Exception:
             ann_dict["sex"] = "Unknown"
         try:
-            ann_dict["medical_prescription"] = \
-                [l for l in header_reader.comments if "Rx" in l][0].split(":")[-1].strip()
-        except:
+            ann_dict["medical_prescription"] = (
+                [ln for ln in header_reader.comments if "Rx" in ln][0]
+                .split(":")[-1]
+                .strip()
+            )
+        except Exception:
             ann_dict["medical_prescription"] = "Unknown"
         try:
-            ann_dict["history"] = \
-                [l for l in header_reader.comments if "Hx" in l][0].split(":")[-1].strip()
-        except:
+            ann_dict["history"] = (
+                [ln for ln in header_reader.comments if "Hx" in ln][0]
+                .split(":")[-1]
+                .strip()
+            )
+        except Exception:
             ann_dict["history"] = "Unknown"
         try:
-            ann_dict["symptom_or_surgery"] = \
-                [l for l in header_reader.comments if "Sx" in l][0].split(":")[-1].strip()
-        except:
+            ann_dict["symptom_or_surgery"] = (
+                [ln for ln in header_reader.comments if "Sx" in ln][0]
+                .split(":")[-1]
+                .strip()
+            )
+        except Exception:
             ann_dict["symptom_or_surgery"] = "Unknown"
 
-        # l_Dx = [l for l in header_reader.comments if "Dx" in l][0].split(": ")[-1].split(",")
+        # l_Dx = [ln for ln in header_reader.comments if "Dx" in ln][0].split(": ")[-1].split(",")
         # ref. ISSUE 6
-        l_Dx = [l for l in header_reader.comments if "Dx" in l][0].split(":")[-1].strip().split(",")
+        l_Dx = (
+            [ln for ln in header_reader.comments if "Dx" in ln][0]
+            .split(":")[-1]
+            .strip()
+            .split(",")
+        )
         l_Dx = [d for d in l_Dx if len(d) > 0]
-        ann_dict["diagnosis"], ann_dict["diagnosis_scored"] = self._parse_diagnosis(l_Dx)
+        ann_dict["diagnosis"], ann_dict["diagnosis_scored"] = self._parse_diagnosis(
+            l_Dx
+        )
 
         df_leads = pd.DataFrame()
         cols = [
-            "file_name", "fmt", "byte_offset",
-            "adc_gain", "units", "adc_res", "adc_zero",
-            "baseline", "init_value", "checksum", "block_size", "sig_name",
+            "file_name",
+            "fmt",
+            "byte_offset",
+            "adc_gain",
+            "units",
+            "adc_res",
+            "adc_zero",
+            "baseline",
+            "init_value",
+            "checksum",
+            "block_size",
+            "sig_name",
         ]
         for k in cols:
             df_leads[k] = header_reader.__dict__[k]
-        df_leads = df_leads.rename(columns={"sig_name": "lead_name", "units":"adc_units", "file_name":"filename",})
+        df_leads = df_leads.rename(
+            columns={
+                "sig_name": "lead_name",
+                "units": "adc_units",
+                "file_name": "filename",
+            }
+        )
         df_leads.index = df_leads["lead_name"]
         df_leads.index.name = None
         ann_dict["df_leads"] = df_leads
 
         return ann_dict
 
-
-    def _load_ann_naive(self, header_data:List[str]) -> dict:
-        """ finished, checked,
+    def _load_ann_naive(self, header_data: List[str]) -> dict:
+        """finished, checked,
 
         load annotations (header) using raw data read directly from a header file
-        
+
         Parameters
         ----------
         header_data: list of str,
             list of lines read directly from a header file
-        
+
         Returns
         -------
         ann_dict, dict,
             the annotations with items: ref. `self.ann_items`
         """
         ann_dict = {}
-        ann_dict["rec_name"], ann_dict["nb_leads"], ann_dict["fs"], ann_dict["nb_samples"], ann_dict["datetime"], daytime = header_data[0].split(" ")
+        (
+            ann_dict["rec_name"],
+            ann_dict["nb_leads"],
+            ann_dict["fs"],
+            ann_dict["nb_samples"],
+            ann_dict["datetime"],
+            daytime,
+        ) = header_data[0].split(" ")
 
         ann_dict["nb_leads"] = int(ann_dict["nb_leads"])
         ann_dict["fs"] = int(ann_dict["fs"])
@@ -845,47 +1106,68 @@ class CINC2021Reader(object):
             ann_dict["datetime"] = datetime.strptime(
                 " ".join([ann_dict["datetime"], daytime]), "%d-%b-%Y %H:%M:%S"
             )
-        except:
+        except Exception:
             pass
-        try: # see NOTE. 1.
-            ann_dict["age"] = \
-                int([l for l in header_data if l.startswith("#Age")][0].split(":")[-1].strip())
-        except:
+        try:  # see NOTE. 1.
+            ann_dict["age"] = int(
+                [ln for ln in header_data if ln.startswith("#Age")][0]
+                .split(":")[-1]
+                .strip()
+            )
+        except Exception:
             ann_dict["age"] = np.nan
         try:
-            ann_dict["sex"] = \
-                [l for l in header_data if l.startswith("#Sex")][0].split(":")[-1].strip()
-        except:
+            ann_dict["sex"] = (
+                [ln for ln in header_data if ln.startswith("#Sex")][0]
+                .split(":")[-1]
+                .strip()
+            )
+        except Exception:
             ann_dict["sex"] = "Unknown"
         try:
-            ann_dict["medical_prescription"] = \
-                [l for l in header_data if l.startswith("#Rx")][0].split(":")[-1].strip()
-        except:
+            ann_dict["medical_prescription"] = (
+                [ln for ln in header_data if ln.startswith("#Rx")][0]
+                .split(":")[-1]
+                .strip()
+            )
+        except Exception:
             ann_dict["medical_prescription"] = "Unknown"
         try:
-            ann_dict["history"] = \
-                [l for l in header_data if l.startswith("#Hx")][0].split(":")[-1].strip()
-        except:
+            ann_dict["history"] = (
+                [ln for ln in header_data if ln.startswith("#Hx")][0]
+                .split(":")[-1]
+                .strip()
+            )
+        except Exception:
             ann_dict["history"] = "Unknown"
         try:
-            ann_dict["symptom_or_surgery"] = \
-                [l for l in header_data if l.startswith("#Sx")][0].split(":")[-1].strip()
-        except:
+            ann_dict["symptom_or_surgery"] = (
+                [ln for ln in header_data if ln.startswith("#Sx")][0]
+                .split(":")[-1]
+                .strip()
+            )
+        except Exception:
             ann_dict["symptom_or_surgery"] = "Unknown"
 
-        # l_Dx = [l for l in header_data if l.startswith("#Dx")][0].split(": ")[-1].split(",")
+        # l_Dx = [ln for ln in header_data if ln.startswith("#Dx")][0].split(": ")[-1].split(",")
         # ref. ISSUE 6
-        l_Dx = [l for l in header_data if "Dx" in l][0].split(":")[-1].strip().split(",")
+        l_Dx = (
+            [ln for ln in header_data if "Dx" in ln][0]
+            .split(":")[-1]
+            .strip()
+            .split(",")
+        )
         l_Dx = [d for d in l_Dx if len(d) > 0]
-        ann_dict["diagnosis"], ann_dict["diagnosis_scored"] = self._parse_diagnosis(l_Dx)
+        ann_dict["diagnosis"], ann_dict["diagnosis_scored"] = self._parse_diagnosis(
+            l_Dx
+        )
 
         ann_dict["df_leads"] = self._parse_leads(header_data[1:13])
 
         return ann_dict
 
-
-    def _parse_diagnosis(self, l_Dx:List[str]) -> Tuple[dict, dict]:
-        """ finished, checked,
+    def _parse_diagnosis(self, l_Dx: List[str]) -> Tuple[dict, dict]:
+        """finished, checked,
 
         Parameters
         ----------
@@ -901,45 +1183,57 @@ class CINC2021Reader(object):
         """
         diag_dict, diag_scored_dict = {}, {}
         # try:
-        diag_dict["diagnosis_code"] = [item for item in l_Dx if item in dx_mapping_all["SNOMEDCTCode"].tolist()]
+        diag_dict["diagnosis_code"] = [
+            item for item in l_Dx if item in dx_mapping_all["SNOMEDCTCode"].tolist()
+        ]
         # in case not listed in dx_mapping_all
-        left = [item for item in l_Dx if item not in dx_mapping_all["SNOMEDCTCode"].tolist()]
+        left = [
+            item for item in l_Dx if item not in dx_mapping_all["SNOMEDCTCode"].tolist()
+        ]
         # selection = dx_mapping_all["SNOMEDCTCode"].isin(diag_dict["diagnosis_code"])
         # diag_dict["diagnosis_abbr"] = dx_mapping_all[selection]["Abbreviation"].tolist()
         # diag_dict["diagnosis_fullname"] = dx_mapping_all[selection]["Dx"].tolist()
-        diag_dict["diagnosis_abbr"] = \
-            [ dx_mapping_all[dx_mapping_all["SNOMEDCTCode"]==dc]["Abbreviation"].values[0] \
-                for dc in diag_dict["diagnosis_code"] ] + left
-        diag_dict["diagnosis_fullname"] = \
-            [ dx_mapping_all[dx_mapping_all["SNOMEDCTCode"]==dc]["Dx"].values[0] \
-                for dc in diag_dict["diagnosis_code"] ] + left
+        diag_dict["diagnosis_abbr"] = [
+            dx_mapping_all[dx_mapping_all["SNOMEDCTCode"] == dc]["Abbreviation"].values[
+                0
+            ]
+            for dc in diag_dict["diagnosis_code"]
+        ] + left
+        diag_dict["diagnosis_fullname"] = [
+            dx_mapping_all[dx_mapping_all["SNOMEDCTCode"] == dc]["Dx"].values[0]
+            for dc in diag_dict["diagnosis_code"]
+        ] + left
         diag_dict["diagnosis_code"] = diag_dict["diagnosis_code"] + left
         scored_indices = np.isin(
-            diag_dict["diagnosis_code"],
-            dx_mapping_scored["SNOMEDCTCode"].values
+            diag_dict["diagnosis_code"], dx_mapping_scored["SNOMEDCTCode"].values
         )
-        diag_scored_dict["diagnosis_code"] = \
-            [ item for idx, item in enumerate(diag_dict["diagnosis_code"]) \
-                if scored_indices[idx] ]
-        diag_scored_dict["diagnosis_abbr"] = \
-            [ item for idx, item in enumerate(diag_dict["diagnosis_abbr"]) \
-                if scored_indices[idx] ]
-        diag_scored_dict["diagnosis_fullname"] = \
-            [ item for idx, item in enumerate(diag_dict["diagnosis_fullname"]) \
-                if scored_indices[idx] ]
-        # except:  # the old version, the Dx's are abbreviations, deprecated
-            # diag_dict["diagnosis_abbr"] = diag_dict["diagnosis_code"]
-            # selection = dx_mapping_all["Abbreviation"].isin(diag_dict["diagnosis_abbr"])
-            # diag_dict["diagnosis_fullname"] = dx_mapping_all[selection]["Dx"].tolist()
+        diag_scored_dict["diagnosis_code"] = [
+            item
+            for idx, item in enumerate(diag_dict["diagnosis_code"])
+            if scored_indices[idx]
+        ]
+        diag_scored_dict["diagnosis_abbr"] = [
+            item
+            for idx, item in enumerate(diag_dict["diagnosis_abbr"])
+            if scored_indices[idx]
+        ]
+        diag_scored_dict["diagnosis_fullname"] = [
+            item
+            for idx, item in enumerate(diag_dict["diagnosis_fullname"])
+            if scored_indices[idx]
+        ]
+        # except Exception:  # the old version, the Dx's are abbreviations, deprecated
+        # diag_dict["diagnosis_abbr"] = diag_dict["diagnosis_code"]
+        # selection = dx_mapping_all["Abbreviation"].isin(diag_dict["diagnosis_abbr"])
+        # diag_dict["diagnosis_fullname"] = dx_mapping_all[selection]["Dx"].tolist()
         # if not keep_original:
         #     for idx, d in enumerate(ann_dict["diagnosis_abbr"]):
         #         if d in ["Normal", "NSR"]:
         #             ann_dict["diagnosis_abbr"] = ["N"]
         return diag_dict, diag_scored_dict
 
-
-    def _parse_leads(self, l_leads_data:List[str]) -> pd.DataFrame:
-        """ finished, checked,
+    def _parse_leads(self, l_leads_data: List[str]) -> pd.DataFrame:
+        """finished, checked,
 
         Parameters
         ----------
@@ -951,45 +1245,73 @@ class CINC2021Reader(object):
         df_leads: DataFrame,
             infomation of each leads in the format of DataFrame
         """
-        df_leads = pd.read_csv(io.StringIO("\n".join(l_leads_data)), delim_whitespace=True, header=None)
+        df_leads = pd.read_csv(
+            io.StringIO("\n".join(l_leads_data)), delim_whitespace=True, header=None
+        )
         df_leads.columns = [
-            "filename", "fmt+byte_offset",
-            "adc_gain+units", "adc_res", "adc_zero",
-            "init_value", "checksum", "block_size", "lead_name",
+            "filename",
+            "fmt+byte_offset",
+            "adc_gain+units",
+            "adc_res",
+            "adc_zero",
+            "init_value",
+            "checksum",
+            "block_size",
+            "lead_name",
         ]
         df_leads["fmt"] = df_leads["fmt+byte_offset"].apply(lambda s: s.split("+")[0])
-        df_leads["byte_offset"] = df_leads["fmt+byte_offset"].apply(lambda s: s.split("+")[1])
-        df_leads["adc_gain"] = df_leads["adc_gain+units"].apply(lambda s: s.split("/")[0])
-        df_leads["adc_units"] = df_leads["adc_gain+units"].apply(lambda s: s.split("/")[1])
-        for k in ["byte_offset", "adc_gain", "adc_res", "adc_zero", "init_value", "checksum",]:
+        df_leads["byte_offset"] = df_leads["fmt+byte_offset"].apply(
+            lambda s: s.split("+")[1]
+        )
+        df_leads["adc_gain"] = df_leads["adc_gain+units"].apply(
+            lambda s: s.split("/")[0]
+        )
+        df_leads["adc_units"] = df_leads["adc_gain+units"].apply(
+            lambda s: s.split("/")[1]
+        )
+        for k in [
+            "byte_offset",
+            "adc_gain",
+            "adc_res",
+            "adc_zero",
+            "init_value",
+            "checksum",
+        ]:
             df_leads[k] = df_leads[k].apply(lambda s: int(s))
         df_leads["baseline"] = df_leads["adc_zero"]
-        df_leads = df_leads[[
-            "filename", "fmt", "byte_offset",
-            "adc_gain", "adc_units", "adc_res", "adc_zero",
-            "baseline", "init_value", "checksum", "block_size", "lead_name",
-        ]]
+        df_leads = df_leads[
+            [
+                "filename",
+                "fmt",
+                "byte_offset",
+                "adc_gain",
+                "adc_units",
+                "adc_res",
+                "adc_zero",
+                "baseline",
+                "init_value",
+                "checksum",
+                "block_size",
+                "lead_name",
+            ]
+        ]
         df_leads.index = df_leads["lead_name"]
         df_leads.index.name = None
         return df_leads
 
-
-    def load_header(self, rec:str, raw:bool=False) -> Union[dict,str]:
+    def load_header(self, rec: str, raw: bool = False) -> Union[dict, str]:
         """
         alias for `load_ann`, as annotations are also stored in header files
         """
         return self.load_ann(rec, raw)
 
-    
-    def get_labels(self,
-                   rec:str,
-                   scored_only:bool=True,
-                   fmt:str="s",
-                   normalize:bool=True) -> List[str]:
-        """ finished, checked,
+    def get_labels(
+        self, rec: str, scored_only: bool = True, fmt: str = "s", normalize: bool = True
+    ) -> List[str]:
+        """finished, checked,
 
         read labels (diagnoses or arrhythmias) of a record
-        
+
         Parameters
         ----------
         rec: str,
@@ -1005,7 +1327,7 @@ class CINC2021Reader(object):
             if True, the labels will be transformed into their equavalents,
             which are defined in `utils.scoring_aux_data.py`,
             and duplicates would be removed if exist after normalization
-        
+
         Returns
         -------
         labels, list,
@@ -1036,9 +1358,8 @@ class CINC2021Reader(object):
             labels = _labels
         return labels
 
-
-    def get_fs(self, rec:str, from_hea:bool=True) -> Real:
-        """ finished, checked,
+    def get_fs(self, rec: str, from_hea: bool = True) -> Real:
+        """finished, checked,
 
         get the sampling frequency of a record
 
@@ -1062,9 +1383,8 @@ class CINC2021Reader(object):
             fs = self.fs[tranche]
         return fs
 
-    
-    def get_subject_info(self, rec:str, items:Optional[List[str]]=None) -> dict:
-        """ finished, checked,
+    def get_subject_info(self, rec: str, items: Optional[List[str]] = None) -> dict:
+        """finished, checked,
 
         read auxiliary information of a subject (a record) stored in the header files
 
@@ -1074,7 +1394,7 @@ class CINC2021Reader(object):
             name of the record
         items: list of str, optional,
             items of the subject"s information (e.g. sex, age, etc.)
-        
+
         Returns
         -------
         subject_info: dict,
@@ -1083,7 +1403,11 @@ class CINC2021Reader(object):
         """
         if items is None or len(items) == 0:
             info_items = [
-                "age", "sex", "medical_prescription", "history", "symptom_or_surgery",
+                "age",
+                "sex",
+                "medical_prescription",
+                "history",
+                "symptom_or_surgery",
             ]
         else:
             info_items = items
@@ -1092,15 +1416,16 @@ class CINC2021Reader(object):
 
         return subject_info
 
+    def save_challenge_predictions(
+        self,
+        rec: str,
+        output_dir: str,
+        scores: List[Real],
+        labels: List[int],
+        classes: List[str],
+    ) -> NoReturn:
+        """NOT finished, NOT checked, need updating,
 
-    def save_challenge_predictions(self,
-                                   rec:str,
-                                   output_dir:str,
-                                   scores:List[Real],
-                                   labels:List[int],
-                                   classes:List[str]) -> NoReturn:
-        """ NOT finished, NOT checked, need updating, 
-        
         TODO: update for the official phase
 
         Parameters
@@ -1127,19 +1452,24 @@ class CINC2021Reader(object):
 
         with open(output_file, "w") as f:
             # f.write(recording_string + "\n" + class_string + "\n" + label_string + "\n" + score_string + "\n")
-            f.write("\n".join([recording_string, class_string, label_string, score_string, ""]))
+            f.write(
+                "\n".join(
+                    [recording_string, class_string, label_string, score_string, ""]
+                )
+            )
 
-
-    def plot(self,
-             rec:str,
-             data:Optional[np.ndarray]=None,
-             ann:Optional[Dict[str, np.ndarray]]=None,
-             ticks_granularity:int=0,
-             leads:Optional[Union[str, List[str]]]=None,
-             same_range:bool=False,
-             waves:Optional[Dict[str, Sequence[int]]]=None,
-             **kwargs:Any) -> NoReturn:
-        """ finished, checked, to improve,
+    def plot(
+        self,
+        rec: str,
+        data: Optional[np.ndarray] = None,
+        ann: Optional[Dict[str, np.ndarray]] = None,
+        ticks_granularity: int = 0,
+        leads: Optional[Union[str, List[str]]] = None,
+        same_range: bool = False,
+        waves: Optional[Dict[str, Sequence[int]]] = None,
+        **kwargs: Any,
+    ) -> NoReturn:
+        """finished, checked, to improve,
 
         plot the signals of a record or external signals (units in μV),
         with metadata (fs, labels, tranche, etc.),
@@ -1185,16 +1515,19 @@ class CINC2021Reader(object):
         """
         tranche = self._get_tranche(rec)
         if tranche in "CDE":
-            physionet_lightwave_suffix = ED({
-                "C": "incartdb/1.0.0",
-                "D": "ptbdb/1.0.0",
-                "E": "ptb-xl/1.0.1",
-            })
+            physionet_lightwave_suffix = ED(
+                {
+                    "C": "incartdb/1.0.0",
+                    "D": "ptbdb/1.0.0",
+                    "E": "ptb-xl/1.0.1",
+                }
+            )
             url = f"https://physionet.org/lightwave/?db={physionet_lightwave_suffix[tranche]}"
             print(f"better view: {url}")
-            
+
         if "plt" not in dir():
             import matplotlib.pyplot as plt
+
             plt.MultipleLocator.MAXTICKS = 3000
         if leads is None or leads == "all":
             _leads = self.all_leads
@@ -1202,14 +1535,16 @@ class CINC2021Reader(object):
             _leads = [leads]
         else:
             _leads = leads
-        # assert all([l in self.all_leads for l in _leads])
+        # assert all([ld in self.all_leads for ld in _leads])
         assert set(_leads).issubset(self._all_leads_set)
 
         # lead_list = self.load_ann(rec)["df_leads"]["lead_name"].tolist()
-        # lead_indices = [lead_list.index(l) for l in _leads]
-        lead_indices = [self.all_leads.index(l) for l in _leads]
+        # lead_indices = [lead_list.index(ld) for ld in _leads]
+        lead_indices = [self.all_leads.index(ld) for ld in _leads]
         if data is None:
-            _data = self.load_data(rec, data_format="channel_first", units="μV")[lead_indices]
+            _data = self.load_data(rec, data_format="channel_first", units="μV")[
+                lead_indices
+            ]
         else:
             units = self._auto_infer_units(data)
             print(f"input data is auto detected to have units in {units}")
@@ -1217,9 +1552,10 @@ class CINC2021Reader(object):
                 _data = 1000 * data
             else:
                 _data = data
-            assert _data.shape[0] == len(_leads), \
-                f"number of leads from data of shape ({_data.shape[0]}) does not match the length ({len(_leads)}) of `leads`"
-        
+            assert _data.shape[0] == len(
+                _leads
+            ), f"number of leads from data of shape ({_data.shape[0]}) does not match the length ({len(_leads)}) of `leads`"
+
         if same_range:
             y_ranges = np.ones((_data.shape[0],)) * np.max(np.abs(_data)) + 100
         else:
@@ -1228,54 +1564,76 @@ class CINC2021Reader(object):
         if waves:
             if waves.get("p_onsets", None) and waves.get("p_offsets", None):
                 p_waves = [
-                    [onset, offset] \
-                        for onset, offset in zip(waves["p_onsets"], waves["p_offsets"])
+                    [onset, offset]
+                    for onset, offset in zip(waves["p_onsets"], waves["p_offsets"])
                 ]
             elif waves.get("p_peaks", None):
                 p_waves = [
                     [
                         max(0, p + ms2samples(PlotCfg.p_onset, fs=self.get_fs(rec))),
-                        min(_data.shape[1], p + ms2samples(PlotCfg.p_offset, fs=self.get_fs(rec)))
-                    ] for p in waves["p_peaks"]
+                        min(
+                            _data.shape[1],
+                            p + ms2samples(PlotCfg.p_offset, fs=self.get_fs(rec)),
+                        ),
+                    ]
+                    for p in waves["p_peaks"]
                 ]
             else:
                 p_waves = []
             if waves.get("q_onsets", None) and waves.get("s_offsets", None):
                 qrs = [
-                    [onset, offset] for onset, offset in zip(waves["q_onsets"], waves["s_offsets"])
+                    [onset, offset]
+                    for onset, offset in zip(waves["q_onsets"], waves["s_offsets"])
                 ]
             elif waves.get("q_peaks", None) and waves.get("s_peaks", None):
                 qrs = [
                     [
                         max(0, q + ms2samples(PlotCfg.q_onset, fs=self.get_fs(rec))),
-                        min(_data.shape[1], s + ms2samples(PlotCfg.s_offset, fs=self.get_fs(rec)))
-                    ] for q,s in zip(waves["q_peaks"], waves["s_peaks"])
+                        min(
+                            _data.shape[1],
+                            s + ms2samples(PlotCfg.s_offset, fs=self.get_fs(rec)),
+                        ),
+                    ]
+                    for q, s in zip(waves["q_peaks"], waves["s_peaks"])
                 ]
             elif waves.get("r_peaks", None):
                 qrs = [
                     [
                         max(0, r + ms2samples(PlotCfg.qrs_radius, fs=self.get_fs(rec))),
-                        min(_data.shape[1], r + ms2samples(PlotCfg.qrs_radius, fs=self.get_fs(rec)))
-                    ] for r in waves["r_peaks"]
+                        min(
+                            _data.shape[1],
+                            r + ms2samples(PlotCfg.qrs_radius, fs=self.get_fs(rec)),
+                        ),
+                    ]
+                    for r in waves["r_peaks"]
                 ]
             else:
                 qrs = []
             if waves.get("t_onsets", None) and waves.get("t_offsets", None):
                 t_waves = [
-                    [onset, offset] for onset, offset in zip(waves["t_onsets"], waves["t_offsets"])
+                    [onset, offset]
+                    for onset, offset in zip(waves["t_onsets"], waves["t_offsets"])
                 ]
             elif waves.get("t_peaks", None):
                 t_waves = [
                     [
                         max(0, t + ms2samples(PlotCfg.t_onset, fs=self.get_fs(rec))),
-                        min(_data.shape[1], t + ms2samples(PlotCfg.t_offset, fs=self.get_fs(rec)))
-                    ] for t in waves["t_peaks"]
+                        min(
+                            _data.shape[1],
+                            t + ms2samples(PlotCfg.t_offset, fs=self.get_fs(rec)),
+                        ),
+                    ]
+                    for t in waves["t_peaks"]
                 ]
             else:
                 t_waves = []
         else:
             p_waves, qrs, t_waves = [], [], []
-        palette = {"p_waves": "green", "qrs": "red", "t_waves": "pink",}
+        palette = {
+            "p_waves": "green",
+            "qrs": "red",
+            "t_waves": "pink",
+        }
         plot_alpha = 0.4
 
         if ann is None or data is None:
@@ -1293,34 +1651,50 @@ class CINC2021Reader(object):
         t = np.arange(_data.shape[1]) / self.fs[tranche]
         duration = len(t) / self.fs[tranche]
         fig_sz_w = int(round(4.8 * duration))
-        fig_sz_h = 6 * np.maximum(y_ranges,750) / 1500
-        fig, axes = plt.subplots(nb_leads, 1, sharex=False, figsize=(fig_sz_w, np.sum(fig_sz_h)))
+        fig_sz_h = 6 * np.maximum(y_ranges, 750) / 1500
+        fig, axes = plt.subplots(
+            nb_leads, 1, sharex=False, figsize=(fig_sz_w, np.sum(fig_sz_h))
+        )
         if nb_leads == 1:
             axes = [axes]
         for idx in range(nb_leads):
-            axes[idx].plot(t, _data[idx], color="black", linewidth="2.0", label=f"lead - {_leads[idx]}")
+            axes[idx].plot(
+                t,
+                _data[idx],
+                color="black",
+                linewidth="2.0",
+                label=f"lead - {_leads[idx]}",
+            )
             axes[idx].axhline(y=0, linestyle="-", linewidth="1.0", color="red")
             # NOTE that `Locator` has default `MAXTICKS` equal to 1000
             if ticks_granularity >= 1:
                 axes[idx].xaxis.set_major_locator(plt.MultipleLocator(0.2))
                 axes[idx].yaxis.set_major_locator(plt.MultipleLocator(500))
-                axes[idx].grid(which="major", linestyle="-", linewidth="0.4", color="red")
+                axes[idx].grid(
+                    which="major", linestyle="-", linewidth="0.4", color="red"
+                )
             if ticks_granularity >= 2:
                 axes[idx].xaxis.set_minor_locator(plt.MultipleLocator(0.04))
                 axes[idx].yaxis.set_minor_locator(plt.MultipleLocator(100))
-                axes[idx].grid(which="minor", linestyle=":", linewidth="0.2", color="gray")
+                axes[idx].grid(
+                    which="minor", linestyle=":", linewidth="0.2", color="gray"
+                )
             # add extra info. to legend
             # https://stackoverflow.com/questions/16826711/is-it-possible-to-add-a-string-as-a-legend-item-in-matplotlib
             axes[idx].plot([], [], " ", label=f"labels_s - {','.join(diag_scored)}")
             axes[idx].plot([], [], " ", label=f"labels_a - {','.join(diag_all)}")
-            axes[idx].plot([], [], " ", label=f"tranche - {self.tranche_names[tranche]}")
+            axes[idx].plot(
+                [], [], " ", label=f"tranche - {self.tranche_names[tranche]}"
+            )
             axes[idx].plot([], [], " ", label=f"fs - {self.fs[tranche]}")
             for w in ["p_waves", "qrs", "t_waves"]:
                 for itv in eval(w):
-                    axes[idx].axvspan(itv[0], itv[1], color=palette[w], alpha=plot_alpha)
+                    axes[idx].axvspan(
+                        itv[0], itv[1], color=palette[w], alpha=plot_alpha
+                    )
             axes[idx].legend(loc="upper left", fontsize=14)
             axes[idx].set_xlim(t[0], t[-1])
-            axes[idx].set_ylim(min(-600,-y_ranges[idx]), max(600,y_ranges[idx]))
+            axes[idx].set_ylim(min(-600, -y_ranges[idx]), max(600, y_ranges[idx]))
             axes[idx].set_xlabel("Time [s]", fontsize=16)
             axes[idx].set_ylabel("Voltage [μV]", fontsize=16)
         plt.subplots_adjust(hspace=0.05)
@@ -1330,9 +1704,8 @@ class CINC2021Reader(object):
         else:
             plt.show()
 
-
-    def _auto_infer_units(self, data:np.ndarray) -> str:
-        """ finished, checked,
+    def _auto_infer_units(self, data: np.ndarray) -> str:
+        """finished, checked,
 
         automatically infer the units of `data`,
         under the assumption that `data` not raw data, with baseline removed
@@ -1355,11 +1728,10 @@ class CINC2021Reader(object):
             units = "mV"
         return units
 
-
-    def get_tranche_class_distribution(self,
-                                       tranches:Sequence[str],
-                                       scored_only:bool=True) -> Dict[str, int]:
-        """ finished, checked,
+    def get_tranche_class_distribution(
+        self, tranches: Sequence[str], scored_only: bool = True
+    ) -> Dict[str, int]:
+        """finished, checked,
 
         Parameters
         ----------
@@ -1367,7 +1739,7 @@ class CINC2021Reader(object):
             tranche symbols (A-F)
         scored_only: bool, default True,
             only get class distributions that are scored in the CinC2021 official phase
-        
+
         Returns
         -------
         distribution: dict,
@@ -1382,10 +1754,11 @@ class CINC2021Reader(object):
                 distribution[row["Abbreviation"]] = num
         return distribution
 
-
     @staticmethod
-    def get_arrhythmia_knowledge(arrhythmias:Union[str,List[str]], **kwargs:Any) -> NoReturn:
-        """ finished, checked,
+    def get_arrhythmia_knowledge(
+        arrhythmias: Union[str, List[str]], **kwargs: Any
+    ) -> NoReturn:
+        """finished, checked,
 
         knowledge about ECG features of specific arrhythmias,
 
@@ -1400,22 +1773,26 @@ class CINC2021Reader(object):
             d = [normalize_class(c) for c in arrhythmias]
         # pp = pprint.PrettyPrinter(indent=4)
         # unsupported = [item for item in d if item not in dx_mapping_all["Abbreviation"]]
-        unsupported = [item for item in d if item not in dx_mapping_scored["Abbreviation"].values]
-        assert len(unsupported) == 0, \
-            f"`{unsupported}` {'is' if len(unsupported)==1 else 'are'} not supported!"
+        unsupported = [
+            item for item in d if item not in dx_mapping_scored["Abbreviation"].values
+        ]
+        assert (
+            len(unsupported) == 0
+        ), f"`{unsupported}` {'is' if len(unsupported)==1 else 'are'} not supported!"
         for idx, item in enumerate(d):
             # pp.pprint(eval(f"EAK.{item}"))
             print(dict_to_str(eval(f"EAK.{item}")))
-            if idx < len(d)-1:
-                print("*"*110)
+            if idx < len(d) - 1:
+                print("*" * 110)
 
-
-    def load_resampled_data(self,
-                            rec:str,
-                            leads:Optional[Union[str, List[str]]]=None,
-                            data_format:str="channel_first",
-                            siglen:Optional[int]=None) -> np.ndarray:
-        """ finished, checked,
+    def load_resampled_data(
+        self,
+        rec: str,
+        leads: Optional[Union[str, List[str]]] = None,
+        data_format: str = "channel_first",
+        siglen: Optional[int] = None,
+    ) -> np.ndarray:
+        """finished, checked,
 
         resample the data of `rec` to 500Hz,
         or load the resampled data in 500Hz, if the corr. data file already exists
@@ -1453,17 +1830,15 @@ class CINC2021Reader(object):
         if siglen is None:
             rec_fp = os.path.join(self.db_dirs[tranche], f"{rec}_500Hz.npy")
         else:
-            rec_fp = os.path.join(self.db_dirs[tranche], f"{rec}_500Hz_siglen_{siglen}.npy")
+            rec_fp = os.path.join(
+                self.db_dirs[tranche], f"{rec}_500Hz_siglen_{siglen}.npy"
+            )
         if not os.path.isfile(rec_fp):
             # print(f"corresponding file {os.basename(rec_fp)} does not exist")
             # NOTE: if not exists, create the data file,
             # so that the ordering of leads keeps in accordance with `Standard12Leads`
             data = self.load_data(
-                rec,
-                leads="all",
-                data_format="channel_first",
-                units="mV",
-                fs=None
+                rec, leads="all", data_format="channel_first", units="mV", fs=None
             )
             rec_fs = self.get_fs(rec, from_hea=True)
             if rec_fs != 500:
@@ -1474,7 +1849,9 @@ class CINC2021Reader(object):
                 # slice_start = (data.shape[1] - siglen)//2
                 # slice_end = slice_start + siglen
                 # data = data[..., slice_start:slice_end]
-                data = ensure_siglen(data, siglen=siglen, fmt="channel_first").astype(_DTYPE)
+                data = ensure_siglen(data, siglen=siglen, fmt="channel_first").astype(
+                    _DTYPE
+                )
                 np.save(rec_fp, data)
             elif siglen is None:
                 np.save(rec_fp, data)
@@ -1487,9 +1864,8 @@ class CINC2021Reader(object):
             data = data.T
         return data
 
-
-    def load_raw_data(self, rec:str, backend:str="scipy") -> np.ndarray:
-        """ finished, checked,
+    def load_raw_data(self, rec: str, backend: str = "scipy") -> np.ndarray:
+        """finished, checked,
 
         load raw data from corresponding files with no further processing,
         in order to facilitate feeding data into the `run_12ECG_classifier` function
@@ -1519,9 +1895,12 @@ class CINC2021Reader(object):
             raw_data = loadmat(rec_fp)["val"].astype(_DTYPE)
         return raw_data
 
-
-    def _check_exceptions(self, tranches:Optional[Union[str, Sequence[str]]]=None, flat_granularity:str="record") -> List[str]:
-        """ finished, checked,
+    def _check_exceptions(
+        self,
+        tranches: Optional[Union[str, Sequence[str]]] = None,
+        flat_granularity: str = "record",
+    ) -> List[str]:
+        """finished, checked,
 
         check if records from `tranches` has nan values, or contains flat values in any lead
 
@@ -1547,7 +1926,7 @@ class CINC2021Reader(object):
         _three_leads = set(three_leads)
         _four_leads = set(four_leads)
         _six_leads = set(six_leads)
-        for t in (tranches or self.db_tranches):
+        for t in tranches or self.db_tranches:
             for rec in self.all_records[t]:
                 data = self.load_data(rec)
                 if np.isnan(data).any():
@@ -1555,25 +1934,32 @@ class CINC2021Reader(object):
                 elif np.std(data) == 0:
                     print(f"record {rec} from tranche {t} is flat")
                 elif (np.std(data, axis=1) == 0).any():
-                    exceptional_leads = set(np.array(self.all_leads)[np.where(np.std(data, axis=1) == 0)[0]].tolist())
-                    cond =  any([
-                        _two_leads.issubset(exceptional_leads),
-                        _three_leads.issubset(exceptional_leads),
-                        _four_leads.issubset(exceptional_leads),
-                        _six_leads.issubset(exceptional_leads),
-                    ])
+                    exceptional_leads = set(
+                        np.array(self.all_leads)[
+                            np.where(np.std(data, axis=1) == 0)[0]
+                        ].tolist()
+                    )
+                    cond = any(
+                        [
+                            _two_leads.issubset(exceptional_leads),
+                            _three_leads.issubset(exceptional_leads),
+                            _four_leads.issubset(exceptional_leads),
+                            _six_leads.issubset(exceptional_leads),
+                        ]
+                    )
                     if cond or flat_granularity.lower() == "lead":
-                        print(f"leads {exceptional_leads} of record {rec} from tranche {t} is flat")
+                        print(
+                            f"leads {exceptional_leads} of record {rec} from tranche {t} is flat"
+                        )
                     else:
                         continue
-                else: 
+                else:
                     continue
                 exceptional_records.append(rec)
         return exceptional_records
 
-
-    def _compute_cooccurrence(self, tranches:Optional[str]=None) -> pd.DataFrame:
-        """ finished, checked,
+    def _compute_cooccurrence(self, tranches: Optional[str] = None) -> pd.DataFrame:
+        """finished, checked,
 
         compute the coocurrence matrix (DataFrame) of all classes in the whole of the CinC2021 database
 
@@ -1588,11 +1974,19 @@ class CINC2021Reader(object):
         dx_cooccurrence_all: DataFrame,
             the coocurrence matrix (DataFrame) desired
         """
-        dx_cooccurrence_all_fp = os.path.join(utils._BASE_DIR, "utils", "dx_cooccurrence_all.csv")
+        dx_cooccurrence_all_fp = os.path.join(
+            utils._BASE_DIR, "utils", "dx_cooccurrence_all.csv"
+        )
         if os.path.isfile(dx_cooccurrence_all_fp) and tranches is None:
             dx_cooccurrence_all = pd.read_csv(dx_cooccurrence_all_fp)
             return
-        dx_cooccurrence_all = pd.DataFrame(np.zeros((len(dx_mapping_all.Abbreviation), len(dx_mapping_all.Abbreviation)),dtype=int), columns=dx_mapping_all.Abbreviation.values)
+        dx_cooccurrence_all = pd.DataFrame(
+            np.zeros(
+                (len(dx_mapping_all.Abbreviation), len(dx_mapping_all.Abbreviation)),
+                dtype=int,
+            ),
+            columns=dx_mapping_all.Abbreviation.values,
+        )
         dx_cooccurrence_all.index = dx_mapping_all.Abbreviation.values
         start = time.time()
         print("start computing the cooccurrence matrix...")
@@ -1608,38 +2002,122 @@ class CINC2021Reader(object):
                         # ref. ISSUE 7
                         # print(f"{rec} has illegal Dx {item}!")
                         continue
-                    dx_cooccurrence_all.loc[item,item] += 1
-                for i in range(len(d)-1):
+                    dx_cooccurrence_all.loc[item, item] += 1
+                for i in range(len(d) - 1):
                     if d[i] not in dx_cooccurrence_all.columns.values:
                         continue
-                    for j in range(i+1,len(d)):
+                    for j in range(i + 1, len(d)):
                         if d[j] not in dx_cooccurrence_all.columns.values:
                             continue
-                        dx_cooccurrence_all.loc[d[i],d[j]] += 1
-                        dx_cooccurrence_all.loc[d[j],d[i]] += 1
+                        dx_cooccurrence_all.loc[d[i], d[j]] += 1
+                        dx_cooccurrence_all.loc[d[j], d[i]] += 1
                 print(f"tranche {tranche} <-- {idx+1} / {len(l_rec)}", end="\r")
             print("\n")
-        print(f"finish computing the cooccurrence matrix in {(time.time()-start)/60:.3f} minutes")
+        print(
+            f"finish computing the cooccurrence matrix in {(time.time()-start)/60:.3f} minutes"
+        )
         if tranches is None:
             dx_cooccurrence_all.to_csv(dx_cooccurrence_all_fp)
         return dx_cooccurrence_all
 
 
-_exceptional_records = [ # with nan values (p_signal) read by wfdb
-    "I0002", "I0069", "E04603", "E06072", "E06909", "E07675", "E07941", "E08321",
-    "JS10765", "JS10767", "JS10890", "JS10951", "JS11887", "JS11897", "JS11956",
-    "JS12751", "JS13181", "JS14161", "JS14343", "JS14627", "JS14659", "JS15624",
-    "JS16169", "JS16222", "JS16813", "JS19309", "JS19708", "JS20330", "JS20656",
-    "JS21144", "JS21617", "JS21668", "JS21701", "JS21853", "JS21881", "JS23116",
-    "JS23450", "JS23482", "JS23588", "JS23786", "JS23950", "JS24016", "JS25106",
-    "JS25322", "JS25458", "JS26009", "JS26130", "JS26145", "JS26245", "JS26605",
-    "JS26793", "JS26843", "JS26977", "JS27034", "JS27170", "JS27271", "JS27278",
-    "JS27407", "JS27460", "JS27835", "JS27985", "JS28075", "JS28648", "JS28757",
-    "JS33280", "JS34479", "JS34509", "JS34788", "JS34868", "JS34879", "JS35050",
-    "JS35065", "JS35192", "JS35654", "JS35727", "JS36015", "JS36018", "JS36189",
-    "JS36244", "JS36568", "JS36731", "JS37105", "JS37173", "JS37176", "JS37439",
-    "JS37592", "JS37609", "JS37781", "JS38231", "JS38252", "JS41844", "JS41908",
-    "JS41935", "JS42026", "JS42330",
+_exceptional_records = [  # with nan values (p_signal) read by wfdb
+    "I0002",
+    "I0069",
+    "E04603",
+    "E06072",
+    "E06909",
+    "E07675",
+    "E07941",
+    "E08321",
+    "JS10765",
+    "JS10767",
+    "JS10890",
+    "JS10951",
+    "JS11887",
+    "JS11897",
+    "JS11956",
+    "JS12751",
+    "JS13181",
+    "JS14161",
+    "JS14343",
+    "JS14627",
+    "JS14659",
+    "JS15624",
+    "JS16169",
+    "JS16222",
+    "JS16813",
+    "JS19309",
+    "JS19708",
+    "JS20330",
+    "JS20656",
+    "JS21144",
+    "JS21617",
+    "JS21668",
+    "JS21701",
+    "JS21853",
+    "JS21881",
+    "JS23116",
+    "JS23450",
+    "JS23482",
+    "JS23588",
+    "JS23786",
+    "JS23950",
+    "JS24016",
+    "JS25106",
+    "JS25322",
+    "JS25458",
+    "JS26009",
+    "JS26130",
+    "JS26145",
+    "JS26245",
+    "JS26605",
+    "JS26793",
+    "JS26843",
+    "JS26977",
+    "JS27034",
+    "JS27170",
+    "JS27271",
+    "JS27278",
+    "JS27407",
+    "JS27460",
+    "JS27835",
+    "JS27985",
+    "JS28075",
+    "JS28648",
+    "JS28757",
+    "JS33280",
+    "JS34479",
+    "JS34509",
+    "JS34788",
+    "JS34868",
+    "JS34879",
+    "JS35050",
+    "JS35065",
+    "JS35192",
+    "JS35654",
+    "JS35727",
+    "JS36015",
+    "JS36018",
+    "JS36189",
+    "JS36244",
+    "JS36568",
+    "JS36731",
+    "JS37105",
+    "JS37173",
+    "JS37176",
+    "JS37439",
+    "JS37592",
+    "JS37609",
+    "JS37781",
+    "JS38231",
+    "JS38252",
+    "JS41844",
+    "JS41908",
+    "JS41935",
+    "JS42026",
+    "JS42330",
     # with totally flat values
-    "Q0400", "Q2961",
+    "Q0400",
+    "Q2961",
 ]
