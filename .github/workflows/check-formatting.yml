@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v2
@@ -28,10 +28,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install -r requirements.txt
         python -m pip install black==22.3.0 flake8 # Testing packages
-        python -m pip install torch==1.10.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
-        python -m pip install torchaudio==0.10.0+cu113 --no-deps -f https://download.pytorch.org/whl/torch_stable.html
-        python -m pip install torch-ecg
-        python -m pip install torch-audiomentations --no-deps
+        python -m pip install torch==1.6.0+cu101 -f https://download.pytorch.org/whl/torch_stable.html
     - name: Check code format with black and flake8
       run: |
         black . --extend-exclude .ipynb -v --exclude "/(build|dist|torch_ecg|torch_ecg_bak|official_baseline_classifier|official_scoring_metric/|helper_code\.py|run_model\.py|train_model\.py|evaluate_model\.py|pantompkins\.py)"
