@@ -4,7 +4,7 @@ Will Two Do? Varying Dimensions in Electrocardiography: The PhysioNet/Computing 
 ![docker-ci](https://github.com/DeepPSP/cinc2021/actions/workflows/docker-image.yml/badge.svg)
 ![format-check](https://github.com/DeepPSP/cinc2021/actions/workflows/check-formatting.yml/badge.svg)
 
-**Currently, the 18.04 CUDA docker image is broken (`NO_PUBKEY` error), causing Docker-CI to fail. See the [post](https://forums.developer.nvidia.com/t/18-04-cuda-docker-image-is-broken/212892/3) in Nvidia's Forum**
+~~**Currently, the 18.04 CUDA docker image is broken (`NO_PUBKEY` error), causing Docker-CI to fail. See the [post](https://forums.developer.nvidia.com/t/18-04-cuda-docker-image-is-broken/212892/3) in Nvidia's Forum**~~
 
 
 NOTE that a part of the code for the official phase have been moved to the folder [official_phase_legacy](/official_phase_legacy/).
