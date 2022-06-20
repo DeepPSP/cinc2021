@@ -3,9 +3,10 @@
 # FROM nvidia/cuda:11.1.1-devel
 # FROM nvidia/cuda:11.1.1-devel-ubuntu20.04
 # FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel
-FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel
+# FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel
+FROM pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime  # not fit for the original challenge
 
-# NOTE: The GPU provided by the Challenge is  GPU Tesla T4 with nvidiaDriverVersion: 418.40.04
+# NOTE: The GPU provided by the Challenge is GPU Tesla T4 with nvidiaDriverVersion: 418.40.04
 # by checking https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html
 # and https://download.pytorch.org/whl/torch_stable.html
 # one should use 1.6.0-cuda10.1
@@ -33,7 +34,8 @@ WORKDIR /physionet
 # latest version of biosppy uses opencv
 # https://stackoverflow.com/questions/55313610/importerror-libgl-so-1-cannot-open-shared-object-file-no-such-file-or-directo
 RUN apt update
-RUN apt install ffmpeg libsm6 libxext6 vim  -y
+RUN apt install build-essential -y
+RUN apt install ffmpeg libsm6 libxext6 vim -y
 
 # RUN apt update && apt install -y --no-install-recommends \
 #         build-essential \
