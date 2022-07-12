@@ -70,10 +70,6 @@ Final results are on the [leaderboard page of the challenge official website](ht
 The last entry failed on the 12-lead UMich test data. It is probably because this last entry used the "no clinical rules" setting, hence normalizations were performed. When the signal has constant value, then dividing by zero (STD) would result in nan values, crashing the whole deep learning pipeline. Actually the last two entries have such constant value records, and normalization is corrected in the [data generator](https://github.com/DeepPSP/cinc2021/blob/3448a106cf6bc1c884375bac560891fe367966c8/dataset.py#L119). However, corresponding correction was not made in the [team_code](https://github.com/DeepPSP/cinc2021/blob/3448a106cf6bc1c884375bac560891fe367966c8/team_code.py#L415)! To avoid such things, a [function](https://github.com/DeepPSP/cinc2021/blob/6c28598cf8d6c351e844aa6c569d3e6d66cdd44a/utils/utils_signal.py#L829) for normalizing data in a uniform manner is written.
 
 
-## References:
-TO add....
-
-
 ## Citation
 ```latex
 @inproceedings{wen_cinc2021,
@@ -86,13 +82,16 @@ TO add....
   publisher = {{IEEE}},
 }
 @article{Kang_2022_cinc2021_iop,
-     author = {Jingsu Kang and Hao Wen},
       title = {{A Study on Several Critical Problems on Arrhythmia Detection using Varying-Dimensional Electrocardiography}},
-    journal = {Physiological Measurement},
+     author = {Jingsu Kang and Hao Wen},
+    journal = {{Physiological Measurement}},
         doi = {10.1088/1361-6579/ac6aa3},
        year = {2022},
-      month = {4},
-  publisher = {{IOP} Publishing}
+      month = {6},
+  publisher = {{IOP Publishing}},
+     volume = {43},
+     number = {6},
+      pages = {064007}
 }
 ```
 
