@@ -7,7 +7,7 @@ Will Two Do? Varying Dimensions in Electrocardiography: The PhysioNet/Computing 
 
 ~~**Currently, the 18.04 CUDA docker image is broken (`NO_PUBKEY` error), causing Docker-CI to fail. See the [post](https://forums.developer.nvidia.com/t/18-04-cuda-docker-image-is-broken/212892/3) in Nvidia's Forum**~~
 
-NOTE that a part of the code for the official phase have been moved to the folder [official_phase_legacy](/official_phase_legacy/).
+NOTE that a part of the code for the official phase have been moved to the folder [official_phase_legacy](official_phase_legacy/).
 
 ## Updated Version
 
@@ -38,7 +38,7 @@ Other teams that are not among official entries, but among [unofficial entries](
 
 ## Conference Website and Conference Programme
 
-[Website](http://www.cinc2021.org/), [Programme](https://cinc.org/archives/2021/), [IEEE Xplore](https://ieeexplore.ieee.org/xpl/conhome/9662654/proceeding), [Poster](/images/CinC2021_poster.pdf)
+[Website](http://www.cinc2021.org/), [Programme](https://cinc.org/archives/2021/), [IEEE Xplore](https://ieeexplore.ieee.org/xpl/conhome/9662654/proceeding), [Poster](images/CinC2021_poster.pdf)
 
 ## Data Preparation
 
@@ -49,27 +49,23 @@ and use `python prepare_dataset -i {data_directory} -v` to prepare the data for 
 
 Deep learning models are constructed using [torch_ecg](https://github.com/DeepPSP/torch_ecg), which has already been added as a submodule.
 
-## [Images](/images/)
+## [Images](images/)
 
 - 2 typical training processes
 
-![2 typical training processes](/images/train.svg)
+![2 typical training processes](images/train.svg)
 
 - "Confusion Matrix" of a typical model on the train-validation set
 
-![cm_bin](/images/confusion-matrix-multi-scopic-ncr.svg)
+![cm_bin](images/confusion-matrix-multi-scopic-ncr.svg)
 
-The "Confusion Matrix" is quoted since it is not really a confusion matrix (the classification is multi-label classification). Its computation can be found [here](https://github.com/DeepPSP/cinc2021/blob/master/gather_results.py#L122). The diagonal are "true positives", the off-diagonal are "false positives". The "false negatives" are not reflected on this figure. For more matrix plot, ref. [Images](/images/)
+The "Confusion Matrix" is quoted since it is not really a confusion matrix (the classification is multi-label classification). Its computation can be found [here](https://github.com/DeepPSP/cinc2021/blob/master/gather_results.py#L122). The diagonal are "true positives", the off-diagonal are "false positives". The "false negatives" are not reflected on this figure. For more matrix plot, ref. [Images](images/)
 
 ## Final Results
 
 Final results are on the [leaderboard page of the challenge official website](https://physionetchallenges.org/2021/leaderboard/) or one can find in the [offical_results folder](official_results/).
 
 The last entry failed on the 12-lead UMich test data. It is probably because this last entry used the "no clinical rules" setting, hence normalizations were performed. When the signal has constant value, then dividing by zero (STD) would result in nan values, crashing the whole deep learning pipeline. Actually the last two entries have such constant value records, and normalization is corrected in the [data generator](https://github.com/DeepPSP/cinc2021/blob/3448a106cf6bc1c884375bac560891fe367966c8/dataset.py#L119). However, corresponding correction was not made in the [team_code](https://github.com/DeepPSP/cinc2021/blob/3448a106cf6bc1c884375bac560891fe367966c8/team_code.py#L415)! To avoid such things, a [function](https://github.com/DeepPSP/cinc2021/blob/6c28598cf8d6c351e844aa6c569d3e6d66cdd44a/utils/utils_signal.py#L829) for normalizing data in a uniform manner is written.
-
-## References:
-
-TO add....
 
 ## Citation
 
@@ -84,13 +80,16 @@ TO add....
   publisher = {{IEEE}},
 }
 @article{Kang_2022_cinc2021_iop,
-     author = {Jingsu Kang and Hao Wen},
       title = {{A Study on Several Critical Problems on Arrhythmia Detection using Varying-Dimensional Electrocardiography}},
-    journal = {Physiological Measurement},
+     author = {Jingsu Kang and Hao Wen},
+    journal = {{Physiological Measurement}},
         doi = {10.1088/1361-6579/ac6aa3},
        year = {2022},
-      month = {4},
-  publisher = {{IOP} Publishing}
+      month = {6},
+  publisher = {{IOP Publishing}},
+     volume = {43},
+     number = {6},
+      pages = {064007}
 }
 ```
 
