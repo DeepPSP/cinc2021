@@ -7,7 +7,7 @@ import time
 import textwrap
 from random import shuffle, randint
 from copy import deepcopy
-from typing import Union, Optional, List, Tuple, Dict, Sequence, Set, NoReturn
+from typing import Union, Optional, List, Tuple, Dict, Sequence, Set
 
 import numpy as np
 
@@ -50,7 +50,7 @@ class CINC2021(Dataset):
     __DEBUG__ = False
     __name__ = "CPSC2021"
 
-    def __init__(self, config: ED, training: bool = True) -> NoReturn:
+    def __init__(self, config: ED, training: bool = True) -> None:
         """finished, checked,
 
         Parameters
@@ -156,11 +156,11 @@ class CINC2021(Dataset):
         """ """
         return len(self.records)
 
-    def disable_data_augmentation(self) -> NoReturn:
+    def disable_data_augmentation(self) -> None:
         """ """
         self.__data_aug = False
 
-    def enable_data_augmentation(self) -> NoReturn:
+    def enable_data_augmentation(self) -> None:
         """ """
         self.__data_aug = True
 
@@ -342,7 +342,7 @@ class CINC2021(Dataset):
         )
         return is_valid
 
-    def persistence(self) -> NoReturn:
+    def persistence(self) -> None:
         """finished, checked,
 
         make the dataset persistent w.r.t. the tranches and the ratios in `self.config`
@@ -378,7 +378,7 @@ class CINC2021(Dataset):
 
         self.__data_aug = prev_state
 
-    def _check_nan(self) -> NoReturn:
+    def _check_nan(self) -> None:
         """finished, checked,
 
         during training, sometimes nan values are encountered,

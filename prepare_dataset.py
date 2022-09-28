@@ -14,7 +14,7 @@ import tarfile
 import time
 from glob import glob
 from copy import deepcopy
-from typing import Optional, Sequence, NoReturn
+from typing import Optional, Sequence
 
 from cfg import BaseCfg
 
@@ -121,7 +121,7 @@ def run(
     output_directory: Optional[str] = None,
     tranches: Optional[Sequence[str]] = None,
     verbose: bool = False,
-) -> NoReturn:
+) -> None:
     """finished, checked,
 
     Parameters

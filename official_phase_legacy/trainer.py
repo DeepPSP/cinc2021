@@ -33,7 +33,7 @@ import argparse
 import textwrap
 from copy import deepcopy
 from collections import deque, OrderedDict
-from typing import Any, Union, Optional, Tuple, Sequence, NoReturn
+from typing import Any, Union, Optional, Tuple, Sequence
 from numbers import Real, Number
 
 import numpy as np
@@ -522,7 +522,7 @@ def train(
     return best_state_dict
 
 
-# def train_one_epoch(model:nn.Module, criterion:nn.Module, optimizer:optim.Optimizer, data_loader:DataLoader, device:torch.device, epoch:int) -> NoReturn:
+# def train_one_epoch(model:nn.Module, criterion:nn.Module, optimizer:optim.Optimizer, data_loader:DataLoader, device:torch.device, epoch:int) -> None:
 #     """
 #     """
 

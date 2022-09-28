@@ -6,7 +6,7 @@ import json
 import sys
 import importlib
 from pathlib import Path
-from typing import Sequence, Optional, NoReturn
+from typing import Sequence, Optional
 from random import sample
 import argparse
 
@@ -14,7 +14,7 @@ _base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, _base_dir)
 
 
-def import_parents(level: int = 1) -> NoReturn:
+def import_parents(level: int = 1) -> None:
     # https://gist.github.com/vaultah/d63cb4c86be2774377aa674b009f759a
     import sys
 

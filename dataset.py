@@ -8,7 +8,7 @@ import time
 import textwrap
 from random import shuffle, sample
 from copy import deepcopy
-from typing import Optional, List, Tuple, Sequence, Set, NoReturn
+from typing import Optional, List, Tuple, Sequence, Set
 
 import numpy as np
 
@@ -63,9 +63,7 @@ class CINC2021(Dataset):
     __DEBUG__ = False
     __name__ = "CINC2021"
 
-    def __init__(
-        self, config: ED, training: bool = True, lazy: bool = True
-    ) -> NoReturn:
+    def __init__(self, config: ED, training: bool = True, lazy: bool = True) -> None:
         """finished, checked,
 
         Parameters
@@ -136,7 +134,7 @@ class CINC2021(Dataset):
         if not self.lazy:
             self._load_all_data()
 
-    def _load_all_data(self) -> NoReturn:
+    def _load_all_data(self) -> None:
         """ """
         # self.reader can not be pickled
         # with mp.Pool(processes=max(1, mp.cpu_count()-2)) as pool:
@@ -213,14 +211,14 @@ class CINC2021(Dataset):
 
         return values, labels
 
-    def to(self, leads: Sequence[str]) -> NoReturn:
+    def to(self, leads: Sequence[str]) -> None:
         """ """
         prev_leads = self.config.leads
         self.config.leads = leads
         self._indices = [prev_leads.index(ld) for ld in leads]
         self._signals = self._signals[:, self._indices, :]
 
-    def emtpy(self, leads: Optional[Sequence[str]] = None) -> NoReturn:
+    def emtpy(self, leads: Optional[Sequence[str]] = None) -> None:
         """ """
         if leads is None:
             leads = self.config.leads
@@ -239,7 +237,7 @@ class CINC2021(Dataset):
         new_ds._labels = ext_ds._labels.copy()
         return new_ds
 
-    def reload_from_extern(self, ext_ds: "CINC2021") -> NoReturn:
+    def reload_from_extern(self, ext_ds: "CINC2021") -> None:
         """ """
         indices = [ext_ds.config.leads.index(ld) for ld in self.config.leads]
         self._signals = ext_ds._signals[:, indices, :]
@@ -444,7 +442,7 @@ class CINC2021(Dataset):
         )
         return is_valid
 
-    def persistence(self) -> NoReturn:
+    def persistence(self) -> None:
         """finished, checked,
 
         make the dataset persistent w.r.t. the tranches and the ratios in `self.config`
@@ -476,7 +474,7 @@ class CINC2021(Dataset):
         np.save(os.path.join(self.reader.db_dir_base, filename), y)
         print(f"y saved to {filename}")
 
-    def _check_nan(self) -> NoReturn:
+    def _check_nan(self) -> None:
         """finished, checked,
 
         during training, sometimes nan values are encountered,
@@ -498,7 +496,7 @@ class FastDataReader(Dataset):
         records: Sequence[str],
         config: ED,
         ppm: Optional[PreprocManager] = None,
-    ) -> NoReturn:
+    ) -> None:
         """ """
         self.reader = reader
         self.records = records

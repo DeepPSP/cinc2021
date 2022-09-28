@@ -11,7 +11,7 @@ import logging
 import warnings
 from copy import deepcopy
 from datetime import datetime
-from typing import Union, Optional, Any, List, Dict, Tuple, Sequence, NoReturn
+from typing import Union, Optional, Any, List, Dict, Tuple, Sequence
 from numbers import Real
 
 import numpy as np
@@ -198,7 +198,7 @@ class CINC2021Reader(object):
         working_dir: Optional[str] = None,
         verbose: int = 2,
         **kwargs: Any,
-    ) -> NoReturn:
+    ) -> None:
         """
         Parameters
         ----------
@@ -439,7 +439,7 @@ class CINC2021Reader(object):
         sid = int(f"{s2d[prefix]}{'0'*(8-len(n))}{n}")
         return sid
 
-    def _ls_rec(self) -> NoReturn:
+    def _ls_rec(self) -> None:
         """finished, checked,
 
         list all the records and load into `self._all_records`,
@@ -507,7 +507,7 @@ class CINC2021Reader(object):
                 json.dump(to_save, f)
         self._all_records = ED(self._all_records)
 
-    def _aggregate_stats(self, fast: bool = False) -> NoReturn:
+    def _aggregate_stats(self, fast: bool = False) -> None:
         """finished, checked,
 
         aggregate stats on the whole dataset
@@ -651,7 +651,7 @@ class CINC2021Reader(object):
             warnings.warn("the dataframe of stats is empty, try using _aggregate_stats")
         return self._stats
 
-    def _ls_diagnoses_records(self) -> NoReturn:
+    def _ls_diagnoses_records(self) -> None:
         """finished, checked,
 
         list all the records for all diagnoses
@@ -699,7 +699,7 @@ class CINC2021Reader(object):
             self._ls_diagnoses_records()
         return self._diagnoses_records_list
 
-    def _set_logger(self, prefix: Optional[str] = None) -> NoReturn:
+    def _set_logger(self, prefix: Optional[str] = None) -> None:
         """finished, checked,
 
         config the logger,
@@ -1423,7 +1423,7 @@ class CINC2021Reader(object):
         scores: List[Real],
         labels: List[int],
         classes: List[str],
-    ) -> NoReturn:
+    ) -> None:
         """NOT finished, NOT checked, need updating,
 
         TODO: update for the official phase
@@ -1468,7 +1468,7 @@ class CINC2021Reader(object):
         same_range: bool = False,
         waves: Optional[Dict[str, Sequence[int]]] = None,
         **kwargs: Any,
-    ) -> NoReturn:
+    ) -> None:
         """finished, checked, to improve,
 
         plot the signals of a record or external signals (units in μV),
@@ -1757,7 +1757,7 @@ class CINC2021Reader(object):
     @staticmethod
     def get_arrhythmia_knowledge(
         arrhythmias: Union[str, List[str]], **kwargs: Any
-    ) -> NoReturn:
+    ) -> None:
         """finished, checked,
 
         knowledge about ECG features of specific arrhythmias,

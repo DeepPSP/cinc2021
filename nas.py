@@ -1,7 +1,7 @@
 """
 """
 
-from typing import NoReturn, Sequence
+from typing import Sequence
 
 # from torch_ecg.torch_ecg.utils.nas import NAS
 from torch_ecg_bak.torch_ecg.utils.nas import NAS
@@ -24,7 +24,7 @@ class CINC2021NAS(NAS):
         train_config: dict,
         model_configs: Sequence[dict],
         lazy: bool = False,
-    ) -> NoReturn:
+    ) -> None:
         """finished, NOT checked,
 
         Parameters

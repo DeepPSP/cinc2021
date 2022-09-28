@@ -9,7 +9,6 @@ import time
 from datetime import datetime
 from copy import deepcopy
 from logging import Logger
-from typing import NoReturn
 import traceback
 import warnings
 
@@ -221,7 +220,7 @@ def training_code(data_directory, model_directory):
     )
 
 
-def training_n_leads(train_config: ED, model_config: ED, logger: Logger) -> NoReturn:
+def training_n_leads(train_config: ED, model_config: ED, logger: Logger) -> None:
     """ """
     tranches = train_config.tranches_for_training
     if tranches:

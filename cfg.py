@@ -7,7 +7,7 @@ along with some constants
 
 import os
 from copy import deepcopy
-from typing import List, NoReturn
+from typing import List
 
 from easydict import EasyDict as ED
 
@@ -154,7 +154,7 @@ PlotCfg.t_onset = -100
 PlotCfg.t_offset = 60
 
 
-def _assign_classes(cfg: ED, special_classes: List[str]) -> NoReturn:
+def _assign_classes(cfg: ED, special_classes: List[str]) -> None:
     """ """
     cfg.special_classes = deepcopy(special_classes)
     cfg.tranche_class_weights = ED(

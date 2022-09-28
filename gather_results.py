@@ -5,7 +5,7 @@ import os
 import re
 import time
 from copy import deepcopy
-from typing import Sequence, NoReturn, Optional, Any
+from typing import Sequence, Optional, Any
 
 import numpy as np
 import matplotlib as mpl
@@ -118,7 +118,7 @@ def plot_confusion_matrix(
 @torch.no_grad()
 def gather_from_checkpoint(
     path: str, fmts: Sequence[str] = ["svg", "pdf"], dataset: Optional[CINC2021] = None
-) -> NoReturn:
+) -> None:
     """ """
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model, train_config = ECG_CRNN_CINC2021.from_checkpoint(path, device=device)
@@ -273,7 +273,7 @@ def test_inference_speed(path: str, dataset: Optional[CINC2021] = None) -> int:
     return speed
 
 
-def append_model_config_if_needed() -> NoReturn:
+def append_model_config_if_needed() -> None:
     """ """
     results_dir = os.path.join(os.path.dirname(BaseCfg.log_dir), "results")
     results_txt_files = get_record_list_recursive3(results_dir, "TorchECG.*\\.txt")

@@ -10,7 +10,6 @@ import os
 import time
 from datetime import datetime
 from copy import deepcopy
-from typing import NoReturn
 import traceback
 import warnings
 
@@ -255,7 +254,7 @@ def training_code(data_directory, model_directory):
 
 def training_n_leads(
     train_config: ED, model_config: ED, train_dataset: CINC2021, val_dataset: CINC2021
-) -> NoReturn:
+) -> None:
     """ """
     tranches = train_config.tranches_for_training
     if tranches:
@@ -596,7 +595,7 @@ TEST_OUTPUT_DIR = os.path.join(BASE_DIR, "docker_test_dir", "test_output")
 os.makedirs(TEST_OUTPUT_DIR, exist_ok=True)
 
 
-def test_load_model() -> NoReturn:
+def test_load_model() -> None:
     """ """
     for ld in lead_sets:
         try:
@@ -608,7 +607,7 @@ def test_load_model() -> NoReturn:
         print("#" * 80 + "\n\n")
 
 
-def test_run_model() -> NoReturn:
+def test_run_model() -> None:
     """ """
     for ld in [
         "twelve",

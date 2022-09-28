@@ -365,7 +365,7 @@ def train(
     writer.close()
 
 
-# def train_one_epoch(model:nn.Module, criterion:nn.Module, optimizer:optim.Optimizer, data_loader:DataLoader, device:torch.device, epoch:int) -> NoReturn:
+# def train_one_epoch(model:nn.Module, criterion:nn.Module, optimizer:optim.Optimizer, data_loader:DataLoader, device:torch.device, epoch:int) -> None:
 #     """
 #     """
 

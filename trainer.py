@@ -27,7 +27,7 @@ import textwrap
 import argparse
 import logging
 from copy import deepcopy
-from typing import Tuple, Dict, Any, List, NoReturn, Optional
+from typing import Tuple, Dict, Any, List, Optional
 
 import numpy as np
 
@@ -74,7 +74,7 @@ class CINC2021Trainer(BaseTrainer):
         device: Optional[torch.device] = None,
         lazy: bool = True,
         **kwargs: Any,
-    ) -> NoReturn:
+    ) -> None:
         """finished, checked,
 
         Parameters
@@ -112,7 +112,7 @@ class CINC2021Trainer(BaseTrainer):
         self,
         train_dataset: Optional[Dataset] = None,
         val_dataset: Optional[Dataset] = None,
-    ) -> NoReturn:
+    ) -> None:
         """finished, checked,
 
         setup the dataloaders for training and validation
