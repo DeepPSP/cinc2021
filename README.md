@@ -98,4 +98,4 @@ The last entry failed on the 12-lead UMich test data. It is probably because thi
 1. [Link](https://github.com/DeepPSP/cinc2020) to the unsuccessful attemps for CinC2020 of the previous year.
 2. [bib_lookup](https://github.com/DeepPSP/bib_lookup) for looking up bib entries from `DOI`s obtained from [IEEE Xplore](https://ieeexplore.ieee.org/xpl/conhome/9662654/proceeding).
 
-[CinC2020](https://github.com/DeepPSP/cinc2020) | [CinC2022](https://github.com/DeepPSP/cinc2022) | [CinC2023](https://github.com/DeepPSP/cinc2023)
+[CinC2020](https://github.com/DeepPSP/cinc2020) | [CinC2022](https://github.com/DeepPSP/cinc2022) | [CinC2023](https://github.com/DeepPSP/cinc2023) | [CinC2024](https://github.com/wenh06/cinc2024) | [CinC2025](https://github.com/wenh06/cinc2025)
