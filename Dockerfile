@@ -4,14 +4,16 @@
 # FROM nvidia/cuda:11.1.1-devel-ubuntu20.04
 # FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel
 # FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel
+# FROM pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime (py3.9, EOL deps)
 
-# not fit for the original challenge
-FROM pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime
+# not fit for the original challenge anyway; modernized 2026-11-17
+FROM pytorch/pytorch:2.5.1-cuda11.8-cudnn9-runtime
 
 # NOTE: The GPU provided by the Challenge is GPU Tesla T4 with nvidiaDriverVersion: 418.40.04
 # by checking https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html
 # and https://download.pytorch.org/whl/torch_stable.html
-# one should use 1.6.0-cuda10.1
+# one should use 1.6.0-cuda10.1 (cuda10.1 <= driver 418); the modernized
+# image (cuda11.8) matches drivers >= 450, e.g. the newer challenge T4s with 470.82.01
 
 
 ## The MAINTAINER instruction sets the author field of the generated images.
@@ -36,8 +38,8 @@ WORKDIR /physionet
 # latest version of biosppy uses opencv
 # https://stackoverflow.com/questions/55313610/importerror-libgl-so-1-cannot-open-shared-object-file-no-such-file-or-directo
 RUN apt update
-RUN apt install build-essential -y
-RUN apt install ffmpeg libsm6 libxext6 vim -y
+RUN DEBIAN_FRONTEND=noninteractive apt install build-essential -y
+RUN DEBIAN_FRONTEND=noninteractive apt install ffmpeg libsm6 libxext6 vim awscli -y
 
 # RUN apt update && apt install -y --no-install-recommends \
 #         build-essential \
@@ -52,9 +54,9 @@ RUN ln -s /usr/bin/python3 /usr/bin/python && ln -s /usr/bin/pip3 /usr/bin/pip
 # http://mirrors.aliyun.com/pypi/simple/
 # http://pypi.douban.com/simple/
 # RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-# RUN pip install torch==1.8.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
-RUN pip install torch==1.6.0+cu101 -f https://download.pytorch.org/whl/torch_stable.html
-# RUN pip install torch
+# torch comes from the base image (pytorch/pytorch:2.5.1);
+# the old line below is kept for reference only
+# RUN pip install torch==1.6.0+cu101 -f https://download.pytorch.org/whl/torch_stable.html
 ## Include the following line if you have a requirements.txt file.
 RUN pip install -r requirements.txt
 
